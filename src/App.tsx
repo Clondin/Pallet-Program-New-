@@ -1,95 +1,83 @@
-import { useState, useEffect } from 'react';
-import { PalletDisplay } from './components/PalletDisplay';
-import { DisplayBranding, PlacedProduct, GhostProduct, CameraPreset } from './types';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { useEffect } from 'react'
+import { AppLayout } from './components/layout/app-layout'
+import { EditorPage } from './pages/editor-page'
+import { CatalogPage } from './pages/catalog-page'
+import { ProductDetailPage } from './pages/product-detail-page'
+import { RetailersPage } from './pages/retailers-page'
+import { RetailerDetailPage } from './pages/retailer-detail-page'
+import { BrandingPage } from './pages/branding-page'
+import { SettingsPage } from './pages/settings-page'
+import { useDisplayStore } from './stores/display-store'
+import { useCatalogStore } from './stores/catalog-store'
+import { useRetailerStore } from './stores/retailer-store'
+import { useAppSettingsStore } from './stores/app-settings-store'
+import { mockProject, mockProducts, mockRetailers } from './lib/mock-data'
+
+const PROJECT_STORAGE_KEY = 'palletforge-project'
+const CATALOG_STORAGE_KEY = 'palletforge-products'
+const RETAILER_STORAGE_KEY = 'palletforge-retailers'
+
+function loadPersistedState<T>(key: string): T | null {
+  try {
+    const raw = localStorage.getItem(key)
+    return raw ? (JSON.parse(raw) as T) : null
+  } catch {
+    localStorage.removeItem(key)
+    return null
+  }
+}
 
 export default function App() {
-  const [cameraPreset, setCameraPreset] = useState<CameraPreset>('isometric');
-  const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
-
-  const branding: DisplayBranding = {
-    lipText: "HOLIDAY SPECIAL",
-    lipTextColor: "#FFFFFF",
-    headerText: "FESTIVE\nDEALS",
-    headerTextColor: "#FFFFFF",
-    headerBackgroundColor: "#EF4444", // Red header
-  };
-
-  const placedProducts: PlacedProduct[] = [
-    {
-      id: "prod-1",
-      slotId: "tier-0-12",
-      width: 5,
-      height: 12,
-      depth: 5,
-      color: "#F59E0B",
-      label: "Sparkling Cider",
-      sku: "CIDER-750"
-    },
-    {
-      id: "prod-2",
-      slotId: "tier-0-13",
-      width: 5,
-      height: 12,
-      depth: 5,
-      color: "#F59E0B",
-      label: "Sparkling Cider",
-      sku: "CIDER-750"
-    },
-    {
-      id: "prod-3",
-      slotId: "tier-1-8",
-      width: 4,
-      height: 8,
-      depth: 4,
-      color: "#10B981",
-      label: "Mixed Nuts",
-      sku: "NUTS-500"
-    },
-    {
-      id: "prod-4",
-      slotId: "tier-2-4",
-      width: 3,
-      height: 6,
-      depth: 3,
-      color: "#8B5CF6",
-      label: "Chocolates",
-      sku: "CHOC-250"
-    }
-  ];
-
-  const ghostProduct: GhostProduct = {
-    slotId: "tier-1-9",
-    width: 4,
-    height: 8,
-    depth: 4,
-    isValid: true,
-    label: "Place Here"
-  };
-
-  // Cycle camera presets for demonstration
   useEffect(() => {
-    const presets: CameraPreset[] = ['isometric', 'front', 'side', 'top'];
-    let currentIndex = 0;
-    
-    const interval = setInterval(() => {
-      currentIndex = (currentIndex + 1) % presets.length;
-      setCameraPreset(presets[currentIndex]);
-    }, 5000);
+    useCatalogStore
+      .getState()
+      .setProducts(loadPersistedState(CATALOG_STORAGE_KEY) ?? mockProducts)
+    useRetailerStore
+      .getState()
+      .setRetailers(loadPersistedState(RETAILER_STORAGE_KEY) ?? mockRetailers)
+    useDisplayStore
+      .getState()
+      .setCurrentProject(loadPersistedState(PROJECT_STORAGE_KEY) ?? mockProject)
 
-    return () => clearInterval(interval);
-  }, []);
+    const unsubscribeCatalog = useCatalogStore.subscribe((state) => {
+      localStorage.setItem(CATALOG_STORAGE_KEY, JSON.stringify(state.products))
+    })
+
+    const unsubscribeRetailers = useRetailerStore.subscribe((state) => {
+      localStorage.setItem(RETAILER_STORAGE_KEY, JSON.stringify(state.retailers))
+    })
+
+    return () => {
+      unsubscribeCatalog()
+      unsubscribeRetailers()
+    }
+  }, [])
+
+  useEffect(() => {
+    const unsubscribeProject = useDisplayStore.subscribe((state) => {
+      if (!state.currentProject) return
+      if (!useAppSettingsStore.getState().settings.autoSaveProject) return
+      localStorage.setItem(PROJECT_STORAGE_KEY, JSON.stringify(state.currentProject))
+    })
+
+    return () => unsubscribeProject()
+  }, [])
 
   return (
-    <main className="w-full h-screen overflow-hidden bg-gray-100">
-      <PalletDisplay 
-        branding={branding}
-        placedProducts={placedProducts}
-        ghostProduct={ghostProduct}
-        selectedProductId={selectedProductId}
-        onProductClick={(id) => setSelectedProductId(id === selectedProductId ? null : id)}
-        cameraPreset={cameraPreset}
-        lipColor="#1E3A8A" // Dark blue lips
-      />
-    </main>
-  );
+    <BrowserRouter>
+      <Routes>
+        <Route element={<AppLayout />}>
+          <Route path="/editor" element={<EditorPage />} />
+          <Route path="/catalog" element={<CatalogPage />} />
+          <Route path="/catalog/:id" element={<ProductDetailPage />} />
+          <Route path="/retailers" element={<RetailersPage />} />
+          <Route path="/retailers/:id" element={<RetailerDetailPage />} />
+          <Route path="/branding" element={<BrandingPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
+          <Route path="*" element={<Navigate to="/editor" replace />} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
+  )
 }

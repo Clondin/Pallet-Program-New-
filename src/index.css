@@ -1,1 +1,76 @@
 @import "tailwindcss";
+
+/* Custom scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #c3c6d7;
+  border-radius: 10px;
+}
+
+/* ===== PalletForge Design Tokens ===== */
+
+/* Shadow-as-border (Vercel technique) */
+.shadow-border {
+  box-shadow: 0px 0px 0px 1px rgba(0, 0, 0, 0.06);
+}
+
+/* Card elevation — border + soft lift + ambient */
+.shadow-card {
+  box-shadow:
+    0px 0px 0px 1px rgba(0, 0, 0, 0.06),
+    0px 1px 2px rgba(0, 0, 0, 0.04),
+    0px 4px 8px -4px rgba(0, 0, 0, 0.04);
+}
+
+/* Elevated card — Stripe-inspired blue-tinted depth */
+.shadow-card-hover {
+  box-shadow:
+    0px 0px 0px 1px rgba(0, 0, 0, 0.06),
+    0px 4px 12px rgba(50, 50, 93, 0.08),
+    0px 2px 4px rgba(0, 0, 0, 0.04);
+}
+
+/* Featured / floating panels */
+.shadow-elevated {
+  box-shadow:
+    0px 0px 0px 1px rgba(0, 0, 0, 0.06),
+    0px 8px 24px rgba(50, 50, 93, 0.12),
+    0px 4px 8px rgba(0, 0, 0, 0.06);
+}
+
+/* Ring border — lighter variant for images/tabs */
+.shadow-ring {
+  box-shadow: rgb(235, 235, 235) 0px 0px 0px 1px;
+}
+
+/* Tight headline tracking */
+.tracking-display {
+  letter-spacing: -0.04em;
+}
+
+.tracking-heading {
+  letter-spacing: -0.025em;
+}
+
+.tracking-tight-sm {
+  letter-spacing: -0.015em;
+}
+
+/* Tabular numerals for data */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* Gauge ring animation */
+@keyframes gauge-fill {
+  from { stroke-dasharray: 0 100; }
+}
+.animate-gauge {
+  animation: gauge-fill 1s ease-out forwards;
+}

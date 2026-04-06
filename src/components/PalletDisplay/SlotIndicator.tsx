@@ -31,15 +31,17 @@ export const SlotIndicator: React.FC<SlotIndicatorProps> = ({
   const selectedMat = useMemo(() => getSlotMaterialSelected(), []);
 
   return (
-    <group
-      position={position}
-      onPointerOver={(e) => onPointerOver(tierId, slotIndex, position, e)}
-      onPointerOut={onPointerOut}
-      onClick={(e) => onClick(tierId, slotIndex, position, e)}
-    >
+    <group position={position}>
       {/* Invisible hit box for raycasting */}
-      <mesh position={[0, 0.025, 0]} rotation={[-Math.PI / 2, 0, 0]} visible={false}>
+      <mesh
+        position={[0, 0.025, 0]}
+        rotation={[-Math.PI / 2, 0, 0]}
+        onPointerOver={(e) => onPointerOver(tierId, slotIndex, position, e)}
+        onPointerOut={onPointerOut}
+        onClick={(e) => onClick(tierId, slotIndex, position, e)}
+      >
         <planeGeometry args={[width, depth]} />
+        <meshBasicMaterial transparent opacity={0} side={THREE.DoubleSide} />
       </mesh>
       
       {/* Fill for hover/selected */}

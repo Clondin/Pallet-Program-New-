@@ -7,7 +7,7 @@ export const PalletDisplay: React.FC<PalletDisplayProps> = (props) => {
   const initialCameraPosition = props.initialCameraPosition || [72, 48, 72];
 
   return (
-    <div style={{ width: '100%', height: '100vh', background: '#E5E7EB' }}>
+    <div style={{ width: '100%', height: '100%', background: '#E5E7EB' }}>
       <Canvas
         shadows
         camera={{ position: initialCameraPosition, fov: 45 }}

@@ -79,6 +79,11 @@ export function getLipMaterial(color: string = '#3B7DD8') {
     normalScale: new THREE.Vector2(1.5, 1.5),
   });
 
+  if (lipMaterials.size > 20) {
+    const firstKey = lipMaterials.keys().next().value
+    if (firstKey) lipMaterials.delete(firstKey)
+  }
+
   lipMaterials.set(color, mat);
   return mat;
 }

@@ -64,14 +64,14 @@ export const HeaderTopper: React.FC<HeaderTopperProps> = ({
         
         {text && (
           <Text
-            position={[0, height / 2, thickness / 2 + 0.05]}
-            fontSize={4}
+            position={[0, height / 2, thickness / 2 + 0.3]}
+            fontSize={3.5}
             color={textColor}
             anchorX="center"
             anchorY="middle"
-            fontWeight="bold"
-            maxWidth={width - 4}
+            maxWidth={width - 6}
             textAlign="center"
+            depthOffset={-1}
           >
             {text}
           </Text>

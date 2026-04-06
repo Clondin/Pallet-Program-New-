@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useMemo, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Text } from '@react-three/drei';
 import * as THREE from 'three';
@@ -11,6 +11,7 @@ interface GhostProductProps {
 
 export const GhostProduct: React.FC<GhostProductProps> = ({ product, position }) => {
   const groupRef = useRef<THREE.Group>(null);
+  const dashedEdgesRef = useRef<THREE.LineSegments>(null);
 
   // Bobbing animation
   useFrame((state) => {
@@ -18,11 +19,25 @@ export const GhostProduct: React.FC<GhostProductProps> = ({ product, position })
       // 1" amplitude, 2 second period sine wave on Y position
       const time = state.clock.getElapsedTime();
       const yOffset = Math.sin(time * Math.PI) * 1;
-      groupRef.current.position.y = position[1] + 0.5 + yOffset;
+      groupRef.current.position.y = position[1] + yOffset;
     }
   });
 
+  const edgeGeometry = useMemo(
+    () => new THREE.BoxGeometry(product.width, product.height, product.depth),
+    [product.width, product.height, product.depth]
+  )
+
+  const dashedEdgesGeometry = useMemo(
+    () => new THREE.EdgesGeometry(edgeGeometry),
+    [edgeGeometry]
+  )
+
   const color = product.isValid ? '#22C55E' : '#EF4444';
+
+  useEffect(() => {
+    dashedEdgesRef.current?.computeLineDistances()
+  }, [dashedEdgesGeometry])
   
   // Oscillating scale for invalid state
   useFrame((state) => {
@@ -37,7 +52,7 @@ export const GhostProduct: React.FC<GhostProductProps> = ({ product, position })
   });
 
   return (
-    <group ref={groupRef} position={[position[0], position[1] + 0.5, position[2]]}>
+    <group ref={groupRef} position={[position[0], position[1], position[2]]}>
       {/* Semi-transparent box */}
       <mesh position={[0, product.height / 2, 0]}>
         <boxGeometry args={[product.width, product.height, product.depth]} />
@@ -61,8 +76,8 @@ export const GhostProduct: React.FC<GhostProductProps> = ({ product, position })
       </mesh>
 
       {/* Dashed edges */}
-      <lineSegments position={[0, product.height / 2, 0]}>
-        <edgesGeometry args={[new THREE.BoxGeometry(product.width, product.height, product.depth)]} />
+      <lineSegments ref={dashedEdgesRef} position={[0, product.height / 2, 0]}>
+        <primitive object={dashedEdgesGeometry} attach="geometry" />
         <lineDashedMaterial 
           color={color} 
           dashSize={1} 
