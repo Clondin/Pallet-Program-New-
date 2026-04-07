@@ -4,9 +4,10 @@ import { SlotGridItem } from '../../types'
 
 interface GridCellProps {
   slot: SlotGridItem
+  colSpan?: number
 }
 
-export function GridCell({ slot }: GridCellProps) {
+export function GridCell({ slot, colSpan = 1 }: GridCellProps) {
   const currentProject = useDisplayStore(s => s.currentProject)
   const selectedSlotId = useDisplayStore(s => s.selectedSlotId)
   const selectSlot = useDisplayStore(s => s.selectSlot)
@@ -32,7 +33,10 @@ export function GridCell({ slot }: GridCellProps) {
       <div
         onClick={handleClick}
         className="bg-[#f5f5f5]/50 cursor-pointer transition-all group/cell hover:bg-[#f0f0f0]"
-        style={{ border: '1px dashed rgba(0,0,0,0.12)' }}
+        style={{
+          border: '1px dashed rgba(0,0,0,0.12)',
+          gridColumn: colSpan > 1 ? `span ${colSpan}` : undefined,
+        }}
       >
         <div className="flex items-center justify-center h-full opacity-0 group-hover/cell:opacity-100 transition-opacity">
           <Plus size={14} className="text-[#bbb]" />
@@ -50,7 +54,12 @@ export function GridCell({ slot }: GridCellProps) {
           ? 'bg-white shadow-elevated z-10'
           : 'bg-[#f8f8f8] hover:bg-[#f0f0f0]'
       }`}
-      style={isSelected ? { boxShadow: '0 0 0 2px #0a72ef, 0px 4px 12px rgba(50,50,93,0.08)' } : undefined}
+      style={{
+        gridColumn: colSpan > 1 ? `span ${colSpan}` : undefined,
+        ...(isSelected
+          ? { boxShadow: '0 0 0 2px #0a72ef, 0px 4px 12px rgba(50,50,93,0.08)' }
+          : undefined),
+      }}
     >
       {/* Top color bar */}
       <div
@@ -77,11 +86,11 @@ export function GridCell({ slot }: GridCellProps) {
         <img
           src={placement.imageUrl}
           alt={placement.label}
-          className="w-16 h-20 object-contain drop-shadow-md"
+          className={`h-20 object-contain drop-shadow-md ${colSpan > 1 ? 'w-24' : 'w-16'}`}
         />
       ) : (
         <div
-          className="w-14 h-16 rounded flex items-center justify-center"
+          className={`h-16 rounded flex items-center justify-center ${colSpan > 1 ? 'w-full max-w-32' : 'w-14'}`}
           style={{
             backgroundColor: placement.color + '12',
             boxShadow: `inset 0 0 0 1px ${placement.color}30`,

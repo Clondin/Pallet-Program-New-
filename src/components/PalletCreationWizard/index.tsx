@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'motion/react'
 import { ArrowLeft, ArrowRight, Check, X } from 'lucide-react'
 import { useDisplayStore } from '../../stores/display-store'
 import { useRetailerStore } from '../../stores/retailer-store'
+import { useAppSettingsStore } from '../../stores/app-settings-store'
 import type { Holiday, PalletType, RetailerTier } from '../../types'
 
 const SEASONS: { label: string; value: Holiday; icon: string }[] = [
@@ -96,6 +97,7 @@ export function PalletCreationWizard({
   const lastUsedConfig = useDisplayStore((state) => state.lastUsedConfig)
   const createProject = useDisplayStore((state) => state.createProject)
   const retailers = useRetailerStore((state) => state.retailers)
+  const appSettings = useAppSettingsStore((s) => s.settings)
 
   const retailerSelectionRequired = !pinnedRetailerId
   const steps = retailerSelectionRequired
@@ -105,9 +107,11 @@ export function PalletCreationWizard({
   const [step, setStep] = useState(0)
   const [direction, setDirection] = useState(1)
   const [palletType, setPalletType] = useState<PalletType>(
-    lastUsedConfig?.palletType ?? 'full'
+    lastUsedConfig?.palletType ?? appSettings.defaultPalletType
   )
-  const [season, setSeason] = useState<Holiday>(lastUsedConfig?.season ?? 'none')
+  const [season, setSeason] = useState<Holiday>(
+    lastUsedConfig?.season ?? appSettings.defaultHoliday
+  )
   const [retailerId, setRetailerId] = useState<string>(
     pinnedRetailerId ?? lastUsedConfig?.retailerId ?? ''
   )
@@ -127,8 +131,8 @@ export function PalletCreationWizard({
     const nextRetailerId = pinnedRetailerId ?? lastUsedConfig?.retailerId ?? ''
     setStep(0)
     setDirection(1)
-    setPalletType(lastUsedConfig?.palletType ?? 'full')
-    setSeason(lastUsedConfig?.season ?? 'none')
+    setPalletType(lastUsedConfig?.palletType ?? appSettings.defaultPalletType)
+    setSeason(lastUsedConfig?.season ?? appSettings.defaultHoliday)
     setRetailerId(nextRetailerId)
   }, [open, lastUsedConfig, pinnedRetailerId])
 

@@ -52,6 +52,7 @@ export const PalletDisplayScene: React.FC<PalletDisplayProps> = ({
   // Calculate ghost product position if needed
   const ghostPosition = useMemo(() => {
     if (!ghostProduct) return null;
+    if (ghostProduct.worldPosition) return ghostProduct.worldPosition;
 
     const platformThickness = 1;
     const palletHeight = 6;
@@ -170,6 +171,8 @@ export const PalletDisplayScene: React.FC<PalletDisplayProps> = ({
         <PlacedProducts
           products={placedProducts}
           tiers={tiers}
+          palletType={palletType}
+          palletDimensions={effectiveDimensions}
           selectedProductId={selectedProductId}
           onProductClick={onProductClick}
           onRotateProduct={onRotateProduct}
@@ -177,7 +180,24 @@ export const PalletDisplayScene: React.FC<PalletDisplayProps> = ({
         />
 
         {ghostProduct && ghostPosition && (
-          <GhostProduct product={ghostProduct} position={ghostPosition} />
+          <>
+            <GhostProduct product={ghostProduct} position={ghostPosition} />
+            {ghostProduct.suggestionMarkers?.map((marker, index) => (
+              <mesh
+                key={`${marker.message}-${index}`}
+                position={[marker.position[0], marker.position[1] + 1.5, marker.position[2]]}
+              >
+                <sphereGeometry args={[0.4, 18, 18]} />
+                <meshStandardMaterial
+                  color="#2563EB"
+                  emissive="#2563EB"
+                  emissiveIntensity={0.5}
+                  transparent
+                  opacity={0.85}
+                />
+              </mesh>
+            ))}
+          </>
         )}
       </group>
 

@@ -111,6 +111,11 @@ export function AddProductForm({ onClose }: AddProductFormProps) {
             </div>
           </div>
           <div className="col-span-4 flex gap-2 pt-2">
+            <div className="w-full text-[11px] text-[#777] mb-1">
+              Adding a product creates the single SKU plus auto-generated 6-pack, 12-pack, and 24-pack case variants.
+            </div>
+          </div>
+          <div className="col-span-4 flex gap-2">
             <button onClick={handleSubmit}
               className="flex items-center gap-1.5 px-4 py-2 bg-[#171717] text-white text-[12px] font-medium rounded-md hover:bg-[#333] transition-colors">
               <Save className="w-3 h-3" /> Add Product

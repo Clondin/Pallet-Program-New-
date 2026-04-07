@@ -4,6 +4,7 @@ import {
   PlacedProduct,
   GhostProduct,
   Product,
+  FullValidationResult,
   CameraPreset,
   ViewMode,
   DisplayBranding,
@@ -15,6 +16,15 @@ import {
 import { getAppSettingsSnapshot } from './app-settings-store'
 import { nextOrientation } from '../lib/orientation-presets'
 import { useRetailerStore } from './retailer-store'
+import { useCatalogStore } from './catalog-store'
+import { getEffectiveColSpan } from '../lib/colSpanCalculator'
+import { resolveProductDimensions } from '../lib/dimensionEngine'
+import {
+  buildTierConfigs,
+  createDefaultWallConfigs,
+  derivePlacementFromSlotId,
+} from '../lib/shelfCoordinates'
+import { validatePlacement } from '../lib/spatialValidator'
 
 interface DisplayState {
   projects: DisplayProject[]
@@ -38,7 +48,7 @@ interface DisplayState {
   getProjectsForRetailer: (retailerId: string) => DisplayProject[]
   selectProject: (id: string) => void
   setCurrentProject: (project: DisplayProject) => void
-  placeProduct: (product: Product, slotId: string) => void
+  placeProduct: (product: Product, slotId: string) => FullValidationResult | undefined
   rotateProduct: (placementId: string) => void
   removeProduct: (placementId: string) => void
   moveProduct: (placementId: string, newSlotId: string) => void
@@ -77,6 +87,36 @@ function hydrateSelectionState() {
     viewMode: settings.defaultViewMode,
     activeFace: settings.defaultFace,
     cameraPreset: settings.defaultCameraPreset,
+  }
+}
+
+function buildValidationContext(state: DisplayState) {
+  if (!state.currentProject) return null
+
+  const retailer = useRetailerStore.getState().getRetailer(state.currentProject.retailerId)
+  if (!retailer) return null
+
+  const settings = getAppSettingsSnapshot()
+  const tierConfigs = buildTierConfigs(
+    state.currentProject.tierCount,
+    retailer.maxDisplayHeight,
+    state.currentProject.palletType,
+  )
+  const wallConfigs = createDefaultWallConfigs(
+    state.currentProject.palletType,
+    settings.editorGridColumns,
+  )
+
+  return {
+    palletConfig: {
+      base: retailer.palletDimensions,
+      maxWeight: 2500,
+    },
+    palletType: state.currentProject.palletType,
+    tierConfigs,
+    wallConfigs,
+    existingPlacements: state.currentProject.placements,
+    allProducts: useCatalogStore.getState().products,
   }
 }
 
@@ -128,7 +168,7 @@ export const useDisplayStore = create<DisplayState>((set, get) => ({
       season: config.season,
       tierCount,
       palletType: config.palletType,
-      lipColor: '#1E3A8A',
+      lipColor: settings.defaultLipColor,
       branding: {
         lipText: config.season === 'none' ? '' : 'ALL YOUR HOLIDAY NEEDS',
         lipTextColor: '#FFFFFF',
@@ -206,9 +246,58 @@ export const useDisplayStore = create<DisplayState>((set, get) => ({
     const state = get()
     if (!state.currentProject) return
 
+    const context = buildValidationContext(state)
+    if (!context) return
+
+    const derivedPlacement = derivePlacementFromSlotId(
+      slotId,
+      context.tierConfigs,
+      state.currentProject.palletType,
+    )
+
+    if (!derivedPlacement) {
+      return {
+        valid: false,
+        errors: [{ rule: 'slot', reason: `Slot ${slotId} could not be resolved.` }],
+        warnings: [],
+        suggestions: [],
+      }
+    }
+
     const existingIndex = state.currentProject.placements.findIndex(
       (placement) => placement.slotId === slotId
     )
+    const ignoredPlacementId =
+      existingIndex >= 0 ? state.currentProject.placements[existingIndex].id : undefined
+
+    const displayMode = 'face-out' as const
+    const colSpan = getEffectiveColSpan(
+      product,
+      displayMode,
+      context.wallConfigs[derivedPlacement.wall],
+      derivedPlacement.wall,
+      context.palletConfig,
+      context.allProducts,
+    )
+    const validation = validatePlacement(
+      product,
+      {
+        wall: derivedPlacement.wall,
+        tier: derivedPlacement.tier,
+        gridCol: derivedPlacement.gridCol,
+        colSpan,
+        quantity: 1,
+        displayMode,
+      },
+      context,
+      ignoredPlacementId,
+    )
+
+    if (!validation.valid) {
+      return validation
+    }
+
+    const dimensions = resolveProductDimensions(product, context.allProducts)
     const filteredPlacements =
       existingIndex >= 0
         ? state.currentProject.placements.filter((placement) => placement.slotId !== slotId)
@@ -216,16 +305,24 @@ export const useDisplayStore = create<DisplayState>((set, get) => ({
 
     const placement: PlacedProduct = {
       id: crypto.randomUUID(),
+      sourceProductId: product.id,
       slotId,
-      width: product.width,
-      height: product.height,
-      depth: product.depth,
+      width: dimensions.width,
+      height: dimensions.height,
+      depth: dimensions.depth,
       color: product.brandColor,
       label: product.name,
       sku: product.sku,
       imageUrl: product.imageUrl,
       modelUrl: product.modelUrl,
       packaging: product.packaging,
+      caseConfig: product.caseConfig,
+      wall: derivedPlacement.wall,
+      tier: derivedPlacement.tier,
+      gridCol: derivedPlacement.gridCol,
+      colSpan,
+      quantity: 1,
+      displayMode,
     }
 
     const nextProject = {
@@ -239,6 +336,8 @@ export const useDisplayStore = create<DisplayState>((set, get) => ({
       isPickerOpen: false,
       pickerSelectedProduct: null,
     })
+
+    return validation
   },
 
   rotateProduct: (placementId) => {

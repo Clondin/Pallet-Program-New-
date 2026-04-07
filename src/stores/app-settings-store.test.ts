@@ -27,10 +27,46 @@ describe('app-settings-store', () => {
     })
   })
 
+  it('clamps tier count between 2 and 6', () => {
+    useAppSettingsStore.getState().updateSettings({ defaultTierCount: 0 })
+    expect(getAppSettingsSnapshot().defaultTierCount).toBe(2)
+
+    useAppSettingsStore.getState().updateSettings({ defaultTierCount: 10 })
+    expect(getAppSettingsSnapshot().defaultTierCount).toBe(6)
+
+    useAppSettingsStore.getState().updateSettings({ defaultTierCount: 4 })
+    expect(getAppSettingsSnapshot().defaultTierCount).toBe(4)
+  })
+
+  it('persists new general and pallet default fields', () => {
+    useAppSettingsStore.getState().updateSettings({
+      companyName: 'KAYCO',
+      defaultBrand: 'kedem',
+      unitSystem: 'metric',
+      defaultPalletType: 'half',
+      defaultHoliday: 'pesach',
+      defaultLipColor: '#FF0000',
+    })
+
+    const snapshot = getAppSettingsSnapshot()
+    expect(snapshot.companyName).toBe('KAYCO')
+    expect(snapshot.defaultBrand).toBe('kedem')
+    expect(snapshot.unitSystem).toBe('metric')
+    expect(snapshot.defaultPalletType).toBe('half')
+    expect(snapshot.defaultHoliday).toBe('pesach')
+    expect(snapshot.defaultLipColor).toBe('#FF0000')
+
+    const persisted = JSON.parse(localStorage.getItem(APP_SETTINGS_STORAGE_KEY)!)
+    expect(persisted.companyName).toBe('KAYCO')
+    expect(persisted.defaultLipColor).toBe('#FF0000')
+  })
+
   it('resets settings back to defaults', () => {
     useAppSettingsStore.getState().updateSettings({
       autoSaveProject: false,
       defaultFace: 'right',
+      companyName: 'Test Corp',
+      defaultBrand: 'tuscanini',
     })
 
     useAppSettingsStore.getState().resetSettings()

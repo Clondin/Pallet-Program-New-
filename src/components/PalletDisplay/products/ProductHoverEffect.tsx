@@ -9,6 +9,8 @@ interface ProductHoverEffectProps {
   productWidth: number
   productHeight: number
   productDepth: number
+  position: [number, number, number]
+  rotation?: [number, number, number]
   onRotate?: () => void
   onDuplicate?: () => void
   onDelete?: () => void
@@ -21,6 +23,8 @@ export const ProductHoverEffect: React.FC<ProductHoverEffectProps> = ({
   productWidth,
   productHeight,
   productDepth,
+  position,
+  rotation = [0, 0, 0],
   onRotate,
   onDuplicate,
   onDelete,
@@ -46,7 +50,7 @@ export const ProductHoverEffect: React.FC<ProductHoverEffectProps> = ({
   })
 
   return (
-    <group>
+    <group position={position} rotation={rotation}>
       {children}
 
       {/* Hover outline */}

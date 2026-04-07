@@ -4,6 +4,7 @@ import * as THREE from 'three'
 import { PlacedProduct } from '../../../types'
 import { BasicBoxProduct } from './BasicBoxProduct'
 import { TexturedBoxProduct } from './TexturedBoxProduct'
+import { buildScaledModelClone } from './caseUtils'
 
 interface GlbProductModelProps {
   product: PlacedProduct
@@ -25,58 +26,15 @@ const GlbModelInner: React.FC<GlbProductModelProps> = ({
   const gltf = useGLTF(product.modelUrl!)
 
   const scaledScene = useMemo(() => {
-    const clone = gltf.scene.clone()
-
-    // Compute bounding box
-    const bbox = new THREE.Box3().setFromObject(clone)
-    const modelSize = new THREE.Vector3()
-    bbox.getSize(modelSize)
-
-    // Prevent division by zero
-    if (modelSize.x === 0 || modelSize.y === 0 || modelSize.z === 0) return clone
-
-    const scaleX = product.width / modelSize.x
-    const scaleY = product.height / modelSize.y
-    const scaleZ = product.depth / modelSize.z
-
-    // Box-shaped packaging: non-uniform, organic: uniform
-    const isBoxLike = product.packaging === 'box' || product.packaging === 'tin'
-
-    if (isBoxLike) {
-      clone.scale.set(scaleX, scaleY, scaleZ)
-    } else {
-      const uniformScale = Math.min(scaleX, scaleY, scaleZ)
-      clone.scale.set(uniformScale, uniformScale, uniformScale)
-    }
-
-    // Re-center: bottom at y=0, centered horizontally
-    const newBbox = new THREE.Box3().setFromObject(clone)
-    clone.position.y -= newBbox.min.y
-
-    const newCenter = new THREE.Vector3()
-    newBbox.getCenter(newCenter)
-    clone.position.x -= newCenter.x
-    clone.position.z -= newCenter.z
-
-    // Fix AI-generated material issues
-    clone.traverse((child) => {
-      if (child instanceof THREE.Mesh && child.material) {
-        const mat = child.material as THREE.MeshStandardMaterial
-        if (mat.roughness !== undefined) {
-          mat.roughness = Math.max(mat.roughness, 0.5)
-        }
-        if (mat.metalness !== undefined) {
-          mat.metalness = Math.min(mat.metalness, 0.1)
-        }
-        if (mat.envMapIntensity !== undefined) {
-          mat.envMapIntensity = 0.3
-        }
-        child.castShadow = true
-        child.receiveShadow = true
-      }
+    return buildScaledModelClone({
+      scene: gltf.scene,
+      packaging: product.packaging,
+      targetDimensions: {
+        width: product.width,
+        height: product.height,
+        depth: product.depth,
+      },
     })
-
-    return clone
   }, [gltf.scene, product.width, product.height, product.depth, product.packaging])
 
   return (

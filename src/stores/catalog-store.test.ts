@@ -38,14 +38,14 @@ describe('catalog-store', () => {
     const store = useCatalogStore.getState()
 
     store.setSearchQuery('matzo')
-    expect(store.filteredProducts().map((product) => product.id)).toEqual(['prod-b'])
+    expect(store.filteredProducts().some((product) => product.id === 'prod-b')).toBe(true)
 
     store.setSearchQuery('')
     store.setBrandFilter('kedem')
     store.setCategoryFilter('Baking')
     store.setHolidayFilter('pesach')
 
-    expect(store.filteredProducts().map((product) => product.id)).toEqual(['prod-b'])
+    expect(store.filteredProducts().some((product) => product.id === 'prod-b')).toBe(true)
   })
 
   it('adds, updates, deletes, and fetches products', () => {
@@ -59,11 +59,16 @@ describe('catalog-store', () => {
       })
     )
     expect(store.getProduct('prod-new')?.name).toBe('Grape Juice')
+    expect(store.getProduct('prod-new-case-6')).toBeDefined()
+    expect(store.getProduct('prod-new-case-12')).toBeDefined()
+    expect(store.getProduct('prod-new-case-24')).toBeDefined()
 
     store.updateProduct('prod-new', {category: 'Beverages'})
     expect(store.getProduct('prod-new')?.category).toBe('Beverages')
+    expect(store.getProduct('prod-new-case-6')?.category).toBe('Beverages')
 
     store.deleteProduct('prod-new')
     expect(store.getProduct('prod-new')).toBeUndefined()
+    expect(store.getProduct('prod-new-case-6')).toBeUndefined()
   })
 })

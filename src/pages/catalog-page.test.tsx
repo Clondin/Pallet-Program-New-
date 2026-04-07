@@ -17,8 +17,10 @@ describe('CatalogPage', () => {
     expect(screen.getByText(/products in workspace/i)).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', {name: 'Holiday Tagged'}))
+    await user.type(screen.getByPlaceholderText('Search by name, SKU or brand...'), 'Matzo Ball Mix')
     expect(screen.getByText('Matzo Ball Mix')).toBeInTheDocument()
 
+    await user.clear(screen.getByPlaceholderText('Search by name, SKU or brand...'))
     await user.click(screen.getByRole('button', {name: 'All Products'}))
     await user.type(screen.getByPlaceholderText('Search by name, SKU or brand...'), 'Tea Biscuits')
     expect(screen.getByText('Tea Biscuits')).toBeInTheDocument()
@@ -34,8 +36,10 @@ describe('CatalogPage', () => {
     await user.click(screen.getByRole('button', {name: /Add Product/i}))
 
     expect(useCatalogStore.getState().products.some((product) => product.name === 'New Honey Cake')).toBe(true)
+    expect(useCatalogStore.getState().products.some((product) => product.sku === 'CAKE-123-CASE6')).toBe(true)
 
     await user.type(screen.getByPlaceholderText('Search by name, SKU or brand...'), 'New Honey Cake')
     expect(screen.getByText('New Honey Cake')).toBeInTheDocument()
+    expect(screen.getByText('New Honey Cake (6-Pack)')).toBeInTheDocument()
   })
 })

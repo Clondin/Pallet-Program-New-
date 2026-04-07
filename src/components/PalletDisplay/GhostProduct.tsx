@@ -52,7 +52,11 @@ export const GhostProduct: React.FC<GhostProductProps> = ({ product, position })
   });
 
   return (
-    <group ref={groupRef} position={[position[0], position[1], position[2]]}>
+    <group
+      ref={groupRef}
+      position={[position[0], position[1], position[2]]}
+      rotation={product.rotation ?? [0, 0, 0]}
+    >
       {/* Semi-transparent box */}
       <mesh position={[0, product.height / 2, 0]}>
         <boxGeometry args={[product.width, product.height, product.depth]} />
@@ -97,6 +101,20 @@ export const GhostProduct: React.FC<GhostProductProps> = ({ product, position })
           anchorY="middle"
         >
           {product.label}
+        </Text>
+      )}
+
+      {!product.isValid && product.errorReason && (
+        <Text
+          position={[0, product.height + 2, 0]}
+          fontSize={1}
+          color="#FCA5A5"
+          maxWidth={Math.max(product.width * 2, 18)}
+          textAlign="center"
+          anchorX="center"
+          anchorY="middle"
+        >
+          {product.errorReason}
         </Text>
       )}
     </group>

@@ -1,37 +1,77 @@
 import { create } from 'zustand'
 import type {
+  Brand,
   CameraPreset,
   DisplayEnvironment,
+  Holiday,
+  PalletType,
   TrayFace,
+  UnitSystem,
   ViewMode,
 } from '../types'
 
 const APP_SETTINGS_STORAGE_KEY = 'palletforge-app-settings'
 
 export interface AppSettings {
-  autoSaveProject: boolean
+  // General
+  companyName: string
+  defaultBrand: Brand | ''
+  unitSystem: UnitSystem
+
+  // Pallet Defaults
+  defaultPalletType: PalletType
+  defaultTierCount: number
+  defaultHoliday: Holiday
+  defaultLipColor: string
+
+  // Editor
   defaultViewMode: ViewMode
   defaultFace: TrayFace
   defaultCameraPreset: CameraPreset
   editorGridColumns: number
+
+  // 3D Viewer
   show3DSlotGrid: boolean
   show3DHeader: boolean
   displayEnvironment: DisplayEnvironment
+
+  // Data
+  autoSaveProject: boolean
 }
 
 const DEFAULT_SETTINGS: AppSettings = {
-  autoSaveProject: true,
+  // General
+  companyName: '',
+  defaultBrand: '',
+  unitSystem: 'imperial',
+
+  // Pallet Defaults
+  defaultPalletType: 'full',
+  defaultTierCount: 4,
+  defaultHoliday: 'none',
+  defaultLipColor: '#1E3A8A',
+
+  // Editor
   defaultViewMode: '2d',
   defaultFace: 'front',
   defaultCameraPreset: 'isometric',
   editorGridColumns: 6,
+
+  // 3D Viewer
   show3DSlotGrid: true,
   show3DHeader: true,
   displayEnvironment: 'retail',
+
+  // Data
+  autoSaveProject: true,
 }
 
 function clampGridColumns(value: number) {
   return Math.min(8, Math.max(4, Math.round(value)))
+}
+
+function clampTierCount(value: number) {
+  return Math.min(6, Math.max(2, Math.round(value)))
 }
 
 function sanitizeSettings(
@@ -42,6 +82,9 @@ function sanitizeSettings(
     ...partial,
     editorGridColumns: clampGridColumns(
       partial?.editorGridColumns ?? DEFAULT_SETTINGS.editorGridColumns
+    ),
+    defaultTierCount: clampTierCount(
+      partial?.defaultTierCount ?? DEFAULT_SETTINGS.defaultTierCount
     ),
   }
 }

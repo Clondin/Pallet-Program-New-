@@ -1,4 +1,8 @@
 import type { Product, Retailer, DisplayProject, Brand } from '../types'
+import {
+  calculateCaseDimensions,
+  getCaseWeight,
+} from '../components/PalletDisplay/products/caseUtils'
 
 export const BRAND_COLORS: Record<Brand, string> = {
   tuscanini: '#1B4D3E',
@@ -8,6 +12,15 @@ export const BRAND_COLORS: Record<Brand, string> = {
   haddar: '#1E3A8A',
   osem: '#059669',
 }
+
+const kedemCase6Layout = { cols: 3, rows: 2, layers: 1 } as const
+const kedemCase12Layout = { cols: 4, rows: 3, layers: 1 } as const
+const kedemCase24Layout = { cols: 4, rows: 3, layers: 2 } as const
+
+const kedemBottleDimensions = { width: 3.5, height: 10, depth: 3.5 }
+const kedemCase6Dimensions = calculateCaseDimensions(kedemBottleDimensions, kedemCase6Layout)
+const kedemCase12Dimensions = calculateCaseDimensions(kedemBottleDimensions, kedemCase12Layout)
+const kedemCase24Dimensions = calculateCaseDimensions(kedemBottleDimensions, kedemCase24Layout)
 
 export const mockProducts: Product[] = [
   // Tuscanini
@@ -94,6 +107,69 @@ export const mockProducts: Product[] = [
     holidayTags: ['rosh-hashanah'],
   },
   {
+    id: 'prod-6-case-6',
+    name: 'Concord Grape Juice 1L (6-Pack)',
+    sku: 'KED-CGJ-1L-CS6',
+    brand: 'kedem',
+    brandColor: BRAND_COLORS.kedem,
+    category: 'Beverages',
+    width: kedemCase6Dimensions.width,
+    height: kedemCase6Dimensions.height,
+    depth: kedemCase6Dimensions.depth,
+    weight: Number(getCaseWeight(2.4, kedemCase6Layout).toFixed(1)),
+    packaging: 'box',
+    caseConfig: {
+      unitProductId: 'prod-6',
+      layout: kedemCase6Layout,
+      caseStyle: 'open-top',
+      innerPadding: 0.25,
+      dividers: true,
+    },
+    holidayTags: ['rosh-hashanah'],
+  },
+  {
+    id: 'prod-6-case-12',
+    name: 'Concord Grape Juice 1L (12-Pack)',
+    sku: 'KED-CGJ-1L-CS12',
+    brand: 'kedem',
+    brandColor: BRAND_COLORS.kedem,
+    category: 'Beverages',
+    width: kedemCase12Dimensions.width,
+    height: kedemCase12Dimensions.height,
+    depth: kedemCase12Dimensions.depth,
+    weight: Number(getCaseWeight(2.4, kedemCase12Layout).toFixed(1)),
+    packaging: 'box',
+    caseConfig: {
+      unitProductId: 'prod-6',
+      layout: kedemCase12Layout,
+      caseStyle: 'open-top',
+      innerPadding: 0.25,
+      dividers: true,
+    },
+    holidayTags: ['rosh-hashanah'],
+  },
+  {
+    id: 'prod-6-case-24',
+    name: 'Concord Grape Juice 1L (24-Pack)',
+    sku: 'KED-CGJ-1L-CS24',
+    brand: 'kedem',
+    brandColor: BRAND_COLORS.kedem,
+    category: 'Beverages',
+    width: kedemCase24Dimensions.width,
+    height: kedemCase24Dimensions.height,
+    depth: kedemCase24Dimensions.depth,
+    weight: Number(getCaseWeight(2.4, kedemCase24Layout).toFixed(1)),
+    packaging: 'box',
+    caseConfig: {
+      unitProductId: 'prod-6',
+      layout: kedemCase24Layout,
+      caseStyle: 'closed',
+      innerPadding: 0.25,
+      dividers: true,
+    },
+    holidayTags: ['rosh-hashanah'],
+  },
+  {
     id: 'prod-7',
     name: 'Apple Juice 64oz',
     sku: 'KED-AJ-64',
@@ -117,6 +193,8 @@ export const mockProducts: Product[] = [
     height: 3,
     depth: 2,
     weight: 0.5,
+    modelUrl: '/models/kedem-tea-biscuits.glb',
+    packaging: 'box',
     holidayTags: [],
   },
 
@@ -340,7 +418,11 @@ export const mockRetailers: Retailer[] = [
       { productId: 'prod-1', productName: 'Extra Virgin Olive Oil 750ml', sku: 'TUS-EVOO-750', brand: 'tuscanini', status: 'authorized', authorizedDate: '2024-03-01', lastOrderDate: '2026-03-15', avgMonthlyUnits: 2400, marginPercent: 34.2 },
       { productId: 'prod-5', productName: 'Sparkling Grape Juice 750ml', sku: 'KED-SGJ-750', brand: 'kedem', status: 'authorized', authorizedDate: '2024-01-15', lastOrderDate: '2026-03-20', avgMonthlyUnits: 5200, marginPercent: 28.5 },
       { productId: 'prod-6', productName: 'Concord Grape Juice 1L', sku: 'KED-CGJ-1L', brand: 'kedem', status: 'authorized', authorizedDate: '2024-01-15', lastOrderDate: '2026-03-18', avgMonthlyUnits: 4100, marginPercent: 26.8 },
+      { productId: 'prod-6-case-6', productName: 'Concord Grape Juice 1L (6-Pack)', sku: 'KED-CGJ-1L-CS6', brand: 'kedem', status: 'authorized', authorizedDate: '2025-10-01', lastOrderDate: '2026-03-20', avgMonthlyUnits: 1200, marginPercent: 24.9 },
+      { productId: 'prod-6-case-12', productName: 'Concord Grape Juice 1L (12-Pack)', sku: 'KED-CGJ-1L-CS12', brand: 'kedem', status: 'authorized', authorizedDate: '2025-10-01', lastOrderDate: '2026-03-18', avgMonthlyUnits: 900, marginPercent: 23.5 },
+      { productId: 'prod-6-case-24', productName: 'Concord Grape Juice 1L (24-Pack)', sku: 'KED-CGJ-1L-CS24', brand: 'kedem', status: 'authorized', authorizedDate: '2025-10-01', lastOrderDate: '2026-03-16', avgMonthlyUnits: 480, marginPercent: 22.1 },
       { productId: 'prod-7', productName: 'Apple Juice 64oz', sku: 'KED-AJ-64', brand: 'kedem', status: 'authorized', authorizedDate: '2024-06-01', lastOrderDate: '2026-02-28', avgMonthlyUnits: 3800, marginPercent: 31.0 },
+      { productId: 'prod-8', productName: 'Tea Biscuits', sku: 'KED-TBSC-1', brand: 'kedem', status: 'authorized', authorizedDate: '2024-09-15', lastOrderDate: '2026-03-10', avgMonthlyUnits: 1600, marginPercent: 42.0 },
       { productId: 'prod-17', productName: 'Canola Oil 32oz', sku: 'HAD-CAN-32', brand: 'haddar', status: 'authorized', authorizedDate: '2025-01-10', lastOrderDate: '2026-03-12', avgMonthlyUnits: 1900, marginPercent: 22.4 },
       { productId: 'prod-19', productName: 'Honey 16oz', sku: 'HAD-HON-16', brand: 'haddar', status: 'authorized', authorizedDate: '2024-08-01', lastOrderDate: '2026-03-22', avgMonthlyUnits: 6100, marginPercent: 38.7 },
       { productId: 'prod-20', productName: 'Pearl Couscous Original', sku: 'OSE-COU-1', brand: 'osem', status: 'authorized', authorizedDate: '2025-02-01', lastOrderDate: '2026-03-10', avgMonthlyUnits: 1200, marginPercent: 29.5 },
@@ -392,6 +474,8 @@ export const mockRetailers: Retailer[] = [
       { productId: 'prod-1', productName: 'Extra Virgin Olive Oil 750ml', sku: 'TUS-EVOO-750', brand: 'tuscanini', status: 'authorized', authorizedDate: '2024-06-15', lastOrderDate: '2026-03-10', avgMonthlyUnits: 4800, marginPercent: 29.1 },
       { productId: 'prod-5', productName: 'Sparkling Grape Juice 750ml', sku: 'KED-SGJ-750', brand: 'kedem', status: 'authorized', authorizedDate: '2024-06-15', lastOrderDate: '2026-03-22', avgMonthlyUnits: 7200, marginPercent: 24.5 },
       { productId: 'prod-6', productName: 'Concord Grape Juice 1L', sku: 'KED-CGJ-1L', brand: 'kedem', status: 'authorized', authorizedDate: '2024-06-15', lastOrderDate: '2026-03-18', avgMonthlyUnits: 6500, marginPercent: 23.2 },
+      { productId: 'prod-8', productName: 'Tea Biscuits', sku: 'KED-TBSC-1', brand: 'kedem', status: 'authorized', authorizedDate: '2024-09-15', lastOrderDate: '2026-03-10', avgMonthlyUnits: 1600, marginPercent: 42.0 },
+      { productId: 'prod-6-case-24', productName: 'Concord Grape Juice 1L (24-Pack)', sku: 'KED-CGJ-1L-CS24', brand: 'kedem', status: 'authorized', authorizedDate: '2025-11-15', lastOrderDate: '2026-03-21', avgMonthlyUnits: 750, marginPercent: 21.8 },
       { productId: 'prod-21', productName: 'Bamba Peanut Snack', sku: 'OSE-BAM-1', brand: 'osem', status: 'authorized', authorizedDate: '2025-01-10', lastOrderDate: '2026-03-20', avgMonthlyUnits: 12000, marginPercent: 38.9 },
       { productId: 'prod-19', productName: 'Honey 16oz', sku: 'HAD-HON-16', brand: 'haddar', status: 'authorized', authorizedDate: '2024-09-01', lastOrderDate: '2026-03-15', avgMonthlyUnits: 8400, marginPercent: 35.2 },
       { productId: 'prod-2', productName: 'Balsamic Vinegar Bronze 250ml', sku: 'TUS-BALS-250', brand: 'tuscanini', status: 'pending', authorizedDate: '2026-02-20', avgMonthlyUnits: 0, marginPercent: 36.8 },
@@ -440,6 +524,7 @@ export const mockRetailers: Retailer[] = [
       { productId: 'prod-4', productName: 'Tomato Sauce 680g', sku: 'TUS-TOM-680', brand: 'tuscanini', status: 'authorized', authorizedDate: '2024-04-01', lastOrderDate: '2026-03-22', avgMonthlyUnits: 2200, marginPercent: 37.8 },
       { productId: 'prod-5', productName: 'Sparkling Grape Juice 750ml', sku: 'KED-SGJ-750', brand: 'kedem', status: 'authorized', authorizedDate: '2024-04-01', lastOrderDate: '2026-03-21', avgMonthlyUnits: 3800, marginPercent: 30.1 },
       { productId: 'prod-6', productName: 'Concord Grape Juice 1L', sku: 'KED-CGJ-1L', brand: 'kedem', status: 'authorized', authorizedDate: '2024-04-01', lastOrderDate: '2026-03-19', avgMonthlyUnits: 3100, marginPercent: 28.7 },
+      { productId: 'prod-6-case-6', productName: 'Concord Grape Juice 1L (6-Pack)', sku: 'KED-CGJ-1L-CS6', brand: 'kedem', status: 'authorized', authorizedDate: '2025-10-20', lastOrderDate: '2026-03-20', avgMonthlyUnits: 640, marginPercent: 25.1 },
       { productId: 'prod-8', productName: 'Tea Biscuits', sku: 'KED-TBSC-1', brand: 'kedem', status: 'authorized', authorizedDate: '2024-09-15', lastOrderDate: '2026-03-10', avgMonthlyUnits: 1600, marginPercent: 42.0 },
       { productId: 'prod-9', productName: 'Whole Hearts of Palm 14oz', sku: 'GEF-HOP-14', brand: 'gefen', status: 'authorized', authorizedDate: '2024-04-01', lastOrderDate: '2026-03-12', avgMonthlyUnits: 780, marginPercent: 25.9 },
       { productId: 'prod-10', productName: 'Apricot Fruit Spread 400g', sku: 'GEF-APR-400', brand: 'gefen', status: 'authorized', authorizedDate: '2024-08-01', lastOrderDate: '2026-02-28', avgMonthlyUnits: 620, marginPercent: 34.1 },
@@ -494,6 +579,7 @@ export const mockRetailers: Retailer[] = [
     authorizedItems: [
       { productId: 'prod-5', productName: 'Sparkling Grape Juice 750ml', sku: 'KED-SGJ-750', brand: 'kedem', status: 'authorized', authorizedDate: '2025-01-15', lastOrderDate: '2026-03-18', avgMonthlyUnits: 1900, marginPercent: 29.8 },
       { productId: 'prod-6', productName: 'Concord Grape Juice 1L', sku: 'KED-CGJ-1L', brand: 'kedem', status: 'authorized', authorizedDate: '2025-01-15', lastOrderDate: '2026-03-15', avgMonthlyUnits: 1600, marginPercent: 27.5 },
+      { productId: 'prod-8', productName: 'Tea Biscuits', sku: 'KED-TBSC-1', brand: 'kedem', status: 'authorized', authorizedDate: '2024-09-15', lastOrderDate: '2026-03-10', avgMonthlyUnits: 1600, marginPercent: 42.0 },
       { productId: 'prod-19', productName: 'Honey 16oz', sku: 'HAD-HON-16', brand: 'haddar', status: 'authorized', authorizedDate: '2025-03-01', lastOrderDate: '2026-03-20', avgMonthlyUnits: 2200, marginPercent: 37.4 },
       { productId: 'prod-21', productName: 'Bamba Peanut Snack', sku: 'OSE-BAM-1', brand: 'osem', status: 'authorized', authorizedDate: '2025-06-01', lastOrderDate: '2026-03-19', avgMonthlyUnits: 3100, marginPercent: 41.2 },
       { productId: 'prod-1', productName: 'Extra Virgin Olive Oil 750ml', sku: 'TUS-EVOO-750', brand: 'tuscanini', status: 'pending', authorizedDate: '2026-03-10', avgMonthlyUnits: 0, marginPercent: 35.0 },
@@ -536,6 +622,7 @@ export const mockRetailers: Retailer[] = [
     authorizedItems: [
       { productId: 'prod-1', productName: 'Extra Virgin Olive Oil 750ml', sku: 'TUS-EVOO-750', brand: 'tuscanini', status: 'authorized', authorizedDate: '2025-06-15', lastOrderDate: '2026-03-18', avgMonthlyUnits: 1400, marginPercent: 33.8 },
       { productId: 'prod-5', productName: 'Sparkling Grape Juice 750ml', sku: 'KED-SGJ-750', brand: 'kedem', status: 'authorized', authorizedDate: '2025-06-15', lastOrderDate: '2026-03-20', avgMonthlyUnits: 2800, marginPercent: 27.9 },
+      { productId: 'prod-8', productName: 'Tea Biscuits', sku: 'KED-TBSC-1', brand: 'kedem', status: 'authorized', authorizedDate: '2024-09-15', lastOrderDate: '2026-03-10', avgMonthlyUnits: 1600, marginPercent: 42.0 },
       { productId: 'prod-19', productName: 'Honey 16oz', sku: 'HAD-HON-16', brand: 'haddar', status: 'authorized', authorizedDate: '2025-08-01', lastOrderDate: '2026-03-15', avgMonthlyUnits: 3200, marginPercent: 36.5 },
       { productId: 'prod-21', productName: 'Bamba Peanut Snack', sku: 'OSE-BAM-1', brand: 'osem', status: 'authorized', authorizedDate: '2025-09-01', lastOrderDate: '2026-03-22', avgMonthlyUnits: 4600, marginPercent: 40.8 },
       { productId: 'prod-4', productName: 'Tomato Sauce 680g', sku: 'TUS-TOM-680', brand: 'tuscanini', status: 'pending', authorizedDate: '2026-03-01', avgMonthlyUnits: 0, marginPercent: 34.2 },
@@ -575,6 +662,7 @@ export const mockRetailers: Retailer[] = [
     authorizedItems: [
       { productId: 'prod-1', productName: 'Extra Virgin Olive Oil 750ml', sku: 'TUS-EVOO-750', brand: 'tuscanini', status: 'pending', authorizedDate: '2026-04-01', avgMonthlyUnits: 0, marginPercent: 38.5 },
       { productId: 'prod-2', productName: 'Balsamic Vinegar Bronze 250ml', sku: 'TUS-BALS-250', brand: 'tuscanini', status: 'pending', authorizedDate: '2026-04-01', avgMonthlyUnits: 0, marginPercent: 41.2 },
+      { productId: 'prod-8', productName: 'Tea Biscuits', sku: 'KED-TBSC-1', brand: 'kedem', status: 'authorized', authorizedDate: '2024-09-15', lastOrderDate: '2026-03-10', avgMonthlyUnits: 1600, marginPercent: 42.0 },
       { productId: 'prod-20', productName: 'Pearl Couscous Original', sku: 'OSE-COU-1', brand: 'osem', status: 'pending', authorizedDate: '2026-04-01', avgMonthlyUnits: 0, marginPercent: 33.0 },
       { productId: 'prod-22', productName: 'Bartenura Gnocchi 500g', sku: 'TUS-GNO-500', brand: 'tuscanini', status: 'authorized', authorizedDate: '2025-06-01', lastOrderDate: '2026-03-20', avgMonthlyUnits: 1800, marginPercent: 35.0 },
     ],
@@ -609,6 +697,7 @@ export const mockRetailers: Retailer[] = [
     authorizedItems: [
       { productId: 'prod-19', productName: 'Honey 16oz', sku: 'HAD-HON-16', brand: 'haddar', status: 'discontinued', authorizedDate: '2023-03-01', lastOrderDate: '2025-10-15', avgMonthlyUnits: 0, marginPercent: 19.5 },
       { productId: 'prod-17', productName: 'Canola Oil 32oz', sku: 'HAD-CAN-32', brand: 'haddar', status: 'discontinued', authorizedDate: '2023-03-01', lastOrderDate: '2025-09-30', avgMonthlyUnits: 0, marginPercent: 16.8 },
+      { productId: 'prod-8', productName: 'Tea Biscuits', sku: 'KED-TBSC-1', brand: 'kedem', status: 'authorized', authorizedDate: '2024-09-15', lastOrderDate: '2026-03-10', avgMonthlyUnits: 1600, marginPercent: 42.0 },
       { productId: 'prod-22', productName: 'Bartenura Gnocchi 500g', sku: 'TUS-GNO-500', brand: 'tuscanini', status: 'authorized', authorizedDate: '2025-06-01', lastOrderDate: '2026-03-20', avgMonthlyUnits: 1800, marginPercent: 35.0 },
     ],
     compliance: [

@@ -1,11 +1,21 @@
 import React, { useMemo, useEffect } from 'react'
 import { useGLTF } from '@react-three/drei'
-import { PlacedProduct, TierConfig } from '../../types'
+import { PlacedProduct, TierConfig, PalletType } from '../../types'
 import { ProductRenderer } from './products/ProductRenderer'
+import { useCatalogStore } from '../../stores/catalog-store'
+import { useAppSettingsStore } from '../../stores/app-settings-store'
+import {
+  createDefaultWallConfigs,
+  derivePlacementFromSlotId,
+  getShelfPosition,
+} from '../../lib/shelfCoordinates'
 
 interface PlacedProductsProps {
   products: PlacedProduct[]
   tiers: TierConfig[]
+  palletType?: PalletType
+  palletDimensions?: { width: number; depth: number; height: number }
+  palletBaseHeight?: number
   selectedProductId?: string | null
   onProductClick?: (productId: string) => void
   onRotateProduct?: (productId: string) => void
@@ -15,110 +25,107 @@ interface PlacedProductsProps {
 export const PlacedProducts: React.FC<PlacedProductsProps> = ({
   products,
   tiers,
+  palletType = 'full',
+  palletDimensions = { width: 48, depth: 40, height: 6 },
+  palletBaseHeight = 6,
   selectedProductId,
   onProductClick,
   onRotateProduct,
   onDeleteProduct,
 }) => {
+  const catalogProducts = useCatalogStore((state) => state.products)
+  const editorGridColumns = useAppSettingsStore((state) => state.settings.editorGridColumns)
+
   // Preload all .glb models
   useEffect(() => {
-    const modelUrls = products
-      .map((p) => p.modelUrl)
-      .filter((url): url is string => !!url)
+    const productMap = new Map(
+      catalogProducts.map((catalogProduct) => [catalogProduct.id, catalogProduct])
+    )
+
+    const modelUrls = products.flatMap((product) => {
+      const urls: string[] = []
+      if (product.modelUrl) {
+        urls.push(product.modelUrl)
+      }
+
+      const unitModelUrl = product.caseConfig
+        ? productMap.get(product.caseConfig.unitProductId)?.modelUrl
+        : undefined
+
+      if (unitModelUrl) {
+        urls.push(unitModelUrl)
+      }
+
+      return urls
+    })
 
     const uniqueUrls = [...new Set(modelUrls)]
     uniqueUrls.forEach((url) => useGLTF.preload(url))
-  }, [products])
+  }, [catalogProducts, products])
 
-  // Map slotIds to world positions
-  const slotPositions = useMemo(() => {
-    const positions = new Map<string, [number, number, number]>()
-    const platformThickness = 1
-
-    tiers.forEach((tier) => {
-      const gridSize = tier.slotGridSize
-
-      const frontTrayWidth = tier.width
-      const frontTrayDepth = tier.shelfDepth
-      const frontCols = Math.floor(frontTrayWidth / gridSize)
-      const frontRows = Math.floor(frontTrayDepth / gridSize)
-      const frontStartX = -(frontCols * gridSize) / 2 + gridSize / 2
-      const frontCenterZ = tier.depth / 2 - frontTrayDepth / 2
-      const frontStartZ = frontCenterZ - (frontRows * gridSize) / 2 + gridSize / 2
-
-      let slotIndex = 0
-
-      // Front tray
-      for (let r = 0; r < frontRows; r++) {
-        for (let c = 0; c < frontCols; c++) {
-          positions.set(`${tier.id}-${slotIndex++}`, [
-            frontStartX + c * gridSize,
-            tier.yOffset + platformThickness,
-            frontStartZ + r * gridSize,
-          ])
-        }
-      }
-
-      // Back tray
-      const backCenterZ = -tier.depth / 2 + frontTrayDepth / 2
-      const backStartZ = backCenterZ - (frontRows * gridSize) / 2 + gridSize / 2
-      for (let r = 0; r < frontRows; r++) {
-        for (let c = 0; c < frontCols; c++) {
-          positions.set(`${tier.id}-${slotIndex++}`, [
-            frontStartX + c * gridSize,
-            tier.yOffset + platformThickness,
-            backStartZ + r * gridSize,
-          ])
-        }
-      }
-
-      // Left tray
-      const sideTrayWidth = tier.shelfDepth
-      const sideTrayDepth = tier.depth - frontTrayDepth * 2
-      const sideCols = Math.floor(sideTrayWidth / gridSize)
-      const sideRows = Math.floor(sideTrayDepth / gridSize)
-      const leftCenterX = -tier.width / 2 + sideTrayWidth / 2
-      const leftStartX = leftCenterX - (sideCols * gridSize) / 2 + gridSize / 2
-      const sideStartZ = -(sideRows * gridSize) / 2 + gridSize / 2
-
-      for (let r = 0; r < sideRows; r++) {
-        for (let c = 0; c < sideCols; c++) {
-          positions.set(`${tier.id}-${slotIndex++}`, [
-            leftStartX + c * gridSize,
-            tier.yOffset + platformThickness,
-            sideStartZ + r * gridSize,
-          ])
-        }
-      }
-
-      // Right tray
-      const rightCenterX = tier.width / 2 - sideTrayWidth / 2
-      const rightStartX = rightCenterX - (sideCols * gridSize) / 2 + gridSize / 2
-      for (let r = 0; r < sideRows; r++) {
-        for (let c = 0; c < sideCols; c++) {
-          positions.set(`${tier.id}-${slotIndex++}`, [
-            rightStartX + c * gridSize,
-            tier.yOffset + platformThickness,
-            sideStartZ + r * gridSize,
-          ])
-        }
-      }
-    })
-
-    return positions
-  }, [tiers])
+  const wallConfigs = useMemo(
+    () => createDefaultWallConfigs(palletType, editorGridColumns),
+    [editorGridColumns, palletType],
+  )
 
   return (
-    <group position={[0, 6, 0]}>
+    <group>
       {products.map((product) => {
-        const position = slotPositions.get(product.slotId)
-        if (!position) return null
+        const placement =
+          product.wall && product.tier && product.gridCol !== undefined
+            ? {
+                wall: product.wall,
+                tier: product.tier,
+                gridCol: product.gridCol,
+                colSpan: product.colSpan ?? 1,
+                displayMode: product.displayMode ?? 'face-out',
+              }
+            : (() => {
+                const derived = derivePlacementFromSlotId(
+                  product.slotId,
+                  tiers,
+                  palletType,
+                )
+                if (!derived) return null
+                return {
+                  wall: derived.wall,
+                  tier: derived.tier,
+                  gridCol: derived.gridCol,
+                  colSpan: product.colSpan ?? 1,
+                  displayMode: product.displayMode ?? 'face-out',
+                }
+              })()
+
+        if (!placement) return null
+
+        const shelfPosition = getShelfPosition(
+          placement,
+          {
+            width: product.width,
+            height: product.height,
+            depth: product.depth,
+            source: 'manual',
+          },
+          {
+            base: palletDimensions,
+            maxWeight: 2500,
+          },
+          tiers,
+          wallConfigs[placement.wall],
+        )
+        const position: [number, number, number] = [
+          shelfPosition.position[0],
+          shelfPosition.position[1],
+          shelfPosition.position[2],
+        ]
 
         return (
           <ProductRenderer
             key={product.id}
             product={product}
+            products={catalogProducts}
             position={position}
+            rotation={shelfPosition.rotation}
             isSelected={product.id === selectedProductId}
             onClick={() => onProductClick?.(product.id)}
             onRotate={() => onRotateProduct?.(product.id)}

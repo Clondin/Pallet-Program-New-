@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useEffect } from 'react'
-import { DisplayProject } from './types'
+import { DisplayProject, Product, Retailer } from './types'
 import { AppLayout } from './components/layout/app-layout'
 import { EditorPage } from './pages/editor-page'
 import { CatalogPage } from './pages/catalog-page'
@@ -31,14 +31,95 @@ function loadPersistedState<T>(key: string): T | null {
   }
 }
 
+function mergeCatalogProducts(
+  persistedProducts: Product[] | null,
+  fallbackProducts: Product[]
+) {
+  if (!persistedProducts) return fallbackProducts
+
+  const fallbackMap = new Map(
+    fallbackProducts.map((product) => [product.id, product])
+  )
+
+  const merged = persistedProducts.map((product) => {
+    const fallbackProduct = fallbackMap.get(product.id)
+    if (!fallbackProduct) return product
+
+    return {
+      ...fallbackProduct,
+      ...product,
+    }
+  })
+
+  const persistedIds = new Set(persistedProducts.map((product) => product.id))
+
+  fallbackProducts.forEach((product) => {
+    if (!persistedIds.has(product.id)) {
+      merged.push(product)
+    }
+  })
+
+  return merged
+}
+
+function mergeRetailers(
+  persistedRetailers: Retailer[] | null,
+  fallbackRetailers: Retailer[]
+) {
+  if (!persistedRetailers) return fallbackRetailers
+
+  const fallbackMap = new Map(
+    fallbackRetailers.map((retailer) => [retailer.id, retailer])
+  )
+
+  const mergedRetailers = persistedRetailers.map((retailer) => {
+    const fallbackRetailer = fallbackMap.get(retailer.id)
+    if (!fallbackRetailer) return retailer
+
+    const authorizedItems = [...retailer.authorizedItems]
+    const authorizedIds = new Set(
+      retailer.authorizedItems.map((item) => item.productId)
+    )
+
+    fallbackRetailer.authorizedItems.forEach((item) => {
+      if (!authorizedIds.has(item.productId)) {
+        authorizedItems.push(item)
+      }
+    })
+
+    return {
+      ...retailer,
+      authorizedItems,
+    }
+  })
+
+  const persistedIds = new Set(persistedRetailers.map((retailer) => retailer.id))
+  fallbackRetailers.forEach((retailer) => {
+    if (!persistedIds.has(retailer.id)) {
+      mergedRetailers.push(retailer)
+    }
+  })
+
+  return mergedRetailers
+}
+
 export default function App() {
   useEffect(() => {
+    const catalogProducts = mergeCatalogProducts(
+      loadPersistedState(CATALOG_STORAGE_KEY),
+      mockProducts
+    )
+    const retailers = mergeRetailers(
+      loadPersistedState(RETAILER_STORAGE_KEY),
+      mockRetailers
+    )
+
     useCatalogStore
       .getState()
-      .setProducts(loadPersistedState(CATALOG_STORAGE_KEY) ?? mockProducts)
+      .setProducts(catalogProducts)
     useRetailerStore
       .getState()
-      .setRetailers(loadPersistedState(RETAILER_STORAGE_KEY) ?? mockRetailers)
+      .setRetailers(retailers)
     const persistedProjects = loadPersistedState<DisplayProject[]>(PALLETS_STORAGE_KEY)
     const legacyProject = loadPersistedState<DisplayProject>(PROJECT_STORAGE_KEY)
     const projects = persistedProjects ?? (legacyProject ? [legacyProject] : mockProjects)

@@ -5,9 +5,6 @@ import {
   Search,
   Building2,
   ArrowUpDown,
-  Store,
-  DollarSign,
-  Package,
 } from 'lucide-react'
 import { useRetailerStore } from '../stores/retailer-store'
 import { RetailerCard } from '../components/Retailers/retailer-card'
@@ -66,20 +63,6 @@ export function RetailersPage() {
     return result
   }, [retailers, searchQuery, statusFilter, tierFilter, sortBy])
 
-  const stats = useMemo(() => {
-    const active = retailers.filter((r) => r.status === 'active')
-    return {
-      totalRetailers: retailers.length,
-      activeRetailers: active.length,
-      totalRevenue: active.reduce((sum, r) => sum + r.performance.totalRevenueYTD, 0),
-      totalStores: active.reduce((sum, r) => sum + r.storeCount, 0),
-      totalAuthorizedItems: active.reduce(
-        (sum, r) => sum + r.authorizedItems.filter((i) => i.status === 'authorized').length,
-        0
-      ),
-    }
-  }, [retailers])
-
   function handleAdd() {
     setEditingRetailerId(null)
     setIsFormOpen(true)
@@ -117,22 +100,16 @@ export function RetailersPage() {
     navigate(`/retailers/${id}`)
   }
 
-  function fmtCurrency(value: number) {
-    if (value >= 1000000) return `$${(value / 1000000).toFixed(1)}M`
-    if (value >= 1000) return `$${(value / 1000).toFixed(0)}K`
-    return `$${value}`
-  }
-
   return (
     <div className="px-10 py-10 max-w-[1600px]">
       {/* Header */}
-      <div className="flex items-start justify-between mb-10">
+      <div className="flex items-center justify-between mb-8">
         <div>
           <h2 className="text-[28px] font-semibold tracking-display text-[#171717]">
             Retailers
           </h2>
-          <p className="text-[14px] text-[#666] mt-1">
-            Manage retail accounts, authorized items, and display configurations
+          <p className="text-[13px] text-[#888] mt-1">
+            {retailers.length} accounts
           </p>
         </div>
         <button
@@ -144,38 +121,7 @@ export function RetailersPage() {
         </button>
       </div>
 
-      {/* Summary Stats — shadow-as-border, no CSS borders */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
-        {[
-          { icon: Store, label: 'Active Retailers', value: String(stats.activeRetailers), sub: `${stats.totalRetailers} total`, color: '#0a72ef' },
-          { icon: DollarSign, label: 'YTD Revenue', value: fmtCurrency(stats.totalRevenue), sub: 'across active accounts', color: '#15803d' },
-          { icon: Building2, label: 'Store Reach', value: stats.totalStores.toLocaleString(), sub: 'locations served', color: '#7c3aed' },
-          { icon: Package, label: 'Active SKUs', value: String(stats.totalAuthorizedItems), sub: 'authorized items', color: '#b45309' },
-        ].map((stat) => (
-          <div
-            key={stat.label}
-            className="shadow-card bg-white rounded-lg p-5 hover:shadow-card-hover transition-shadow duration-200"
-          >
-            <div className="flex items-center gap-2.5 mb-3">
-              <div
-                className="w-7 h-7 rounded-md flex items-center justify-center"
-                style={{ backgroundColor: `${stat.color}0a` }}
-              >
-                <stat.icon className="w-3.5 h-3.5" style={{ color: stat.color }} />
-              </div>
-              <span className="text-[11px] font-medium uppercase tracking-wider text-[#888]">
-                {stat.label}
-              </span>
-            </div>
-            <p className="text-[22px] font-semibold tracking-heading text-[#171717] tabular-nums">
-              {stat.value}
-            </p>
-            <p className="text-[12px] text-[#999] mt-0.5">{stat.sub}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* Filters — refined, no heavy borders */}
+      {/* Filters */}
       <div className="flex flex-wrap items-center gap-3 mb-6">
         <div className="relative flex-1 min-w-[220px] max-w-[360px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#999]" />
@@ -183,12 +129,11 @@ export function RetailersPage() {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search retailers, cities, managers..."
+            placeholder="Search retailers..."
             className="w-full pl-9 pr-4 py-2 text-[13px] shadow-border rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-[#0a72ef]/30 focus:shadow-none placeholder:text-[#aaa]"
           />
         </div>
 
-        {/* Status segmented control */}
         <div className="flex items-center shadow-ring rounded-md overflow-hidden">
           {STATUS_FILTERS.map(({ value, label }) => (
             <button
@@ -205,7 +150,6 @@ export function RetailersPage() {
           ))}
         </div>
 
-        {/* Tier select */}
         <select
           value={tierFilter}
           onChange={(e) => setTierFilter(e.target.value as RetailerTier | 'all')}
@@ -217,7 +161,6 @@ export function RetailersPage() {
           <option value="standard">Standard</option>
         </select>
 
-        {/* Sort */}
         <div className="ml-auto flex items-center gap-1.5">
           <ArrowUpDown className="w-3 h-3 text-[#999]" />
           <select
@@ -233,11 +176,6 @@ export function RetailersPage() {
         </div>
       </div>
 
-      {/* Count */}
-      <p className="text-[11px] text-[#999] mb-5">
-        {filteredRetailers.length} of {retailers.length} retailers
-      </p>
-
       {/* Grid */}
       {filteredRetailers.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 text-center">
@@ -252,7 +190,7 @@ export function RetailersPage() {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
           {filteredRetailers.map((retailer) => (
             <RetailerCard
               key={retailer.id}

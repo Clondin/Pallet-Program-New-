@@ -5,6 +5,7 @@ import {useAppSettingsStore} from './stores/app-settings-store'
 import {useCatalogStore} from './stores/catalog-store'
 import {useDisplayStore} from './stores/display-store'
 import {useRetailerStore} from './stores/retailer-store'
+import {mockProducts, mockRetailers} from './lib/mock-data'
 import {makeProduct, makeProject, makeRetailer} from './test/test-utils'
 
 vi.mock('./components/layout/app-layout', async () => {
@@ -41,8 +42,22 @@ vi.mock('./pages/settings-page', () => ({
 }))
 
 describe('App', () => {
-  it('hydrates catalog, retailers, and the current pallet from localStorage', async () => {
-    const persistedProducts = [makeProduct({id: 'prod-persisted', name: 'Persisted Product'})]
+  it('hydrates persisted data while merging in missing mock products and authorizations', async () => {
+    const persistedProducts = [
+      makeProduct({id: 'prod-persisted', name: 'Persisted Product'}),
+      makeProduct({
+        id: 'prod-8',
+        name: 'Tea Biscuits',
+        sku: 'KED-TBSC-1',
+        brand: 'kedem',
+        brandColor: '#991B1B',
+        category: 'Snacks',
+        width: 6,
+        height: 3,
+        depth: 2,
+        weight: 0.5,
+      }),
+    ]
     const persistedRetailers = [makeRetailer({id: 'ret-persisted', name: 'Persisted Retailer'})]
     const persistedProject = makeProject({
       id: 'proj-persisted',
@@ -58,8 +73,17 @@ describe('App', () => {
     render(<App />)
 
     await waitFor(() => {
-      expect(useCatalogStore.getState().products).toEqual(persistedProducts)
-      expect(useRetailerStore.getState().retailers).toEqual(persistedRetailers)
+      const catalogProducts = useCatalogStore.getState().products
+      expect(catalogProducts.length).toBeGreaterThan(mockProducts.length)
+      expect(catalogProducts.some((product) => product.id === 'prod-persisted')).toBe(true)
+      expect(useCatalogStore.getState().getProduct('prod-8')?.modelUrl).toBe(
+        '/models/kedem-tea-biscuits.glb'
+      )
+      expect(useCatalogStore.getState().getProduct('prod-8')?.packaging).toBe('box')
+      expect(useRetailerStore.getState().retailers).toEqual([
+        ...persistedRetailers,
+        ...mockRetailers,
+      ])
       expect(useDisplayStore.getState().projects).toEqual([persistedProject])
       expect(useDisplayStore.getState().currentProject).toEqual(persistedProject)
     })
