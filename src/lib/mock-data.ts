@@ -603,7 +603,9 @@ export const mockProject: DisplayProject = {
   name: 'RH 2026 — Walmart',
   retailerId: 'ret-1',
   holiday: 'rosh-hashanah',
+  season: 'rosh-hashanah',
   tierCount: 4,
+  palletType: 'full',
   lipColor: '#1E3A8A',
   branding: {
     lipText: 'ALL YOUR HOLIDAY NEEDS',

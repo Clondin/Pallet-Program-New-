@@ -12,6 +12,7 @@ import { PlacedProducts } from './PlacedProducts';
 
 export const PalletDisplayScene: React.FC<PalletDisplayProps> = ({
   tierCount = 4,
+  palletType = 'full',
   palletDimensions = { width: 48, depth: 40, height: 6 },
   maxDisplayHeight = 60,
   lipColor = '#3B7DD8',
@@ -29,8 +30,13 @@ export const PalletDisplayScene: React.FC<PalletDisplayProps> = ({
   showHeader = true,
   environment = 'retail',
 }) => {
-  const tiers = useTierConfig(tierCount, maxDisplayHeight);
-  
+  const isHalf = palletType === 'half';
+  const effectiveDimensions = isHalf
+    ? { ...palletDimensions, depth: palletDimensions.depth / 2 }
+    : palletDimensions;
+
+  const tiers = useTierConfig(tierCount, maxDisplayHeight, palletType);
+
   const {
     hoveredSlot,
     selectedSlot,
@@ -44,10 +50,10 @@ export const PalletDisplayScene: React.FC<PalletDisplayProps> = ({
   // Calculate ghost product position if needed
   const ghostPosition = useMemo(() => {
     if (!ghostProduct) return null;
-    
+
     const platformThickness = 1;
     const palletHeight = 6;
-    
+
     for (const tier of tiers) {
       const gridSize = tier.slotGridSize;
       const frontTrayWidth = tier.width;
@@ -73,6 +79,9 @@ export const PalletDisplayScene: React.FC<PalletDisplayProps> = ({
           slotIndex++;
         }
       }
+
+      // Half pallets only have front slots
+      if (isHalf) continue;
 
       // Back tray
       const backCenterZ = -tier.depth / 2 + frontTrayDepth / 2;
@@ -129,21 +138,22 @@ export const PalletDisplayScene: React.FC<PalletDisplayProps> = ({
       }
     }
     return null;
-  }, [ghostProduct, tiers]);
+  }, [ghostProduct, tiers, isHalf]);
 
   return (
     <>
       <RetailEnvironment environmentType={environment} />
-      
+
       <group position={[0, 0, 0]}>
         <Pallet
-          width={palletDimensions.width}
-          depth={palletDimensions.depth}
-          height={palletDimensions.height}
+          width={effectiveDimensions.width}
+          depth={effectiveDimensions.depth}
+          height={effectiveDimensions.height}
         />
-        
+
         <DisplayStructure
           tiers={tiers}
+          palletType={palletType}
           lipColor={lipColor}
           branding={branding}
           showSlotGrid={showSlotGrid}
@@ -155,9 +165,9 @@ export const PalletDisplayScene: React.FC<PalletDisplayProps> = ({
           onClick={handleClick}
         />
 
-        <PlacedProducts 
-          products={placedProducts} 
-          tiers={tiers} 
+        <PlacedProducts
+          products={placedProducts}
+          tiers={tiers}
           selectedProductId={selectedProductId}
           onProductClick={onProductClick}
         />

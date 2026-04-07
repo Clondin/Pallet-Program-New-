@@ -1,10 +1,11 @@
 import React from 'react';
-import { TierConfig, DisplayBranding } from '../../types';
+import { TierConfig, DisplayBranding, PalletType } from '../../types';
 import { Tier } from './Tier';
 import { HeaderTopper } from './HeaderTopper';
 
 interface DisplayStructureProps {
   tiers: TierConfig[];
+  palletType?: PalletType;
   lipColor?: string;
   branding?: DisplayBranding;
   showSlotGrid?: boolean;
@@ -18,6 +19,7 @@ interface DisplayStructureProps {
 
 export const DisplayStructure: React.FC<DisplayStructureProps> = ({
   tiers,
+  palletType = 'full',
   lipColor,
   branding,
   showSlotGrid,
@@ -40,6 +42,7 @@ export const DisplayStructure: React.FC<DisplayStructureProps> = ({
         <Tier
           key={tier.id}
           config={tier}
+          palletType={palletType}
           lipColor={lipColor}
           branding={branding}
           showSlotGrid={showSlotGrid}
@@ -52,8 +55,8 @@ export const DisplayStructure: React.FC<DisplayStructureProps> = ({
       ))}
 
       {showHeader && (
-        <HeaderTopper 
-          yPosition={totalHeight} 
+        <HeaderTopper
+          yPosition={totalHeight}
           text={branding?.headerText}
           textColor={branding?.headerTextColor}
           backgroundColor={branding?.headerBackgroundColor}

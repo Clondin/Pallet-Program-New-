@@ -29,40 +29,32 @@ const HOLIDAY_LABELS: Record<string, string> = {
   none: 'Year-round',
 }
 const HOLIDAY_COLORS: Record<string, { color: string; bg: string }> = {
-  'rosh-hashanah': { color: '#166534', bg: '#dcfce7' },
-  pesach: { color: '#1d4ed8', bg: '#dbeafe' },
-  sukkos: { color: '#b45309', bg: '#fef3c7' },
-  none: { color: '#475569', bg: '#e2e8f0' },
+  'rosh-hashanah': { color: '#15803d', bg: '#f0fdf4' },
+  pesach: { color: '#0a72ef', bg: '#eff6ff' },
+  sukkos: { color: '#b45309', bg: '#fffbeb' },
+  none: { color: '#666', bg: '#f5f5f5' },
 }
 const dimensionFields = ['width', 'height', 'depth', 'weight'] as const
 
+type Tab = 'overview' | 'edit' | 'retailers' | 'related'
+
+const TABS: { value: Tab; label: string }[] = [
+  { value: 'overview', label: 'Overview' },
+  { value: 'edit', label: 'Edit Profile' },
+  { value: 'retailers', label: 'Retailers' },
+  { value: 'related', label: 'Related' },
+]
+
 function getSeasonality(product: Product) {
-  if (product.holidayTags.length === 0) {
-    return 'Evergreen item with year-round merchandising flexibility.'
-  }
-
-  if (product.holidayTags.length === 1) {
-    return `Seasonal driver aligned to ${HOLIDAY_LABELS[product.holidayTags[0]]}.`
-  }
-
-  return `Cross-season item used across ${product.holidayTags
-    .map((holiday) => HOLIDAY_LABELS[holiday])
-    .join(' and ')}.`
+  if (product.holidayTags.length === 0) return 'Evergreen item with year-round merchandising flexibility.'
+  if (product.holidayTags.length === 1) return `Seasonal driver aligned to ${HOLIDAY_LABELS[product.holidayTags[0]]}.`
+  return `Cross-season item used across ${product.holidayTags.map((h) => HOLIDAY_LABELS[h]).join(' and ')}.`
 }
 
 function getStackingGuidance(product: Product) {
-  if (product.weight >= 4) {
-    return 'Heavy case. Best suited for lower tiers or center-support positions.'
-  }
-
-  if (product.height >= 10) {
-    return 'Tall case. Works best away from header sightlines and with stable neighboring items.'
-  }
-
-  if (product.width <= 3) {
-    return 'Narrow footprint. Useful for filling gaps and balancing mixed-brand displays.'
-  }
-
+  if (product.weight >= 4) return 'Heavy case. Best suited for lower tiers or center-support positions.'
+  if (product.height >= 10) return 'Tall case. Works best away from header sightlines and with stable neighboring items.'
+  if (product.width <= 3) return 'Narrow footprint. Useful for filling gaps and balancing mixed-brand displays.'
   return 'Standard case. Flexible placement across most shelf tiers.'
 }
 
@@ -78,6 +70,8 @@ export function ProductDetailPage() {
   const updateProduct = useCatalogStore((s) => s.updateProduct)
   const deleteProduct = useCatalogStore((s) => s.deleteProduct)
   const retailers = useRetailerStore((s) => s.retailers)
+
+  const [activeTab, setActiveTab] = useState<Tab>('overview')
   const [isEditing, setIsEditing] = useState(false)
 
   const [form, setForm] = useState(() => ({
@@ -95,11 +89,9 @@ export function ProductDetailPage() {
   const retailerCoverage = useMemo(() => {
     if (!product) return []
     return retailers
-      .map((retailer) => {
-        const item = retailer.authorizedItems.find(
-          (authorizedItem) => authorizedItem.productId === product.id
-        )
-        return item ? { retailer, item } : null
+      .map((r) => {
+        const item = r.authorizedItems.find((ai) => ai.productId === product.id)
+        return item ? { retailer: r, item } : null
       })
       .filter(Boolean)
   }, [product, retailers]) as {
@@ -110,11 +102,8 @@ export function ProductDetailPage() {
   const relatedProducts = useMemo(() => {
     if (!product) return []
     return products
-      .filter((candidate) => candidate.id !== product.id)
-      .filter(
-        (candidate) =>
-          candidate.brand === product.brand || candidate.category === product.category
-      )
+      .filter((c) => c.id !== product.id)
+      .filter((c) => c.brand === product.brand || c.category === product.category)
       .slice(0, 4)
   }, [product, products])
 
@@ -124,14 +113,9 @@ export function ProductDetailPage() {
   useEffect(() => {
     if (!product) return
     setForm({
-      name: product.name,
-      sku: product.sku,
-      brand: product.brand,
-      category: product.category,
-      width: product.width,
-      height: product.height,
-      depth: product.depth,
-      weight: product.weight,
+      name: product.name, sku: product.sku, brand: product.brand,
+      category: product.category, width: product.width, height: product.height,
+      depth: product.depth, weight: product.weight,
       holiday: product.holidayTags[0] ?? 'none',
     })
     setIsEditing(false)
@@ -140,17 +124,15 @@ export function ProductDetailPage() {
   if (!product) {
     return (
       <div className="px-10 py-16 max-w-5xl mx-auto">
-        <div className="bg-white rounded-2xl border border-slate-200 p-10 text-center">
-          <Package className="w-10 h-10 text-slate-300 mx-auto mb-4" />
-          <h2 className="text-xl font-bold text-slate-900">Product not found</h2>
-          <p className="text-sm text-slate-500 mt-2 mb-5">
-            This product may have been deleted from the catalog.
-          </p>
+        <div className="bg-white shadow-card rounded-lg p-10 text-center">
+          <Package className="w-8 h-8 text-[#ccc] mx-auto mb-4" />
+          <h2 className="text-[17px] font-semibold text-[#171717]">Product not found</h2>
+          <p className="text-[13px] text-[#888] mt-2 mb-5">This product may have been deleted.</p>
           <button
             onClick={() => navigate('/catalog')}
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-slate-700 bg-slate-100 rounded-xl hover:bg-slate-200 transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 text-[12px] font-medium text-[#555] shadow-border bg-white rounded-md hover:bg-[#fafafa] transition-colors"
           >
-            <ArrowLeft className="w-4 h-4" />
+            <ArrowLeft className="w-3.5 h-3.5" />
             Back to Catalog
           </button>
         </div>
@@ -164,34 +146,21 @@ export function ProductDetailPage() {
 
   const handleReset = () => {
     setForm({
-      name: product.name,
-      sku: product.sku,
-      brand: product.brand,
-      category: product.category,
-      width: product.width,
-      height: product.height,
-      depth: product.depth,
-      weight: product.weight,
+      name: product.name, sku: product.sku, brand: product.brand,
+      category: product.category, width: product.width, height: product.height,
+      depth: product.depth, weight: product.weight,
       holiday: product.holidayTags[0] ?? 'none',
     })
     setIsEditing(false)
   }
 
   const handleSave = () => {
-    const holidayTags =
-      form.holiday === 'none' ? [] : [form.holiday as Holiday]
-
+    const holidayTags = form.holiday === 'none' ? [] : [form.holiday as Holiday]
     updateProduct(product.id, {
-      name: form.name,
-      sku: form.sku,
-      brand: form.brand,
-      brandColor: BRAND_COLORS[form.brand],
-      category: form.category,
-      width: form.width,
-      height: form.height,
-      depth: form.depth,
-      weight: form.weight,
-      holidayTags,
+      name: form.name, sku: form.sku, brand: form.brand,
+      brandColor: BRAND_COLORS[form.brand], category: form.category,
+      width: form.width, height: form.height, depth: form.depth,
+      weight: form.weight, holidayTags,
     })
     setIsEditing(false)
   }
@@ -202,357 +171,309 @@ export function ProductDetailPage() {
     navigate('/catalog')
   }
 
+  const inputClass = 'w-full px-4 py-3 rounded-md shadow-border bg-white disabled:bg-[#fafafa] disabled:text-[#888] focus:outline-none focus:ring-2 focus:ring-[#0a72ef]/20 focus:shadow-none text-[13px]'
+
   return (
-    <div className="px-10 py-10 max-w-[1500px] mx-auto">
-      <button
-        onClick={() => navigate('/catalog')}
-        className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-slate-800 transition-colors mb-6"
-      >
-        <ArrowLeft className="w-4 h-4" />
-        Back to Catalog
-      </button>
+    <div className="px-10 py-0 max-w-[1200px] mx-auto">
+      {/* Sticky Header */}
+      <div className="sticky top-0 z-10 bg-[#fafafa] pt-8 pb-0">
+        {/* Breadcrumb */}
+        <button
+          onClick={() => navigate('/catalog')}
+          className="inline-flex items-center gap-1.5 text-[12px] font-medium text-[#888] hover:text-[#171717] transition-colors mb-5"
+        >
+          <ArrowLeft className="w-3 h-3" />
+          Catalog
+        </button>
 
-      <div className="grid grid-cols-1 xl:grid-cols-[1.25fr_0.85fr] gap-6">
-        <div className="space-y-6">
-          <section className="rounded-[28px] overflow-hidden bg-white border border-slate-200 shadow-sm">
-            <div
-              className="px-8 py-8"
-              style={{
-                background: `linear-gradient(135deg, ${brandColor} 0%, #171717 100%)`,
-              }}
-            >
-              <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
-                <div className="min-w-0">
-                  <div className="flex items-center gap-3 mb-4 flex-wrap">
-                    <span className="px-3 py-1 rounded-full bg-white/12 text-white text-[11px] font-semibold uppercase tracking-wider">
-                      {product.brand}
-                    </span>
-                    <span
-                      className="px-3 py-1 rounded-full text-[11px] font-semibold uppercase tracking-wider"
-                      style={{
-                        backgroundColor: 'rgba(255,255,255,0.9)',
-                        color: holidayStyle.color,
-                      }}
-                    >
-                      {HOLIDAY_LABELS[primaryHoliday]}
-                    </span>
-                  </div>
-                  <h1 className="text-4xl font-black tracking-tight text-white max-w-3xl">
-                    {product.name}
-                  </h1>
-                  <div className="flex items-center gap-4 mt-4 text-sm text-white/72 flex-wrap">
-                    <span className="inline-flex items-center gap-1.5">
-                      <Tag className="w-4 h-4" />
-                      {product.sku}
-                    </span>
-                    <span className="inline-flex items-center gap-1.5">
-                      <Boxes className="w-4 h-4" />
-                      {product.category}
-                    </span>
-                    <span className="inline-flex items-center gap-1.5">
-                      <Sparkles className="w-4 h-4" />
-                      {getSeasonality(product)}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="bg-black/20 rounded-3xl px-5 py-4 min-w-[220px]">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/45 mb-3">
-                    Merchandising Snapshot
-                  </p>
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between gap-3">
-                      <span className="text-white/60 text-sm">Retailers</span>
-                      <span className="text-white font-bold">{retailerCoverage.length}</span>
-                    </div>
-                    <div className="flex items-center justify-between gap-3">
-                      <span className="text-white/60 text-sm">Case Volume</span>
-                      <span className="text-white font-bold">{caseVolume.toFixed(1)} in³</span>
-                    </div>
-                    <div className="flex items-center justify-between gap-3">
-                      <span className="text-white/60 text-sm">Density</span>
-                      <span className="text-white font-bold">{density.toFixed(3)} lb/in³</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
+        {/* Header Bar */}
+        <div className="flex items-start justify-between gap-6 mb-0">
+          <div className="min-w-0">
+            <div className="flex items-center gap-3 mb-1.5">
+              <h1 className="text-[24px] font-semibold tracking-display text-[#171717] truncate">
+                {product.name}
+              </h1>
+              <span
+                className="shrink-0 px-2.5 py-1 rounded text-[10px] font-medium uppercase tracking-wider"
+                style={{ backgroundColor: brandColor + '12', color: brandColor }}
+              >
+                {product.brand}
+              </span>
+              <span
+                className="shrink-0 px-2.5 py-1 rounded text-[10px] font-medium uppercase tracking-wider"
+                style={{ backgroundColor: holidayStyle.bg, color: holidayStyle.color }}
+              >
+                {HOLIDAY_LABELS[primaryHoliday]}
+              </span>
             </div>
+            <div className="flex items-center gap-4 text-[12px] text-[#888]">
+              <span className="inline-flex items-center gap-1.5"><Tag className="w-3 h-3" />{product.sku}</span>
+              <span className="inline-flex items-center gap-1.5"><Boxes className="w-3 h-3" />{product.category}</span>
+            </div>
+          </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-slate-200">
+          <button
+            onClick={handleDelete}
+            className="shrink-0 inline-flex items-center gap-2 px-3.5 py-2 text-[12px] font-medium text-red-500 bg-red-50 rounded-md hover:bg-red-100 transition-colors"
+          >
+            <Trash2 className="w-3.5 h-3.5" /> Delete
+          </button>
+        </div>
+
+        {/* Tabs */}
+        <div className="flex items-center gap-0 mt-6 -mb-px" style={{ boxShadow: '0 1px 0 0 rgba(0,0,0,0.06)' }}>
+          {TABS.map((tab) => (
+            <button
+              key={tab.value}
+              onClick={() => setActiveTab(tab.value)}
+              className={`px-4 py-3 text-[13px] font-medium transition-colors relative ${
+                activeTab === tab.value
+                  ? 'text-[#171717]'
+                  : 'text-[#888] hover:text-[#555]'
+              }`}
+            >
+              {tab.label}
+              {activeTab === tab.value && (
+                <span className="absolute bottom-0 left-4 right-4 h-[2px] bg-[#171717] rounded-full" />
+              )}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Tab Content */}
+      <div className="pt-8 pb-12">
+        {/* ===== Overview Tab ===== */}
+        {activeTab === 'overview' && (
+          <div className="space-y-6">
+            {/* Dimension cards */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {[
                 { label: 'Width', value: `${product.width}"`, icon: ArrowUpRight },
                 { label: 'Height', value: `${product.height}"`, icon: ArrowUpRight },
                 { label: 'Depth', value: `${product.depth}"`, icon: ArrowUpRight },
                 { label: 'Weight', value: `${product.weight} lb`, icon: Scale },
               ].map((item) => (
-                <div key={item.label} className="bg-white px-6 py-5">
-                  <item.icon className="w-4 h-4 text-slate-300 mb-3" />
-                  <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-400">
-                    {item.label}
-                  </p>
-                  <p className="text-xl font-black text-slate-900 mt-1">{item.value}</p>
+                <div key={item.label} className="bg-white shadow-card rounded-lg px-5 py-5">
+                  <item.icon className="w-3.5 h-3.5 text-[#ccc] mb-3" />
+                  <p className="text-[10px] font-medium uppercase tracking-wider text-[#999]">{item.label}</p>
+                  <p className="text-[20px] font-semibold text-[#171717] mt-1 tabular-nums tracking-tight-sm">{item.value}</p>
                 </div>
               ))}
             </div>
-          </section>
 
-          <section className="bg-white rounded-3xl border border-slate-200 p-8">
-            <div className="flex items-center justify-between gap-4 mb-6">
-              <div>
-                <h2 className="text-xl font-bold text-slate-900">Product Profile</h2>
-                <p className="text-sm text-slate-500 mt-1">
-                  Maintain core product data and merchandising metadata.
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                {!isEditing ? (
-                  <button
-                    onClick={() => setIsEditing(true)}
-                    className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-slate-900 rounded-xl hover:bg-slate-700 transition-colors"
-                  >
-                    <PencilLine className="w-4 h-4" />
-                    Edit Product
-                  </button>
-                ) : (
-                  <>
-                    <button
-                      onClick={handleReset}
-                      className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-slate-600 bg-slate-100 rounded-xl hover:bg-slate-200 transition-colors"
-                    >
-                      <X className="w-4 h-4" />
-                      Cancel
-                    </button>
-                    <button
-                      onClick={handleSave}
-                      className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-blue-600 rounded-xl hover:bg-blue-700 transition-colors"
-                    >
-                      <Save className="w-4 h-4" />
-                      Save Changes
-                    </button>
-                  </>
-                )}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <div>
-                <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-2">
-                  Product Name
-                </label>
-                <input
-                  type="text"
-                  disabled={!isEditing}
-                  value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  className="w-full px-4 py-3 rounded-2xl border border-slate-200 bg-white disabled:bg-slate-50 disabled:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                />
-              </div>
-              <div>
-                <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-2">
-                  SKU
-                </label>
-                <input
-                  type="text"
-                  disabled={!isEditing}
-                  value={form.sku}
-                  onChange={(e) => setForm({ ...form, sku: e.target.value })}
-                  className="w-full px-4 py-3 rounded-2xl border border-slate-200 bg-white font-mono disabled:bg-slate-50 disabled:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                />
-              </div>
-              <div>
-                <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-2">
-                  Brand
-                </label>
-                <select
-                  disabled={!isEditing}
-                  value={form.brand}
-                  onChange={(e) => setForm({ ...form, brand: e.target.value as Brand })}
-                  className="w-full px-4 py-3 rounded-2xl border border-slate-200 bg-white disabled:bg-slate-50 disabled:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 capitalize"
-                >
-                  {BRANDS.map((brand) => (
-                    <option key={brand} value={brand} className="capitalize">
-                      {brand}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-2">
-                  Category
-                </label>
-                <input
-                  type="text"
-                  disabled={!isEditing}
-                  value={form.category}
-                  onChange={(e) => setForm({ ...form, category: e.target.value })}
-                  className="w-full px-4 py-3 rounded-2xl border border-slate-200 bg-white disabled:bg-slate-50 disabled:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                />
-              </div>
-
-              {dimensionFields.map((field) => (
-                <div key={field}>
-                  <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-2">
-                    {field === 'weight'
-                      ? 'Weight (lb)'
-                      : `${field.charAt(0).toUpperCase() + field.slice(1)} (in)`}
-                  </label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    disabled={!isEditing}
-                    value={form[field]}
-                    onChange={(e) =>
-                      setForm({
-                        ...form,
-                        [field]: parseFloat(e.target.value) || 0,
-                      })
-                    }
-                    className="w-full px-4 py-3 rounded-2xl border border-slate-200 bg-white disabled:bg-slate-50 disabled:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                  />
-                </div>
-              ))}
-
-              <div className="md:col-span-2">
-                <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-2">
-                  Holiday Alignment
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  {HOLIDAYS.map((holiday) => (
-                    <button
-                      key={holiday}
-                      type="button"
-                      disabled={!isEditing}
-                      onClick={() => setForm({ ...form, holiday })}
-                      className={`px-3 py-2 rounded-full text-sm font-semibold transition-colors ${
-                        form.holiday === holiday
-                          ? 'bg-slate-900 text-white'
-                          : 'bg-slate-100 text-slate-600'
-                      } disabled:opacity-60`}
-                    >
-                      {HOLIDAY_LABELS[holiday]}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </section>
-        </div>
-
-        <div className="space-y-6">
-          <section className="bg-white rounded-3xl border border-slate-200 p-6">
-            <h2 className="text-lg font-bold text-slate-900 mb-4">Placement Guidance</h2>
-            <div className="space-y-4">
-              <div className="rounded-2xl bg-slate-50 px-4 py-4">
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-2">
-                  Shelf Guidance
-                </p>
-                <p className="text-sm text-slate-700 leading-relaxed">
-                  {getStackingGuidance(product)}
-                </p>
-              </div>
-              <div className="rounded-2xl bg-slate-50 px-4 py-4">
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-2">
-                  Seasonal Positioning
-                </p>
-                <p className="text-sm text-slate-700 leading-relaxed">
-                  {getSeasonality(product)}
-                </p>
-              </div>
-              <div className="rounded-2xl bg-slate-50 px-4 py-4">
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-2">
-                  Packaging Footprint
-                </p>
-                <p className="text-sm text-slate-700 leading-relaxed">
-                  Occupies {caseVolume.toFixed(1)} cubic inches with a density profile of{' '}
-                  {density.toFixed(3)} lb/in³.
-                </p>
-              </div>
-            </div>
-          </section>
-
-          <section className="bg-white rounded-3xl border border-slate-200 p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <Building2 className="w-4 h-4 text-slate-400" />
-              <h2 className="text-lg font-bold text-slate-900">Retailer Coverage</h2>
-            </div>
-
-            {retailerCoverage.length === 0 ? (
-              <div className="rounded-2xl bg-slate-50 px-4 py-5 text-sm text-slate-500">
-                This SKU is not yet authorized in any retailer accounts.
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {retailerCoverage.map(({ retailer, item }) => (
-                  <div
-                    key={retailer.id}
-                    className="rounded-2xl border border-slate-200 px-4 py-4"
-                  >
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <p className="text-sm font-bold text-slate-900">{retailer.name}</p>
-                        <p className="text-xs text-slate-500 mt-1">
-                          {item.status} · avg monthly units {item.avgMonthlyUnits.toLocaleString()}
-                        </p>
-                      </div>
-                      <span className="text-xs font-semibold text-slate-500">
-                        {item.marginPercent}% margin
-                      </span>
+            {/* Snapshot + Seasonality row */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-white shadow-card rounded-lg p-6">
+                <p className="text-[10px] font-medium uppercase tracking-wider text-[#999] mb-4">Snapshot</p>
+                <div className="space-y-3">
+                  {[
+                    { label: 'Retailers', value: String(retailerCoverage.length) },
+                    { label: 'Case Volume', value: `${caseVolume.toFixed(1)} in³` },
+                    { label: 'Density', value: `${density.toFixed(3)} lb/in³` },
+                  ].map((r) => (
+                    <div key={r.label} className="flex items-center justify-between gap-3">
+                      <span className="text-[#888] text-[13px]">{r.label}</span>
+                      <span className="text-[#171717] font-medium text-[13px] tabular-nums">{r.value}</span>
                     </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="bg-white shadow-card rounded-lg p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <Sparkles className="w-3.5 h-3.5 text-[#999]" />
+                  <p className="text-[10px] font-medium uppercase tracking-wider text-[#999]">Seasonality</p>
+                </div>
+                <p className="text-[13px] text-[#555] leading-relaxed">{getSeasonality(product)}</p>
+              </div>
+            </div>
+
+            {/* Placement Guidance */}
+            <div className="bg-white shadow-card rounded-lg p-6">
+              <h3 className="text-[15px] font-semibold text-[#171717] tracking-tight-sm mb-4">Placement Guidance</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {[
+                  { label: 'Shelf Guidance', text: getStackingGuidance(product) },
+                  { label: 'Seasonal Positioning', text: getSeasonality(product) },
+                  { label: 'Packaging Footprint', text: `Occupies ${caseVolume.toFixed(1)} cubic inches with a density of ${density.toFixed(3)} lb/in³.` },
+                ].map((g) => (
+                  <div key={g.label} className="bg-[#fafafa] rounded-md px-4 py-4">
+                    <p className="text-[10px] font-medium uppercase tracking-wider text-[#999] mb-1.5">{g.label}</p>
+                    <p className="text-[12px] text-[#555] leading-relaxed">{g.text}</p>
                   </div>
                 ))}
               </div>
-            )}
-          </section>
-
-          <section className="bg-white rounded-3xl border border-slate-200 p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <CalendarDays className="w-4 h-4 text-slate-400" />
-              <h2 className="text-lg font-bold text-slate-900">Related Products</h2>
             </div>
+          </div>
+        )}
 
-            {relatedProducts.length === 0 ? (
-              <div className="rounded-2xl bg-slate-50 px-4 py-5 text-sm text-slate-500">
-                No related products found in this catalog yet.
+        {/* ===== Edit Profile Tab ===== */}
+        {activeTab === 'edit' && (
+          <div className="max-w-3xl">
+            <div className="bg-white shadow-card rounded-lg p-8">
+              <div className="flex items-center justify-between gap-4 mb-6">
+                <div>
+                  <h2 className="text-[17px] font-semibold text-[#171717] tracking-tight-sm">Product Profile</h2>
+                  <p className="text-[12px] text-[#888] mt-1">Core product data and merchandising metadata.</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  {!isEditing ? (
+                    <button onClick={() => setIsEditing(true)}
+                      className="inline-flex items-center gap-2 px-4 py-2 text-[12px] font-medium text-white bg-[#171717] rounded-md hover:bg-[#333] transition-colors">
+                      <PencilLine className="w-3.5 h-3.5" /> Edit
+                    </button>
+                  ) : (
+                    <>
+                      <button onClick={handleReset}
+                        className="inline-flex items-center gap-2 px-4 py-2 text-[12px] font-medium text-[#555] shadow-border bg-white rounded-md hover:bg-[#fafafa] transition-colors">
+                        <X className="w-3.5 h-3.5" /> Cancel
+                      </button>
+                      <button onClick={handleSave}
+                        className="inline-flex items-center gap-2 px-4 py-2 text-[12px] font-medium text-white bg-[#171717] rounded-md hover:bg-[#333] transition-colors">
+                        <Save className="w-3.5 h-3.5" /> Save
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
-            ) : (
-              <div className="space-y-3">
-                {relatedProducts.map((related) => (
-                  <button
-                    key={related.id}
-                    onClick={() => navigate(`/catalog/${related.id}`)}
-                    className="w-full text-left rounded-2xl border border-slate-200 px-4 py-4 hover:bg-slate-50 transition-colors"
-                  >
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <p className="text-sm font-bold text-slate-900">{related.name}</p>
-                        <p className="text-xs text-slate-500 mt-1">
-                          {related.brand} · {related.category}
-                        </p>
-                      </div>
-                      <span className="text-xs font-semibold text-slate-400">
-                        {related.width}" × {related.height}" × {related.depth}"
-                      </span>
-                    </div>
-                  </button>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                {[
+                  { label: 'Product Name', key: 'name', mono: false },
+                  { label: 'SKU', key: 'sku', mono: true },
+                ].map((f) => (
+                  <div key={f.key}>
+                    <label className="block text-[10px] font-medium uppercase tracking-wider text-[#999] mb-2">{f.label}</label>
+                    <input type="text" disabled={!isEditing} value={(form as unknown as Record<string, string>)[f.key]}
+                      onChange={(e) => setForm({ ...form, [f.key]: e.target.value })}
+                      className={`${inputClass} ${f.mono ? 'font-mono' : ''}`} />
+                  </div>
                 ))}
-              </div>
-            )}
-          </section>
+                <div>
+                  <label className="block text-[10px] font-medium uppercase tracking-wider text-[#999] mb-2">Brand</label>
+                  <select disabled={!isEditing} value={form.brand} onChange={(e) => setForm({ ...form, brand: e.target.value as Brand })}
+                    className={`${inputClass} capitalize`}>
+                    {BRANDS.map((b) => <option key={b} value={b} className="capitalize">{b}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-medium uppercase tracking-wider text-[#999] mb-2">Category</label>
+                  <input type="text" disabled={!isEditing} value={form.category}
+                    onChange={(e) => setForm({ ...form, category: e.target.value })} className={inputClass} />
+                </div>
 
-          <section className="bg-white rounded-3xl border border-red-100 p-6">
-            <h2 className="text-lg font-bold text-slate-900 mb-3">Danger Zone</h2>
-            <p className="text-sm text-slate-500 mb-4">
-              Remove this SKU from the catalog if it should no longer be merchandised.
-            </p>
-            <button
-              onClick={handleDelete}
-              className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-red-600 bg-red-50 rounded-xl hover:bg-red-100 transition-colors"
-            >
-              <Trash2 className="w-4 h-4" />
-              Delete Product
-            </button>
-          </section>
-        </div>
+                {dimensionFields.map((field) => (
+                  <div key={field}>
+                    <label className="block text-[10px] font-medium uppercase tracking-wider text-[#999] mb-2">
+                      {field === 'weight' ? 'Weight (lb)' : `${field.charAt(0).toUpperCase() + field.slice(1)} (in)`}
+                    </label>
+                    <input type="number" step="0.1" disabled={!isEditing} value={form[field]}
+                      onChange={(e) => setForm({ ...form, [field]: parseFloat(e.target.value) || 0 })}
+                      className={`${inputClass} tabular-nums`} />
+                  </div>
+                ))}
+
+                <div className="md:col-span-2">
+                  <label className="block text-[10px] font-medium uppercase tracking-wider text-[#999] mb-2">Holiday</label>
+                  <div className="flex flex-wrap gap-2">
+                    {HOLIDAYS.map((h) => (
+                      <button key={h} type="button" disabled={!isEditing}
+                        onClick={() => setForm({ ...form, holiday: h })}
+                        className={`px-3 py-2 rounded-md text-[12px] font-medium transition-colors ${
+                          form.holiday === h ? 'bg-[#171717] text-white' : 'bg-[#f5f5f5] text-[#555]'
+                        } disabled:opacity-60`}>
+                        {HOLIDAY_LABELS[h]}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ===== Retailers Tab ===== */}
+        {activeTab === 'retailers' && (
+          <div className="max-w-3xl">
+            <div className="bg-white shadow-card rounded-lg p-6">
+              <div className="flex items-center gap-2 mb-5">
+                <Building2 className="w-4 h-4 text-[#999]" />
+                <h3 className="text-[15px] font-semibold text-[#171717] tracking-tight-sm">Retailer Coverage</h3>
+                <span className="ml-auto text-[12px] text-[#888] tabular-nums">{retailerCoverage.length} retailer{retailerCoverage.length !== 1 ? 's' : ''}</span>
+              </div>
+              {retailerCoverage.length === 0 ? (
+                <div className="bg-[#fafafa] rounded-md px-5 py-8 text-center">
+                  <Building2 className="w-6 h-6 text-[#ccc] mx-auto mb-3" />
+                  <p className="text-[13px] text-[#888]">Not yet authorized in any retailer accounts.</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {retailerCoverage.map(({ retailer, item }) => (
+                    <div key={retailer.id} className="shadow-border rounded-md px-5 py-4 hover:bg-[#fafafa] transition-colors">
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <p className="text-[14px] font-medium text-[#171717]">{retailer.name}</p>
+                          <div className="flex items-center gap-3 mt-1.5 text-[12px] text-[#888]">
+                            <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-medium ${
+                              item.status === 'authorized' ? 'bg-green-50 text-green-700' :
+                              item.status === 'pending' ? 'bg-amber-50 text-amber-700' :
+                              'bg-gray-100 text-gray-500'
+                            }`}>{item.status}</span>
+                            <span>{item.avgMonthlyUnits.toLocaleString()} units/mo</span>
+                          </div>
+                        </div>
+                        <span className="text-[14px] font-semibold text-[#171717] tabular-nums">{item.marginPercent}%</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ===== Related Tab ===== */}
+        {activeTab === 'related' && (
+          <div className="max-w-3xl">
+            <div className="bg-white shadow-card rounded-lg p-6">
+              <div className="flex items-center gap-2 mb-5">
+                <CalendarDays className="w-4 h-4 text-[#999]" />
+                <h3 className="text-[15px] font-semibold text-[#171717] tracking-tight-sm">Related Products</h3>
+                <span className="ml-auto text-[12px] text-[#888] tabular-nums">{relatedProducts.length} match{relatedProducts.length !== 1 ? 'es' : ''}</span>
+              </div>
+              {relatedProducts.length === 0 ? (
+                <div className="bg-[#fafafa] rounded-md px-5 py-8 text-center">
+                  <Package className="w-6 h-6 text-[#ccc] mx-auto mb-3" />
+                  <p className="text-[13px] text-[#888]">No related products found.</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {relatedProducts.map((r) => (
+                    <button key={r.id} onClick={() => navigate(`/catalog/${r.id}`)}
+                      className="w-full text-left shadow-border rounded-md px-5 py-4 hover:bg-[#fafafa] transition-colors">
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <p className="text-[14px] font-medium text-[#171717]">{r.name}</p>
+                          <div className="flex items-center gap-2 mt-1.5">
+                            <span
+                              className="px-2 py-0.5 rounded text-[10px] font-medium uppercase tracking-wider"
+                              style={{ backgroundColor: BRAND_COLORS[r.brand] + '12', color: BRAND_COLORS[r.brand] }}
+                            >
+                              {r.brand}
+                            </span>
+                            <span className="text-[12px] text-[#888]">{r.category}</span>
+                          </div>
+                        </div>
+                        <span className="text-[12px] text-[#bbb] tabular-nums whitespace-nowrap">{r.width}" × {r.height}" × {r.depth}"</span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

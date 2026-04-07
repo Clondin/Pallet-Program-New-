@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useEffect } from 'react'
+import { DisplayProject } from './types'
 import { AppLayout } from './components/layout/app-layout'
 import { EditorPage } from './pages/editor-page'
 import { CatalogPage } from './pages/catalog-page'
@@ -12,7 +13,7 @@ import { useDisplayStore } from './stores/display-store'
 import { useCatalogStore } from './stores/catalog-store'
 import { useRetailerStore } from './stores/retailer-store'
 import { useAppSettingsStore } from './stores/app-settings-store'
-import { mockProject, mockProducts, mockRetailers } from './lib/mock-data'
+import { mockProducts, mockRetailers } from './lib/mock-data'
 
 const PROJECT_STORAGE_KEY = 'palletforge-project'
 const CATALOG_STORAGE_KEY = 'palletforge-products'
@@ -36,9 +37,10 @@ export default function App() {
     useRetailerStore
       .getState()
       .setRetailers(loadPersistedState(RETAILER_STORAGE_KEY) ?? mockRetailers)
-    useDisplayStore
-      .getState()
-      .setCurrentProject(loadPersistedState(PROJECT_STORAGE_KEY) ?? mockProject)
+    const persistedProject = loadPersistedState<DisplayProject>(PROJECT_STORAGE_KEY)
+    if (persistedProject) {
+      useDisplayStore.getState().setCurrentProject(persistedProject)
+    }
 
     const unsubscribeCatalog = useCatalogStore.subscribe((state) => {
       localStorage.setItem(CATALOG_STORAGE_KEY, JSON.stringify(state.products))
@@ -75,9 +77,14 @@ export default function App() {
           <Route path="/retailers/:id" element={<RetailerDetailPage />} />
           <Route path="/branding" element={<BrandingPage />} />
           <Route path="/settings" element={<SettingsPage />} />
-          <Route path="*" element={<Navigate to="/editor" replace />} />
+          <Route path="/" element={<HomeRedirect />} />
+          <Route path="*" element={<HomeRedirect />} />
         </Route>
       </Routes>
     </BrowserRouter>
   )
+}
+
+function HomeRedirect() {
+  return <Navigate to="/editor" replace />
 }

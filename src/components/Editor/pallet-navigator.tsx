@@ -9,7 +9,6 @@ const CAMERA_FOR_FACE: Record<TrayFace, CameraPreset> = {
   right: 'front',
 }
 
-// Each face has a Y rotation that brings it to the front of the cube
 const ROTATION_FOR_FACE: Record<TrayFace, number> = {
   front: -35,
   right: -125,
@@ -28,55 +27,69 @@ export function PalletNavigator({ className }: PalletNavigatorProps) {
   const setActiveFace = useDisplayStore(s => s.setActiveFace)
   const viewMode = useDisplayStore(s => s.viewMode)
   const setCameraPreset = useDisplayStore(s => s.setCameraPreset)
+  const palletType = useDisplayStore(s => s.currentProject?.palletType ?? 'full')
 
-  // Cube rotation tracks which face is "forward"
+  const isHalf = palletType === 'half'
+
   const [rotY, setRotY] = useState(ROTATION_FOR_FACE[activeFace])
 
   const handleFaceClick = useCallback(
     (face: TrayFace) => {
+      if (isHalf && face !== 'front') return
       setActiveFace(face)
       setRotY(ROTATION_FOR_FACE[face])
       if (viewMode === '3d') {
         setCameraPreset(CAMERA_FOR_FACE[face])
       }
     },
-    [viewMode, setActiveFace, setCameraPreset]
+    [viewMode, setActiveFace, setCameraPreset, isHalf]
   )
 
   const cubeSize = 52
   const half = cubeSize / 2
+  // Half pallet cube is shallower
+  const cubeDepth = isHalf ? cubeSize / 2 : cubeSize
+  const halfDepth = cubeDepth / 2
 
   const faceStyle = (face: TrayFace, transform: string): React.CSSProperties => {
     const isActive = activeFace === face
+    const isDisabled = isHalf && face !== 'front'
     return {
-      width: cubeSize,
+      width: face === 'left' || face === 'right' ? cubeDepth : cubeSize,
       height: cubeSize,
       position: 'absolute',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      borderRadius: '2px',
-      transition: 'background 0.3s, border 0.3s',
-      cursor: 'pointer',
+      borderRadius: '3px',
+      transition: 'background 0.3s, box-shadow 0.3s',
+      cursor: isDisabled ? 'default' : 'pointer',
+      opacity: isDisabled ? 0.3 : 1,
       transform,
       background: isActive
-        ? 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)'
-        : 'linear-gradient(135deg, #e8e4de 0%, #d4cfc8 100%)',
-      border: isActive ? '2px solid #1d4ed8' : '1px solid #c4bfb8',
+        ? 'linear-gradient(135deg, #0a72ef 0%, #0860c4 100%)'
+        : isDisabled
+        ? 'linear-gradient(135deg, #ddd 0%, #ccc 100%)'
+        : 'linear-gradient(135deg, #f0f0f0 0%, #e5e5e5 100%)',
+      boxShadow: isActive
+        ? 'inset 0 0 0 1px rgba(10,114,239,0.3)'
+        : '0px 0px 0px 1px rgba(0,0,0,0.06)',
     }
   }
 
-  const labelClass = (face: TrayFace) =>
-    `text-[11px] font-bold ${activeFace === face ? 'text-white' : 'text-slate-500'}`
+  const labelClass = (face: TrayFace) => {
+    const isDisabled = isHalf && face !== 'front'
+    return `text-[11px] font-medium ${activeFace === face ? 'text-white' : isDisabled ? 'text-[#bbb]' : 'text-[#888]'}`
+  }
 
   return (
     <div className={`flex flex-col items-center ${className ?? ''}`}>
-      <div className="bg-white/60 backdrop-blur-md rounded-xl border border-slate-200/50 shadow-sm p-3">
-        <div className="text-[9px] font-bold uppercase tracking-[0.12em] text-slate-400 mb-2 text-center">
+      <div className="bg-white/70 backdrop-blur-md shadow-card rounded-lg p-3">
+        <div className="text-[9px] font-medium uppercase tracking-wider text-[#999] mb-2 text-center">
           Navigator
         </div>
 
-        {/* Isometric cube that rotates to show the active face */}
+        {/* Isometric cube */}
         <div
           className="relative mx-auto"
           style={{
@@ -93,76 +106,56 @@ export function PalletNavigator({ className }: PalletNavigatorProps) {
               transition: 'transform 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
             }}
           >
-            {/* Front */}
-            <button
-              onClick={() => handleFaceClick('front')}
-              style={faceStyle('front', `translateZ(${half}px)`)}
-            >
+            <button onClick={() => handleFaceClick('front')} style={faceStyle('front', `translateZ(${halfDepth}px)`)}>
               <span className={labelClass('front')}>Front</span>
             </button>
-
-            {/* Back */}
-            <button
-              onClick={() => handleFaceClick('back')}
-              style={faceStyle('back', `translateZ(-${half}px) rotateY(180deg)`)}
-            >
+            <button onClick={() => handleFaceClick('back')} style={faceStyle('back', `translateZ(-${halfDepth}px) rotateY(180deg)`)}>
               <span className={labelClass('back')}>Back</span>
             </button>
-
-            {/* Right */}
-            <button
-              onClick={() => handleFaceClick('right')}
-              style={faceStyle('right', `rotateY(90deg) translateZ(${half}px)`)}
-            >
+            <button onClick={() => handleFaceClick('right')} style={faceStyle('right', `rotateY(90deg) translateZ(${half}px)`)}>
               <span className={labelClass('right')}>Right</span>
             </button>
-
-            {/* Left */}
-            <button
-              onClick={() => handleFaceClick('left')}
-              style={faceStyle('left', `rotateY(-90deg) translateZ(${half}px)`)}
-            >
+            <button onClick={() => handleFaceClick('left')} style={faceStyle('left', `rotateY(-90deg) translateZ(${half}px)`)}>
               <span className={labelClass('left')}>Left</span>
             </button>
 
-            {/* Top (non-interactive) */}
+            {/* Top */}
             <div
               className="absolute"
               style={{
                 width: cubeSize,
-                height: cubeSize,
+                height: cubeDepth,
                 transform: `rotateX(90deg) translateZ(${half}px)`,
-                background: 'linear-gradient(135deg, #ebe7e1 0%, #ddd9d3 100%)',
-                border: '1px solid #c4bfb8',
-                borderRadius: '2px',
+                background: 'linear-gradient(135deg, #f5f5f5 0%, #eee 100%)',
+                boxShadow: '0px 0px 0px 1px rgba(0,0,0,0.06)',
+                borderRadius: '3px',
               }}
             />
-
-            {/* Bottom (non-interactive) */}
+            {/* Bottom */}
             <div
               className="absolute"
               style={{
                 width: cubeSize,
-                height: cubeSize,
+                height: cubeDepth,
                 transform: `rotateX(-90deg) translateZ(${half}px)`,
                 background: '#c4a882',
-                border: '1px solid #b09672',
-                borderRadius: '2px',
+                boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.1)',
+                borderRadius: '3px',
               }}
             />
           </div>
         </div>
 
-        {/* Face buttons — always accessible fallback */}
+        {/* Face buttons fallback */}
         <div className="flex items-center justify-center gap-1 mt-1.5">
-          {FACES.map(face => (
+          {(isHalf ? ['front'] as TrayFace[] : FACES).map(face => (
             <button
               key={face}
               onClick={() => handleFaceClick(face)}
-              className={`px-2 py-1 rounded text-[9px] font-bold uppercase tracking-wide transition-all ${
+              className={`px-2 py-1 rounded text-[9px] font-medium uppercase transition-all ${
                 activeFace === face
-                  ? 'bg-blue-600 text-white shadow-sm'
-                  : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'
+                  ? 'bg-[#171717] text-white'
+                  : 'text-[#999] hover:text-[#555] hover:bg-[#f5f5f5]'
               }`}
             >
               {face[0]}

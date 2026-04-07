@@ -1,6 +1,8 @@
-import { NavLink, useNavigate } from 'react-router-dom'
-import { PenLine, Package, Building2, Palette, Settings, HelpCircle, Plus, LayoutGrid } from 'lucide-react'
+import { useState } from 'react'
+import { NavLink } from 'react-router-dom'
+import { PenLine, Package, Building2, Palette, Settings, HelpCircle, Plus } from 'lucide-react'
 import { useDisplayStore } from '../../stores/display-store'
+import { PalletCreationWizard } from '../PalletCreationWizard'
 
 const navItems = [
   { to: '/editor', label: 'Editor', icon: PenLine },
@@ -11,19 +13,8 @@ const navItems = [
 ]
 
 export function Sidebar() {
-  const openPicker = useDisplayStore(s => s.openPicker)
-  const createProject = useDisplayStore(s => s.createProject)
   const currentProject = useDisplayStore(s => s.currentProject)
-  const navigate = useNavigate()
-
-  const handleCta = () => {
-    if (currentProject) {
-      openPicker()
-    } else {
-      createProject('New Palette', 'ret-1', 'rosh-hashanah', 4)
-      navigate('/editor')
-    }
-  }
+  const [wizardOpen, setWizardOpen] = useState(false)
 
   return (
     <aside className="w-[200px] h-screen fixed left-0 top-0 bg-[#111] flex flex-col py-6 px-3 z-50">
@@ -35,23 +26,27 @@ export function Sidebar() {
         </p>
       </div>
 
-      {/* CTA Button */}
+      {/* New Pallet Button */}
       <button
-        onClick={handleCta}
-        className="mb-8 mx-1 w-[calc(100%-8px)] py-2 bg-white text-[#111] text-[12px] font-medium rounded-md transition-all active:scale-[0.97] hover:bg-[#eee] flex items-center justify-center gap-2"
+        onClick={() => setWizardOpen(true)}
+        className="mb-4 mx-1 w-[calc(100%-8px)] py-2 text-[12px] font-medium rounded-md transition-all active:scale-[0.97] flex items-center justify-center gap-2 bg-white text-[#111] hover:bg-[#eee] cursor-pointer"
       >
-        {currentProject ? (
-          <>
-            <Plus size={13} />
-            Place Products
-          </>
-        ) : (
-          <>
-            <LayoutGrid size={13} />
-            Create Palette
-          </>
-        )}
+        <Plus size={13} />
+        New Pallet
       </button>
+
+      {/* Current project indicator */}
+      {currentProject && (
+        <div className="mb-4 mx-1 px-3 py-2 rounded-md bg-white/[0.05] border border-white/[0.08]">
+          <p className="text-[10px] font-medium text-[#666] uppercase tracking-wider">Current</p>
+          <p className="text-[12px] font-medium text-white truncate mt-0.5">
+            {currentProject.name}
+          </p>
+          <p className="text-[10px] text-[#555] mt-0.5">
+            {currentProject.tierCount} tiers &middot; {currentProject.placements.length} products
+          </p>
+        </div>
+      )}
 
       {/* Nav Links */}
       <nav className="flex-1 space-y-0.5 px-1">
@@ -80,6 +75,9 @@ export function Sidebar() {
           <span className="text-[11px] font-medium">Support</span>
         </button>
       </div>
+
+      {/* Wizard Modal */}
+      <PalletCreationWizard open={wizardOpen} onClose={() => setWizardOpen(false)} />
     </aside>
   )
 }

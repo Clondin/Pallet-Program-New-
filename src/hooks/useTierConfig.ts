@@ -1,15 +1,19 @@
 import { useMemo } from 'react';
-import { TierConfig } from '../types';
+import { TierConfig, PalletType } from '../types';
 
-export function useTierConfig(tierCount: number = 4, maxDisplayHeight: number = 60): TierConfig[] {
+export function useTierConfig(
+  tierCount: number = 4,
+  maxDisplayHeight: number = 60,
+  palletType: PalletType = 'full'
+): TierConfig[] {
   return useMemo(() => {
     const count = Math.max(2, Math.min(6, tierCount));
-    
+
     // Constant dimensions for all tiers
     const width = 46;
-    const depth = 38;
+    const depth = palletType === 'half' ? 20 : 38;
     const shelfDepth = 10;
-    
+
     // Tray height ranges
     const baseTrayHeight = 14;
     const topTrayHeight = 7;
@@ -24,10 +28,10 @@ export function useTierConfig(tierCount: number = 4, maxDisplayHeight: number = 
 
     for (let i = 0; i < count; i++) {
       const progress = count > 1 ? i / (count - 1) : 0;
-      
+
       const trayHeight = baseTrayHeight - progress * (baseTrayHeight - topTrayHeight);
       const slotGridSize = baseSlotSize - progress * (baseSlotSize - topSlotSize);
-      
+
       tiers.push({
         id: i + 1,
         width,
@@ -38,10 +42,10 @@ export function useTierConfig(tierCount: number = 4, maxDisplayHeight: number = 
         yOffset: currentY,
         slotGridSize,
       });
-      
+
       currentY += trayHeight + platformThickness;
     }
 
     return tiers;
-  }, [tierCount, maxDisplayHeight]);
+  }, [tierCount, maxDisplayHeight, palletType]);
 }

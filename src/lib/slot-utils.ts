@@ -1,4 +1,4 @@
-import type { TierConfig, SlotGridItem, TrayFace } from '../types'
+import type { TierConfig, SlotGridItem, TrayFace, PalletType } from '../types'
 
 const platformThickness = 1
 
@@ -46,8 +46,8 @@ export function generate2DSlotGrid(
   return slots
 }
 
-/** Generate the full 3D slot grid (different dimensions per face for the 3D view). */
-export function generateSlotGrid(config: TierConfig): SlotGridItem[] {
+/** Generate the full 3D slot grid. For half pallets, only front face gets slots. */
+export function generateSlotGrid(config: TierConfig, palletType: PalletType = 'full'): SlotGridItem[] {
   const slots: SlotGridItem[] = []
   let slotIndex = 0
   const gridSize = config.slotGridSize
@@ -81,6 +81,9 @@ export function generateSlotGrid(config: TierConfig): SlotGridItem[] {
       slotIndex++
     }
   }
+
+  // Half pallets only have front-facing shelves
+  if (palletType === 'half') return slots
 
   // Back tray
   const backCenterZ = -config.depth / 2 + frontTrayDepth / 2

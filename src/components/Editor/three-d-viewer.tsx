@@ -26,6 +26,7 @@ export function ThreeDViewer() {
     <div className="w-full h-full relative">
       <PalletDisplay
         tierCount={currentProject.tierCount}
+        palletType={currentProject.palletType}
         branding={currentProject.branding}
         placedProducts={currentProject.placements}
         ghostProduct={ghostProduct}

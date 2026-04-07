@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { Undo2, Redo2, ChevronDown } from 'lucide-react'
 import { useDisplayStore } from '../../stores/display-store'
-import { TrayFace } from '../../types'
+import { TrayFace, PalletType } from '../../types'
 import { useTierConfig } from '../../hooks/useTierConfig'
 import { generateSlotGrid } from '../../lib/slot-utils'
 import { useAppSettingsStore } from '../../stores/app-settings-store'
@@ -23,10 +23,14 @@ export function TopToolbar() {
   const historyIndex = useDisplayStore(s => s.historyIndex)
   const historyLength = useDisplayStore(s => s.history.length)
   const currentProject = useDisplayStore(s => s.currentProject)
+  const setPalletType = useDisplayStore(s => s.setPalletType)
   const editorGridColumns = useAppSettingsStore(
     (s) => s.settings.editorGridColumns
   )
-  const tiers = useTierConfig(currentProject?.tierCount ?? 4)
+
+  const palletType = currentProject?.palletType ?? 'full'
+  const isHalf = palletType === 'half'
+  const tiers = useTierConfig(currentProject?.tierCount ?? 4, 60, palletType)
 
   const [faceOpen, setFaceOpen] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -56,7 +60,7 @@ export function TopToolbar() {
   const actualColCount = Math.max(
     0,
     ...tiers.map((tier) => {
-      const faceSlots = generateSlotGrid(tier).filter((slot) => slot.face === activeFace)
+      const faceSlots = generateSlotGrid(tier, palletType).filter((slot) => slot.face === activeFace)
       return new Set(faceSlots.map((slot) => slot.col)).size
     })
   )
@@ -65,8 +69,23 @@ export function TopToolbar() {
   return (
     <div className="fixed top-0 left-[200px] right-0 z-40 flex justify-center px-8">
       <div className="mt-4 mx-auto max-w-fit px-5 py-2 bg-white/90 backdrop-blur-md shadow-card rounded-lg flex items-center gap-6">
-        {/* 2D/3D Toggle */}
+        {/* Half / Full Toggle */}
         <div className="flex items-center shadow-ring rounded-md overflow-hidden">
+          {(['half', 'full'] as PalletType[]).map((type) => (
+            <button
+              key={type}
+              onClick={() => setPalletType(type)}
+              className={`text-[11px] font-medium px-3.5 py-1.5 transition-colors capitalize ${
+                palletType === type ? 'bg-[#171717] text-white' : 'bg-white text-[#666] hover:bg-[#fafafa]'
+              }`}
+            >
+              {type}
+            </button>
+          ))}
+        </div>
+
+        {/* 2D/3D Toggle */}
+        <div className="flex items-center shadow-ring rounded-md overflow-hidden" style={{ boxShadow: undefined }}>
           <button
             onClick={() => setViewMode('2d')}
             className={`text-[11px] font-medium px-4 py-1.5 transition-colors ${
@@ -87,34 +106,38 @@ export function TopToolbar() {
 
         {/* View Controls */}
         <div className="flex items-center gap-4 text-[#999]" style={{ boxShadow: '-1px 0 0 0 rgba(0,0,0,0.06)', paddingLeft: '1.5rem' }}>
-          {/* Face Selector Dropdown */}
-          <div className="relative" ref={dropdownRef}>
-            <button
-              onClick={() => setFaceOpen(!faceOpen)}
-              className="flex items-center gap-1.5 cursor-pointer hover:text-[#0a72ef] transition-colors"
-            >
-              <span className="text-[12px] font-medium text-[#171717]">
-                {faceLabels[activeFace]}
-              </span>
-              <ChevronDown size={13} className="text-[#999]" />
-            </button>
+          {/* Face Selector Dropdown — hidden for half pallets */}
+          {isHalf ? (
+            <span className="text-[12px] font-medium text-[#171717]">Front Face</span>
+          ) : (
+            <div className="relative" ref={dropdownRef}>
+              <button
+                onClick={() => setFaceOpen(!faceOpen)}
+                className="flex items-center gap-1.5 cursor-pointer hover:text-[#0a72ef] transition-colors"
+              >
+                <span className="text-[12px] font-medium text-[#171717]">
+                  {faceLabels[activeFace]}
+                </span>
+                <ChevronDown size={13} className="text-[#999]" />
+              </button>
 
-            {faceOpen && (
-              <div className="absolute top-full mt-2 left-0 bg-white shadow-elevated rounded-lg py-1 min-w-[140px] z-50">
-                {(Object.keys(faceLabels) as TrayFace[]).map(face => (
-                  <button
-                    key={face}
-                    onClick={() => { setActiveFace(face); setFaceOpen(false) }}
-                    className={`w-full text-left px-4 py-2 text-[12px] font-medium transition-colors ${
-                      activeFace === face ? 'text-[#0a72ef] bg-[#0a72ef]/5' : 'text-[#555] hover:bg-[#fafafa]'
-                    }`}
-                  >
-                    {faceLabels[face]}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+              {faceOpen && (
+                <div className="absolute top-full mt-2 left-0 bg-white shadow-elevated rounded-lg py-1 min-w-[140px] z-50">
+                  {(Object.keys(faceLabels) as TrayFace[]).map(face => (
+                    <button
+                      key={face}
+                      onClick={() => { setActiveFace(face); setFaceOpen(false) }}
+                      className={`w-full text-left px-4 py-2 text-[12px] font-medium transition-colors ${
+                        activeFace === face ? 'text-[#0a72ef] bg-[#0a72ef]/5' : 'text-[#555] hover:bg-[#fafafa]'
+                      }`}
+                    >
+                      {faceLabels[face]}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Undo / Redo */}
           <div className="flex items-center gap-2">

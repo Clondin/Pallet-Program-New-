@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { RoundedBox } from '@react-three/drei';
 import * as THREE from 'three';
-import { TierConfig, DisplayBranding } from '../../types';
+import { TierConfig, DisplayBranding, PalletType } from '../../types';
 import { getCardboardMaterial } from './materials/cardboardMaterial';
 import { getSlotMaterialGhost } from './materials/slotMaterial';
 import { ShelfLip } from './ShelfLip';
@@ -9,6 +9,7 @@ import { SlotIndicator } from './SlotIndicator';
 
 interface TierProps {
   config: TierConfig;
+  palletType?: PalletType;
   lipColor?: string;
   branding?: DisplayBranding;
   showSlotGrid?: boolean;
@@ -21,6 +22,7 @@ interface TierProps {
 
 export const Tier: React.FC<TierProps> = ({
   config,
+  palletType = 'full',
   lipColor,
   branding,
   showSlotGrid = true,
@@ -30,15 +32,18 @@ export const Tier: React.FC<TierProps> = ({
   onPointerOut,
   onClick,
 }) => {
+  const isHalf = palletType === 'half';
   const cardboardMaterial = useMemo(() => getCardboardMaterial(), []);
   const ghostMat = useMemo(() => getSlotMaterialGhost(), []);
-  
+
   const platformThickness = 1;
-  const innerWidth = Math.max(2, config.width - config.shelfDepth * 2);
-  const innerDepth = Math.max(2, config.depth - config.shelfDepth * 2);
   const wallThickness = 0.75;
 
-  // Generate slots for the 4 trays
+  // For half pallets: no inner column, just a front shelf area + branded sides + solid back
+  const innerWidth = isHalf ? config.width : Math.max(2, config.width - config.shelfDepth * 2);
+  const innerDepth = isHalf ? config.depth : Math.max(2, config.depth - config.shelfDepth * 2);
+
+  // Generate slots — half pallets only get front tray slots
   const slots = useMemo(() => {
     const generatedSlots = [];
     let slotIndex = 0;
@@ -63,6 +68,8 @@ export const Tier: React.FC<TierProps> = ({
         });
       }
     }
+
+    if (isHalf) return generatedSlots;
 
     // Back tray
     const backCenterZ = -config.depth / 2 + frontTrayDepth / 2;
@@ -113,7 +120,7 @@ export const Tier: React.FC<TierProps> = ({
     }
 
     return generatedSlots;
-  }, [config]);
+  }, [config, isHalf]);
 
   const ghostLinesObject = useMemo(() => {
     const points: THREE.Vector3[] = [];
@@ -123,12 +130,12 @@ export const Tier: React.FC<TierProps> = ({
       const x = slot.position[0];
       const y = slot.position[1] + 0.01;
       const z = slot.position[2];
-      
+
       const p1 = new THREE.Vector3(x - hw, y, z - hd);
       const p2 = new THREE.Vector3(x + hw, y, z - hd);
       const p3 = new THREE.Vector3(x + hw, y, z + hd);
       const p4 = new THREE.Vector3(x - hw, y, z + hd);
-      
+
       points.push(p1, p2, p2, p3, p3, p4, p4, p1);
     });
     const geo = new THREE.BufferGeometry().setFromPoints(points);
@@ -140,6 +147,11 @@ export const Tier: React.FC<TierProps> = ({
   // Materials for visual polish
   const edgeDarkeningMat = useMemo(() => new THREE.MeshBasicMaterial({ color: '#8B6914', transparent: true, opacity: 0.3, depthWrite: false }), []);
   const aoMat = useMemo(() => new THREE.MeshBasicMaterial({ color: '#000000', transparent: true, opacity: 0.15, depthWrite: false }), []);
+  const brandedPanelMat = useMemo(() => new THREE.MeshStandardMaterial({
+    color: lipColor || '#1E3A8A',
+    roughness: 0.7,
+    metalness: 0.0,
+  }), [lipColor]);
 
   return (
     <group position={[0, config.yOffset, 0]}>
@@ -172,99 +184,129 @@ export const Tier: React.FC<TierProps> = ({
         <primitive object={edgeDarkeningMat} attach="material" />
       </mesh>
 
-      {/* Hollow Center Column (4 thin walls) */}
-      {/* Front inner wall */}
-      <RoundedBox
-        args={[innerWidth, config.trayHeight, wallThickness]}
-        radius={0.1}
-        smoothness={4}
-        position={[0, config.trayHeight / 2 + platformThickness, innerDepth / 2 - wallThickness / 2]}
-        material={cardboardMaterial}
-        castShadow
-        receiveShadow
-      />
-      {/* Back inner wall */}
-      <RoundedBox
-        args={[innerWidth, config.trayHeight, wallThickness]}
-        radius={0.1}
-        smoothness={4}
-        position={[0, config.trayHeight / 2 + platformThickness, -innerDepth / 2 + wallThickness / 2]}
-        material={cardboardMaterial}
-        castShadow
-        receiveShadow
-      />
-      {/* Left inner wall */}
-      <RoundedBox
-        args={[wallThickness, config.trayHeight, innerDepth - wallThickness * 2]}
-        radius={0.1}
-        smoothness={4}
-        position={[-innerWidth / 2 + wallThickness / 2, config.trayHeight / 2 + platformThickness, 0]}
-        material={cardboardMaterial}
-        castShadow
-        receiveShadow
-      />
-      {/* Right inner wall */}
-      <RoundedBox
-        args={[wallThickness, config.trayHeight, innerDepth - wallThickness * 2]}
-        radius={0.1}
-        smoothness={4}
-        position={[innerWidth / 2 - wallThickness / 2, config.trayHeight / 2 + platformThickness, 0]}
-        material={cardboardMaterial}
-        castShadow
-        receiveShadow
-      />
+      {isHalf ? (
+        <>
+          {/* === HALF PALLET STRUCTURE === */}
+          {/* Solid back wall */}
+          <RoundedBox
+            args={[config.width, config.trayHeight, wallThickness]}
+            radius={0.1}
+            smoothness={4}
+            position={[0, config.trayHeight / 2 + platformThickness, -config.depth / 2 + wallThickness / 2]}
+            material={cardboardMaterial}
+            castShadow
+            receiveShadow
+          />
 
-      {/* Edge darkening on top of inner walls */}
-      <mesh position={[0, config.trayHeight + platformThickness + 0.01, innerDepth / 2 - wallThickness / 2]} rotation={[-Math.PI / 2, 0, 0]}>
-        <planeGeometry args={[innerWidth, wallThickness]} />
-        <primitive object={edgeDarkeningMat} attach="material" />
-      </mesh>
-      <mesh position={[0, config.trayHeight + platformThickness + 0.01, -innerDepth / 2 + wallThickness / 2]} rotation={[-Math.PI / 2, 0, 0]}>
-        <planeGeometry args={[innerWidth, wallThickness]} />
-        <primitive object={edgeDarkeningMat} attach="material" />
-      </mesh>
-      <mesh position={[-innerWidth / 2 + wallThickness / 2, config.trayHeight + platformThickness + 0.01, 0]} rotation={[-Math.PI / 2, 0, Math.PI / 2]}>
-        <planeGeometry args={[innerDepth - wallThickness * 2, wallThickness]} />
-        <primitive object={edgeDarkeningMat} attach="material" />
-      </mesh>
-      <mesh position={[innerWidth / 2 - wallThickness / 2, config.trayHeight + platformThickness + 0.01, 0]} rotation={[-Math.PI / 2, 0, Math.PI / 2]}>
-        <planeGeometry args={[innerDepth - wallThickness * 2, wallThickness]} />
-        <primitive object={edgeDarkeningMat} attach="material" />
-      </mesh>
+          {/* Left branded side panel */}
+          <mesh position={[-config.width / 2 + wallThickness / 2, config.trayHeight / 2 + platformThickness, 0]} castShadow receiveShadow>
+            <boxGeometry args={[wallThickness, config.trayHeight, config.depth - wallThickness]} />
+            <primitive object={brandedPanelMat} attach="material" />
+          </mesh>
 
-      {/* Ambient Occlusion strips at base of inner walls */}
-      <mesh position={[0, platformThickness + 0.01, innerDepth / 2 + 0.5]} rotation={[-Math.PI / 2, 0, 0]}>
-        <planeGeometry args={[innerWidth, 1]} />
-        <primitive object={aoMat} attach="material" />
-      </mesh>
-      <mesh position={[0, platformThickness + 0.01, -innerDepth / 2 - 0.5]} rotation={[-Math.PI / 2, 0, 0]}>
-        <planeGeometry args={[innerWidth, 1]} />
-        <primitive object={aoMat} attach="material" />
-      </mesh>
-      <mesh position={[-innerWidth / 2 - 0.5, platformThickness + 0.01, 0]} rotation={[-Math.PI / 2, 0, Math.PI / 2]}>
-        <planeGeometry args={[innerDepth, 1]} />
-        <primitive object={aoMat} attach="material" />
-      </mesh>
-      <mesh position={[innerWidth / 2 + 0.5, platformThickness + 0.01, 0]} rotation={[-Math.PI / 2, 0, Math.PI / 2]}>
-        <planeGeometry args={[innerDepth, 1]} />
-        <primitive object={aoMat} attach="material" />
-      </mesh>
+          {/* Right branded side panel */}
+          <mesh position={[config.width / 2 - wallThickness / 2, config.trayHeight / 2 + platformThickness, 0]} castShadow receiveShadow>
+            <boxGeometry args={[wallThickness, config.trayHeight, config.depth - wallThickness]} />
+            <primitive object={brandedPanelMat} attach="material" />
+          </mesh>
 
-      {/* Shelf Lips - positioned at the outer edge, sitting on the platform */}
-      {/* Height is 2, so center is at platformThickness + 1 */}
-      {/* Thickness is 0.5, so offset by 0.25 from the edge */}
-      <group position={[0, platformThickness + 1, config.depth / 2 - 0.25]}>
-        <ShelfLip width={config.width} color={lipColor} text={branding?.lipText} textColor={branding?.lipTextColor} />
-      </group>
-      <group position={[0, platformThickness + 1, -config.depth / 2 + 0.25]} rotation={[0, Math.PI, 0]}>
-        <ShelfLip width={config.width} color={lipColor} text={branding?.lipText} textColor={branding?.lipTextColor} />
-      </group>
-      <group position={[-config.width / 2 + 0.25, platformThickness + 1, 0]} rotation={[0, -Math.PI / 2, 0]}>
-        <ShelfLip width={config.depth - 1} color={lipColor} text={branding?.lipText} textColor={branding?.lipTextColor} />
-      </group>
-      <group position={[config.width / 2 - 0.25, platformThickness + 1, 0]} rotation={[0, Math.PI / 2, 0]}>
-        <ShelfLip width={config.depth - 1} color={lipColor} text={branding?.lipText} textColor={branding?.lipTextColor} />
-      </group>
+          {/* Front shelf lip only */}
+          <group position={[0, platformThickness + 1, config.depth / 2 - 0.25]}>
+            <ShelfLip width={config.width} color={lipColor} text={branding?.lipText} textColor={branding?.lipTextColor} />
+          </group>
+        </>
+      ) : (
+        <>
+          {/* === FULL PALLET STRUCTURE === */}
+          {/* Hollow Center Column (4 thin walls) */}
+          <RoundedBox
+            args={[innerWidth, config.trayHeight, wallThickness]}
+            radius={0.1}
+            smoothness={4}
+            position={[0, config.trayHeight / 2 + platformThickness, innerDepth / 2 - wallThickness / 2]}
+            material={cardboardMaterial}
+            castShadow
+            receiveShadow
+          />
+          <RoundedBox
+            args={[innerWidth, config.trayHeight, wallThickness]}
+            radius={0.1}
+            smoothness={4}
+            position={[0, config.trayHeight / 2 + platformThickness, -innerDepth / 2 + wallThickness / 2]}
+            material={cardboardMaterial}
+            castShadow
+            receiveShadow
+          />
+          <RoundedBox
+            args={[wallThickness, config.trayHeight, innerDepth - wallThickness * 2]}
+            radius={0.1}
+            smoothness={4}
+            position={[-innerWidth / 2 + wallThickness / 2, config.trayHeight / 2 + platformThickness, 0]}
+            material={cardboardMaterial}
+            castShadow
+            receiveShadow
+          />
+          <RoundedBox
+            args={[wallThickness, config.trayHeight, innerDepth - wallThickness * 2]}
+            radius={0.1}
+            smoothness={4}
+            position={[innerWidth / 2 - wallThickness / 2, config.trayHeight / 2 + platformThickness, 0]}
+            material={cardboardMaterial}
+            castShadow
+            receiveShadow
+          />
+
+          {/* Edge darkening on top of inner walls */}
+          <mesh position={[0, config.trayHeight + platformThickness + 0.01, innerDepth / 2 - wallThickness / 2]} rotation={[-Math.PI / 2, 0, 0]}>
+            <planeGeometry args={[innerWidth, wallThickness]} />
+            <primitive object={edgeDarkeningMat} attach="material" />
+          </mesh>
+          <mesh position={[0, config.trayHeight + platformThickness + 0.01, -innerDepth / 2 + wallThickness / 2]} rotation={[-Math.PI / 2, 0, 0]}>
+            <planeGeometry args={[innerWidth, wallThickness]} />
+            <primitive object={edgeDarkeningMat} attach="material" />
+          </mesh>
+          <mesh position={[-innerWidth / 2 + wallThickness / 2, config.trayHeight + platformThickness + 0.01, 0]} rotation={[-Math.PI / 2, 0, Math.PI / 2]}>
+            <planeGeometry args={[innerDepth - wallThickness * 2, wallThickness]} />
+            <primitive object={edgeDarkeningMat} attach="material" />
+          </mesh>
+          <mesh position={[innerWidth / 2 - wallThickness / 2, config.trayHeight + platformThickness + 0.01, 0]} rotation={[-Math.PI / 2, 0, Math.PI / 2]}>
+            <planeGeometry args={[innerDepth - wallThickness * 2, wallThickness]} />
+            <primitive object={edgeDarkeningMat} attach="material" />
+          </mesh>
+
+          {/* Ambient Occlusion strips at base of inner walls */}
+          <mesh position={[0, platformThickness + 0.01, innerDepth / 2 + 0.5]} rotation={[-Math.PI / 2, 0, 0]}>
+            <planeGeometry args={[innerWidth, 1]} />
+            <primitive object={aoMat} attach="material" />
+          </mesh>
+          <mesh position={[0, platformThickness + 0.01, -innerDepth / 2 - 0.5]} rotation={[-Math.PI / 2, 0, 0]}>
+            <planeGeometry args={[innerWidth, 1]} />
+            <primitive object={aoMat} attach="material" />
+          </mesh>
+          <mesh position={[-innerWidth / 2 - 0.5, platformThickness + 0.01, 0]} rotation={[-Math.PI / 2, 0, Math.PI / 2]}>
+            <planeGeometry args={[innerDepth, 1]} />
+            <primitive object={aoMat} attach="material" />
+          </mesh>
+          <mesh position={[innerWidth / 2 + 0.5, platformThickness + 0.01, 0]} rotation={[-Math.PI / 2, 0, Math.PI / 2]}>
+            <planeGeometry args={[innerDepth, 1]} />
+            <primitive object={aoMat} attach="material" />
+          </mesh>
+
+          {/* Shelf Lips - all 4 faces */}
+          <group position={[0, platformThickness + 1, config.depth / 2 - 0.25]}>
+            <ShelfLip width={config.width} color={lipColor} text={branding?.lipText} textColor={branding?.lipTextColor} />
+          </group>
+          <group position={[0, platformThickness + 1, -config.depth / 2 + 0.25]} rotation={[0, Math.PI, 0]}>
+            <ShelfLip width={config.width} color={lipColor} text={branding?.lipText} textColor={branding?.lipTextColor} />
+          </group>
+          <group position={[-config.width / 2 + 0.25, platformThickness + 1, 0]} rotation={[0, -Math.PI / 2, 0]}>
+            <ShelfLip width={config.depth - 1} color={lipColor} text={branding?.lipText} textColor={branding?.lipTextColor} />
+          </group>
+          <group position={[config.width / 2 - 0.25, platformThickness + 1, 0]} rotation={[0, Math.PI / 2, 0]}>
+            <ShelfLip width={config.depth - 1} color={lipColor} text={branding?.lipText} textColor={branding?.lipTextColor} />
+          </group>
+        </>
+      )}
 
       {/* Slots */}
       {showSlotGrid && (

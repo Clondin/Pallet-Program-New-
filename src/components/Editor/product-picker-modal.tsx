@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react'
-import { X, Search, Check } from 'lucide-react'
+import { useState, useEffect, useMemo } from 'react'
+import { X, Search, Check, Info } from 'lucide-react'
 import { useDisplayStore } from '../../stores/display-store'
 import { useCatalogStore } from '../../stores/catalog-store'
+import { useRetailerStore } from '../../stores/retailer-store'
 import { Product, Brand } from '../../types'
 import { BRAND_COLORS } from '../../lib/mock-data'
 
@@ -22,11 +23,26 @@ export function ProductPickerModal() {
   const pickerSelectedProduct = useDisplayStore(s => s.pickerSelectedProduct)
   const setPickerProduct = useDisplayStore(s => s.setPickerProduct)
 
+  const currentProject = useDisplayStore(s => s.currentProject)
+
   const searchQuery = useCatalogStore(s => s.searchQuery)
   const setSearchQuery = useCatalogStore(s => s.setSearchQuery)
   const brandFilter = useCatalogStore(s => s.brandFilter)
   const setBrandFilter = useCatalogStore(s => s.setBrandFilter)
   const filteredProducts = useCatalogStore(s => s.filteredProducts)
+
+  const retailer = useRetailerStore(s =>
+    currentProject ? s.retailers.find(r => r.id === currentProject.retailerId) : undefined
+  )
+
+  const authorizedProductIds = useMemo(() => {
+    if (!retailer) return null
+    return new Set(
+      retailer.authorizedItems
+        .filter(item => item.status === 'authorized')
+        .map(item => item.productId)
+    )
+  }, [retailer])
 
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
 
@@ -65,7 +81,23 @@ export function ProductPickerModal() {
 
   if (!isOpen) return null
 
-  const filtered = filteredProducts()
+  const projectHoliday = currentProject?.holiday ?? 'none'
+
+  const filtered = useMemo(() => {
+    let products = filteredProducts()
+
+    if (authorizedProductIds) {
+      products = products.filter(p => authorizedProductIds.has(p.id))
+    }
+
+    if (retailer) {
+      products = products.filter(p =>
+        p.holidayTags.includes(projectHoliday) || p.holidayTags.includes('none')
+      )
+    }
+
+    return products
+  }, [filteredProducts, authorizedProductIds, retailer, projectHoliday])
 
   const handlePlace = () => {
     if (selectedProduct && selectedSlotId) {
@@ -95,6 +127,16 @@ export function ProductPickerModal() {
               <X size={18} />
             </button>
           </div>
+
+          {/* Retailer + season context banner */}
+          {retailer && (
+            <div className="flex items-center gap-2 px-3 py-2 mb-4 rounded-md bg-[#f0f6ff] text-[#0a72ef]">
+              <Info size={14} className="shrink-0" />
+              <span className="text-[11px] font-medium">
+                Showing products approved for {retailer.name} &middot; {projectHoliday === 'none' ? 'Everyday' : projectHoliday.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+              </span>
+            </div>
+          )}
 
           {/* Search */}
           <div className="relative mb-4">
@@ -178,7 +220,14 @@ export function ProductPickerModal() {
             )
           })}
           {filtered.length === 0 && (
-            <div className="py-12 text-center text-[13px] text-[#999]">No products found</div>
+            <div className="py-12 text-center">
+              <div className="text-[13px] text-[#999]">No products found</div>
+              {retailer && (
+                <div className="text-[11px] text-[#bbb] mt-1">
+                  No authorized products match this retailer and season. Check the retailer's authorized items list.
+                </div>
+              )}
+            </div>
           )}
         </div>
 

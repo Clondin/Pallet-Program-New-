@@ -1,14 +1,11 @@
 import { LayoutGrid } from 'lucide-react'
-import { useDisplayStore } from '../../stores/display-store'
 import { useNavigate } from 'react-router-dom'
 
 export function EmptyState() {
-  const createProject = useDisplayStore(s => s.createProject)
   const navigate = useNavigate()
 
   const handleCreate = () => {
-    createProject('New Palette', 'ret-1', 'rosh-hashanah', 4)
-    navigate('/editor')
+    navigate('/new')
   }
 
   return (

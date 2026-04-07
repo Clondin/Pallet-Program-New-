@@ -34,6 +34,7 @@ export type DisplayEnvironment = 'retail' | 'studio' | 'clean'
 export interface PalletDisplayProps {
   // Configuration
   tierCount?: number; // 2-6, default 4
+  palletType?: PalletType; // 'full' | 'half', default 'full'
   palletDimensions?: { width: number; depth: number; height: number }; // default 48×40×6
   maxDisplayHeight?: number; // inches, default 60
 
@@ -78,6 +79,8 @@ export interface TierConfig {
 export type Brand = 'tuscanini' | 'kedem' | 'gefen' | 'liebers' | 'haddar' | 'osem'
 
 export type Holiday = 'rosh-hashanah' | 'pesach' | 'sukkos' | 'none'
+
+export type PalletType = 'full' | 'half'
 
 export type ViewMode = '2d' | '3d'
 
@@ -179,12 +182,20 @@ export interface Retailer {
   tags: string[]
 }
 
+export interface PalletWizardConfig {
+  palletType: PalletType
+  season: Holiday
+  retailerId: string
+}
+
 export interface DisplayProject {
   id: string
   name: string
   retailerId: string
   holiday: Holiday
+  season: Holiday
   tierCount: number
+  palletType: PalletType
   lipColor: string
   branding: DisplayBranding
   placements: PlacedProduct[]

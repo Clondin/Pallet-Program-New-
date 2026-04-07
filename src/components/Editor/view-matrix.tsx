@@ -8,68 +8,39 @@ interface ViewMatrixProps {
 export function ViewMatrix({ activeFace, onFaceChange }: ViewMatrixProps) {
   const isActive = (face: TrayFace) => activeFace === face
   const labelClass = (face: TrayFace) =>
-    `text-[10px] font-bold ${isActive(face) ? 'text-[#2563eb]' : 'text-slate-400'}`
+    `text-[10px] font-medium ${isActive(face) ? 'text-[#0a72ef]' : 'text-[#bbb]'}`
 
   return (
-    <div className="bg-white/50 backdrop-blur-sm rounded-xl border border-[#EDE5DA]/50 p-4">
-      <div className="text-[9px] font-bold uppercase tracking-[0.1em] text-slate-400 mb-3">
+    <div className="bg-white/60 backdrop-blur-sm shadow-card rounded-lg p-4">
+      <div className="text-[9px] font-medium uppercase tracking-wider text-[#999] mb-3">
         View Matrix
       </div>
       <div className="relative w-20 h-20">
-        {/* FRONT label - above */}
-        <span className={`absolute -top-4 left-1/2 -translate-x-1/2 ${labelClass('front')}`}>
-          FRONT
-        </span>
-        {/* BACK label - below */}
-        <span className={`absolute -bottom-4 left-1/2 -translate-x-1/2 ${labelClass('back')}`}>
-          BACK
-        </span>
-        {/* LEFT label - left */}
-        <span className={`absolute top-1/2 -left-5 -translate-y-1/2 ${labelClass('left')}`}>
-          LEFT
-        </span>
-        {/* RIGHT label - right */}
-        <span className={`absolute top-1/2 -right-6 -translate-y-1/2 ${labelClass('right')}`}>
-          RIGHT
-        </span>
+        <span className={`absolute -top-4 left-1/2 -translate-x-1/2 ${labelClass('front')}`}>FRONT</span>
+        <span className={`absolute -bottom-4 left-1/2 -translate-x-1/2 ${labelClass('back')}`}>BACK</span>
+        <span className={`absolute top-1/2 -left-5 -translate-y-1/2 ${labelClass('left')}`}>LEFT</span>
+        <span className={`absolute top-1/2 -right-6 -translate-y-1/2 ${labelClass('right')}`}>RIGHT</span>
 
-        {/* 2x2 grid */}
-        <div className="grid grid-cols-2 grid-rows-2 w-full h-full border-2 border-[#EDE5DA]">
-          {/* Top-left: Front */}
+        <div className="grid grid-cols-2 grid-rows-2 w-full h-full" style={{ boxShadow: 'inset 0 0 0 2px rgba(0,0,0,0.08)' }}>
           <button
             onClick={() => onFaceChange('front')}
-            className={`w-full h-full ${
-              activeFace === 'front'
-                ? 'bg-primary/10 border-t-4 border-[#2563eb]'
-                : ''
-            }`}
+            className={`w-full h-full transition-colors ${activeFace === 'front' ? 'bg-[#0a72ef]/10' : 'hover:bg-[#f5f5f5]'}`}
+            style={activeFace === 'front' ? { boxShadow: 'inset 0 3px 0 0 #0a72ef' } : undefined}
           />
-          {/* Top-right: Right */}
           <button
             onClick={() => onFaceChange('right')}
-            className={`w-full h-full ${
-              activeFace === 'right'
-                ? 'bg-primary/10 border-r-4 border-[#2563eb]'
-                : ''
-            }`}
+            className={`w-full h-full transition-colors ${activeFace === 'right' ? 'bg-[#0a72ef]/10' : 'hover:bg-[#f5f5f5]'}`}
+            style={activeFace === 'right' ? { boxShadow: 'inset -3px 0 0 0 #0a72ef' } : undefined}
           />
-          {/* Bottom-left: Left */}
           <button
             onClick={() => onFaceChange('left')}
-            className={`w-full h-full ${
-              activeFace === 'left'
-                ? 'bg-primary/10 border-l-4 border-[#2563eb]'
-                : ''
-            }`}
+            className={`w-full h-full transition-colors ${activeFace === 'left' ? 'bg-[#0a72ef]/10' : 'hover:bg-[#f5f5f5]'}`}
+            style={activeFace === 'left' ? { boxShadow: 'inset 3px 0 0 0 #0a72ef' } : undefined}
           />
-          {/* Bottom-right: Back */}
           <button
             onClick={() => onFaceChange('back')}
-            className={`w-full h-full ${
-              activeFace === 'back'
-                ? 'bg-primary/10 border-b-4 border-[#2563eb]'
-                : ''
-            }`}
+            className={`w-full h-full transition-colors ${activeFace === 'back' ? 'bg-[#0a72ef]/10' : 'hover:bg-[#f5f5f5]'}`}
+            style={activeFace === 'back' ? { boxShadow: 'inset 0 -3px 0 0 #0a72ef' } : undefined}
           />
         </div>
       </div>

@@ -8,8 +8,12 @@ import {
   ViewMode,
   DisplayBranding,
   TrayFace,
+  PalletType,
+  PalletWizardConfig,
+  Retailer,
 } from '../types'
 import { getAppSettingsSnapshot } from './app-settings-store'
+import { useRetailerStore } from './retailer-store'
 
 interface DisplayState {
   currentProject: DisplayProject | null
@@ -23,8 +27,10 @@ interface DisplayState {
   pickerSelectedProduct: Product | null
   history: DisplayProject[]
   historyIndex: number
+  lastUsedConfig: PalletWizardConfig | null
 
-  createProject: (name: string, retailerId: string, holiday: string, tierCount?: number) => void
+  createProject: (name: string, config: PalletWizardConfig, tierCount?: number) => void
+  getActiveRetailer: () => Retailer | undefined
   setCurrentProject: (project: DisplayProject) => void
   placeProduct: (product: Product, slotId: string) => void
   removeProduct: (placementId: string) => void
@@ -38,6 +44,7 @@ interface DisplayState {
   updateBranding: (branding: Partial<DisplayBranding>) => void
   updateLipColor: (color: string) => void
   updateTierCount: (count: number) => void
+  setPalletType: (type: PalletType) => void
   openPicker: () => void
   closePicker: () => void
   setPickerProduct: (product: Product | null) => void
@@ -70,18 +77,21 @@ export const useDisplayStore = create<DisplayState>((set, get) => ({
   pickerSelectedProduct: null,
   history: [],
   historyIndex: -1,
+  lastUsedConfig: JSON.parse(localStorage.getItem('lastUsedConfig') ?? 'null'),
 
-  createProject: (name, retailerId, holiday, tierCount = 4) => {
+  createProject: (name, config, tierCount = 4) => {
     const settings = getAppSettingsSnapshot()
     const project: DisplayProject = {
       id: crypto.randomUUID(),
       name,
-      retailerId,
-      holiday: holiday as DisplayProject['holiday'],
+      retailerId: config.retailerId,
+      holiday: config.season,
+      season: config.season,
       tierCount,
+      palletType: config.palletType,
       lipColor: '#1E3A8A',
       branding: {
-        lipText: 'ALL YOUR HOLIDAY NEEDS',
+        lipText: config.season === 'none' ? '' : 'ALL YOUR HOLIDAY NEEDS',
         lipTextColor: '#FFFFFF',
         headerText: '',
         headerTextColor: '#FFFFFF',
@@ -90,14 +100,22 @@ export const useDisplayStore = create<DisplayState>((set, get) => ({
       createdAt: Date.now(),
       updatedAt: Date.now(),
     }
+    localStorage.setItem('lastUsedConfig', JSON.stringify(config))
     set({
       currentProject: project,
+      lastUsedConfig: config,
       viewMode: settings.defaultViewMode,
       activeFace: settings.defaultFace,
       cameraPreset: settings.defaultCameraPreset,
       history: [structuredClone(project)],
       historyIndex: 0,
     })
+  },
+
+  getActiveRetailer: () => {
+    const project = get().currentProject
+    if (!project) return undefined
+    return useRetailerStore.getState().getRetailer(project.retailerId)
   },
 
   setCurrentProject: (project) => {
@@ -117,7 +135,6 @@ export const useDisplayStore = create<DisplayState>((set, get) => ({
     if (!state.currentProject) return
     const historyUpdate = pushHistory(state)
 
-    // Before creating placement, remove any existing product in this slot
     const existingIndex = state.currentProject.placements.findIndex(p => p.slotId === slotId)
     const filteredPlacements = existingIndex >= 0
       ? state.currentProject.placements.filter(p => p.slotId !== slotId)
@@ -263,6 +280,33 @@ export const useDisplayStore = create<DisplayState>((set, get) => ({
         updatedAt: Date.now(),
       },
       ...historyUpdate,
+    })
+  },
+
+  setPalletType: (type) => {
+    const state = get()
+    if (!state.currentProject) return
+    const historyUpdate = pushHistory(state)
+
+    const placements = type === 'half'
+      ? state.currentProject.placements.filter(p => {
+          const slotIndex = parseInt(p.slotId.split('-')[1], 10)
+          return !isNaN(slotIndex) && slotIndex < 1000
+        })
+      : state.currentProject.placements
+
+    set({
+      currentProject: {
+        ...state.currentProject,
+        palletType: type,
+        placements,
+        updatedAt: Date.now(),
+      },
+      ...historyUpdate,
+      activeFace: type === 'half' ? 'front' : state.activeFace,
+      selectedSlotId: null,
+      selectedProductId: null,
+      ghostProduct: null,
     })
   },
 
