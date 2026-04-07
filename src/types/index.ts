@@ -16,6 +16,8 @@ export interface GhostProduct {
   isValid: boolean;        // green if valid, red if invalid
 }
 
+export type PackagingType = 'box' | 'bottle' | 'jar' | 'bag' | 'tin' | 'pouch'
+
 export interface PlacedProduct {
   id: string;              // unique placement ID
   slotId: string;          // "tierId-slotIndex"
@@ -25,7 +27,9 @@ export interface PlacedProduct {
   color: string;           // brand color
   label: string;           // product name
   sku: string;             // SKU code
-  imageUrl?: string;       // product image URL
+  imageUrl?: string;       // product image URL (Tier 1)
+  modelUrl?: string;       // .glb model URL (Tier 3)
+  packaging?: PackagingType; // packaging type for scaling strategy
 }
 
 export type CameraPreset = 'front' | 'side' | 'top' | 'isometric';
@@ -98,6 +102,8 @@ export interface Product {
   depth: number
   weight: number
   imageUrl?: string
+  modelUrl?: string
+  packaging?: PackagingType
   holidayTags: Holiday[]
 }
 
