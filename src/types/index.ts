@@ -30,6 +30,7 @@ export interface PlacedProduct {
   imageUrl?: string;       // product image URL (Tier 1)
   modelUrl?: string;       // .glb model URL (Tier 3)
   packaging?: PackagingType; // packaging type for scaling strategy
+  orientation?: number;    // index into ORIENTATION_PRESETS (0-5)
 }
 
 export type CameraPreset = 'front' | 'side' | 'top' | 'isometric';
@@ -56,6 +57,8 @@ export interface PalletDisplayProps {
   onSlotHover?: (tierId: number, slotIndex: number, position: [number, number, number]) => void;
   onSlotHoverEnd?: () => void;
   onProductClick?: (productId: string) => void;
+  onRotateProduct?: (productId: string) => void;
+  onDeleteProduct?: (productId: string) => void;
 
   // Camera
   autoRotate?: boolean; // default false

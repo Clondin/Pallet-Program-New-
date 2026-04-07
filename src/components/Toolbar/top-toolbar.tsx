@@ -50,9 +50,12 @@ export function TopToolbar() {
   }, [])
 
   const handleSave = () => {
-    const project = useDisplayStore.getState().currentProject
+    const { currentProject, projects } = useDisplayStore.getState()
+    const project = currentProject
     if (!project) return
+    localStorage.setItem('palletforge-pallets', JSON.stringify(projects))
     localStorage.setItem('palletforge-project', JSON.stringify(project))
+    localStorage.setItem('palletforge-active-pallet-id', project.id)
     setSaved(true)
     setTimeout(() => setSaved(false), 1500)
   }
@@ -143,12 +146,14 @@ export function TopToolbar() {
           <div className="flex items-center gap-2">
             <button
               onClick={undo} disabled={!canUndo}
+              aria-label="Undo"
               className={`p-1 rounded transition-colors ${canUndo ? 'text-[#555] hover:text-[#0a72ef] hover:bg-[#0a72ef]/5' : 'text-[#ddd]'}`}
             >
               <Undo2 size={16} />
             </button>
             <button
               onClick={redo} disabled={!canRedo}
+              aria-label="Redo"
               className={`p-1 rounded transition-colors ${canRedo ? 'text-[#555] hover:text-[#0a72ef] hover:bg-[#0a72ef]/5' : 'text-[#ddd]'}`}
             >
               <Redo2 size={16} />

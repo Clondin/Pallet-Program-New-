@@ -81,6 +81,7 @@ export function ProductRow({ product }: ProductRowProps) {
         <div className="flex items-center justify-end gap-2">
           <div className="relative">
             <button
+              aria-label={`More actions for ${product.name}`}
               className="p-1 rounded-md hover:bg-[#f5f5f5] text-[#ccc] hover:text-[#888] transition-colors"
               onClick={(e) => {
                 e.stopPropagation()

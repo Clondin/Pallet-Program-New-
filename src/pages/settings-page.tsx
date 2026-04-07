@@ -149,7 +149,7 @@ export function SettingsPage() {
                 </div>
                 <div>
                   <h3 className="text-[15px] font-semibold text-[#171717] tracking-tight-sm">Editor Defaults</h3>
-                  <p className="text-[12px] text-[#888]">Initial editor state for new or reopened projects.</p>
+                  <p className="text-[12px] text-[#888]">Initial editor state for new or reopened pallets.</p>
                 </div>
               </div>
 
@@ -295,7 +295,7 @@ export function SettingsPage() {
                 </div>
                 <div>
                   <h3 className="text-[15px] font-semibold text-[#171717] tracking-tight-sm">Persistence</h3>
-                  <p className="text-[12px] text-[#888]">Control how the editor saves project data.</p>
+                  <p className="text-[12px] text-[#888]">Control how the editor saves pallet data.</p>
                 </div>
               </div>
 

@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { PlacedProduct } from '../../../types'
+import { getOrientationRotation } from '../../../lib/orientation-presets'
 import { GlbProductModel } from './GlbProductModel'
 import { TexturedBoxProduct } from './TexturedBoxProduct'
 import { BasicBoxProduct } from './BasicBoxProduct'
@@ -8,22 +9,24 @@ import { ProductHoverEffect } from './ProductHoverEffect'
 interface ProductRendererProps {
   product: PlacedProduct
   position: [number, number, number]
-  rotation?: [number, number, number]
   isSelected?: boolean
-  isHovered?: boolean
   onClick?: () => void
-  onPointerOver?: () => void
-  onPointerOut?: () => void
+  onRotate?: () => void
+  onDuplicate?: () => void
+  onDelete?: () => void
 }
 
 export const ProductRenderer: React.FC<ProductRendererProps> = ({
   product,
   position,
-  rotation = [0, 0, 0],
   isSelected = false,
   onClick,
+  onRotate,
+  onDuplicate,
+  onDelete,
 }) => {
   const [hovered, setHovered] = useState(false)
+  const rotation = getOrientationRotation(product.orientation)
 
   const sharedProps = {
     product,
@@ -51,6 +54,9 @@ export const ProductRenderer: React.FC<ProductRendererProps> = ({
       productWidth={product.width}
       productHeight={product.height}
       productDepth={product.depth}
+      onRotate={onRotate}
+      onDuplicate={onDuplicate}
+      onDelete={onDelete}
     >
       {renderProduct()}
     </ProductHoverEffect>

@@ -24,6 +24,8 @@ export const PalletDisplayScene: React.FC<PalletDisplayProps> = ({
   onSlotHover,
   onSlotHoverEnd,
   onProductClick,
+  onRotateProduct,
+  onDeleteProduct,
   autoRotate = false,
   cameraPreset,
   showSlotGrid = true,
@@ -170,6 +172,8 @@ export const PalletDisplayScene: React.FC<PalletDisplayProps> = ({
           tiers={tiers}
           selectedProductId={selectedProductId}
           onProductClick={onProductClick}
+          onRotateProduct={onRotateProduct}
+          onDeleteProduct={onDeleteProduct}
         />
 
         {ghostProduct && ghostPosition && (

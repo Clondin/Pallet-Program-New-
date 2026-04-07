@@ -89,6 +89,8 @@ export const mockProducts: Product[] = [
     height: 10,
     depth: 3.5,
     weight: 2.4,
+    modelUrl: '/models/kedem-grape-juice.glb',
+    packaging: 'bottle',
     holidayTags: ['rosh-hashanah'],
   },
   {
@@ -294,6 +296,21 @@ export const mockProducts: Product[] = [
     weight: 0.2,
     holidayTags: [],
   },
+  {
+    id: 'prod-22',
+    name: 'Bartenura Gnocchi 500g',
+    sku: 'TUS-GNO-500',
+    brand: 'tuscanini',
+    brandColor: BRAND_COLORS.tuscanini,
+    category: 'Pasta',
+    width: 6,
+    height: 8,
+    depth: 2.5,
+    weight: 1.1,
+    modelUrl: '/models/bartenura-gnocchi.glb',
+    packaging: 'bag',
+    holidayTags: [],
+  },
 ]
 
 export const mockRetailers: Retailer[] = [
@@ -332,6 +349,7 @@ export const mockRetailers: Retailer[] = [
       { productId: 'prod-4', productName: 'Tomato Sauce 680g', sku: 'TUS-TOM-680', brand: 'tuscanini', status: 'authorized', authorizedDate: '2024-05-15', lastOrderDate: '2026-02-25', avgMonthlyUnits: 3200, marginPercent: 35.6 },
       { productId: 'prod-18', productName: 'Matzo Ball Mix', sku: 'HAD-MTZ-1', brand: 'haddar', status: 'authorized', authorizedDate: '2024-03-01', lastOrderDate: '2026-03-14', avgMonthlyUnits: 2800, marginPercent: 40.1 },
       { productId: 'prod-9', productName: 'Whole Hearts of Palm 14oz', sku: 'GEF-HOP-14', brand: 'gefen', status: 'discontinued', authorizedDate: '2023-06-01', lastOrderDate: '2025-11-30', avgMonthlyUnits: 0, marginPercent: 18.2 },
+      { productId: 'prod-22', productName: 'Bartenura Gnocchi 500g', sku: 'TUS-GNO-500', brand: 'tuscanini', status: 'authorized', authorizedDate: '2025-06-01', lastOrderDate: '2026-03-20', avgMonthlyUnits: 1800, marginPercent: 35.0 },
     ],
     compliance: [
       { id: 'comp-1', requirement: 'Pallet Display Height Standards', status: 'compliant', lastAuditDate: '2026-02-15', nextAuditDate: '2026-08-15' },
@@ -378,6 +396,7 @@ export const mockRetailers: Retailer[] = [
       { productId: 'prod-19', productName: 'Honey 16oz', sku: 'HAD-HON-16', brand: 'haddar', status: 'authorized', authorizedDate: '2024-09-01', lastOrderDate: '2026-03-15', avgMonthlyUnits: 8400, marginPercent: 35.2 },
       { productId: 'prod-2', productName: 'Balsamic Vinegar Bronze 250ml', sku: 'TUS-BALS-250', brand: 'tuscanini', status: 'pending', authorizedDate: '2026-02-20', avgMonthlyUnits: 0, marginPercent: 36.8 },
       { productId: 'prod-20', productName: 'Pearl Couscous Original', sku: 'OSE-COU-1', brand: 'osem', status: 'authorized', authorizedDate: '2025-03-01', lastOrderDate: '2026-03-08', avgMonthlyUnits: 3200, marginPercent: 31.4 },
+      { productId: 'prod-22', productName: 'Bartenura Gnocchi 500g', sku: 'TUS-GNO-500', brand: 'tuscanini', status: 'authorized', authorizedDate: '2025-06-01', lastOrderDate: '2026-03-20', avgMonthlyUnits: 1800, marginPercent: 35.0 },
     ],
     compliance: [
       { id: 'comp-6', requirement: 'Pallet Display Height Standards', status: 'compliant', lastAuditDate: '2026-01-10', nextAuditDate: '2026-07-10' },
@@ -432,6 +451,7 @@ export const mockRetailers: Retailer[] = [
       { productId: 'prod-19', productName: 'Honey 16oz', sku: 'HAD-HON-16', brand: 'haddar', status: 'authorized', authorizedDate: '2024-04-01', lastOrderDate: '2026-03-22', avgMonthlyUnits: 4500, marginPercent: 40.2 },
       { productId: 'prod-21', productName: 'Bamba Peanut Snack', sku: 'OSE-BAM-1', brand: 'osem', status: 'authorized', authorizedDate: '2024-11-01', lastOrderDate: '2026-03-19', avgMonthlyUnits: 5200, marginPercent: 43.5 },
       { productId: 'prod-11', productName: 'Chestnuts Roasted', sku: 'GEF-CHST-1', brand: 'gefen', status: 'pending', authorizedDate: '2026-03-15', avgMonthlyUnits: 0, marginPercent: 28.0 },
+      { productId: 'prod-22', productName: 'Bartenura Gnocchi 500g', sku: 'TUS-GNO-500', brand: 'tuscanini', status: 'authorized', authorizedDate: '2025-06-01', lastOrderDate: '2026-03-20', avgMonthlyUnits: 1800, marginPercent: 35.0 },
     ],
     compliance: [
       { id: 'comp-10', requirement: 'Pallet Display Height Standards', status: 'compliant', lastAuditDate: '2026-02-20', nextAuditDate: '2026-08-20' },
@@ -478,6 +498,7 @@ export const mockRetailers: Retailer[] = [
       { productId: 'prod-21', productName: 'Bamba Peanut Snack', sku: 'OSE-BAM-1', brand: 'osem', status: 'authorized', authorizedDate: '2025-06-01', lastOrderDate: '2026-03-19', avgMonthlyUnits: 3100, marginPercent: 41.2 },
       { productId: 'prod-1', productName: 'Extra Virgin Olive Oil 750ml', sku: 'TUS-EVOO-750', brand: 'tuscanini', status: 'pending', authorizedDate: '2026-03-10', avgMonthlyUnits: 0, marginPercent: 35.0 },
       { productId: 'prod-18', productName: 'Matzo Ball Mix', sku: 'HAD-MTZ-1', brand: 'haddar', status: 'authorized', authorizedDate: '2025-01-15', lastOrderDate: '2026-03-12', avgMonthlyUnits: 900, marginPercent: 39.5 },
+      { productId: 'prod-22', productName: 'Bartenura Gnocchi 500g', sku: 'TUS-GNO-500', brand: 'tuscanini', status: 'authorized', authorizedDate: '2025-06-01', lastOrderDate: '2026-03-20', avgMonthlyUnits: 1800, marginPercent: 35.0 },
     ],
     compliance: [
       { id: 'comp-15', requirement: 'Pallet Display Height Standards', status: 'compliant', lastAuditDate: '2026-01-25', nextAuditDate: '2026-07-25' },
@@ -518,6 +539,7 @@ export const mockRetailers: Retailer[] = [
       { productId: 'prod-19', productName: 'Honey 16oz', sku: 'HAD-HON-16', brand: 'haddar', status: 'authorized', authorizedDate: '2025-08-01', lastOrderDate: '2026-03-15', avgMonthlyUnits: 3200, marginPercent: 36.5 },
       { productId: 'prod-21', productName: 'Bamba Peanut Snack', sku: 'OSE-BAM-1', brand: 'osem', status: 'authorized', authorizedDate: '2025-09-01', lastOrderDate: '2026-03-22', avgMonthlyUnits: 4600, marginPercent: 40.8 },
       { productId: 'prod-4', productName: 'Tomato Sauce 680g', sku: 'TUS-TOM-680', brand: 'tuscanini', status: 'pending', authorizedDate: '2026-03-01', avgMonthlyUnits: 0, marginPercent: 34.2 },
+      { productId: 'prod-22', productName: 'Bartenura Gnocchi 500g', sku: 'TUS-GNO-500', brand: 'tuscanini', status: 'authorized', authorizedDate: '2025-06-01', lastOrderDate: '2026-03-20', avgMonthlyUnits: 1800, marginPercent: 35.0 },
     ],
     compliance: [
       { id: 'comp-18', requirement: 'Pallet Display Height Standards', status: 'compliant', lastAuditDate: '2026-02-28', nextAuditDate: '2026-08-28' },
@@ -554,6 +576,7 @@ export const mockRetailers: Retailer[] = [
       { productId: 'prod-1', productName: 'Extra Virgin Olive Oil 750ml', sku: 'TUS-EVOO-750', brand: 'tuscanini', status: 'pending', authorizedDate: '2026-04-01', avgMonthlyUnits: 0, marginPercent: 38.5 },
       { productId: 'prod-2', productName: 'Balsamic Vinegar Bronze 250ml', sku: 'TUS-BALS-250', brand: 'tuscanini', status: 'pending', authorizedDate: '2026-04-01', avgMonthlyUnits: 0, marginPercent: 41.2 },
       { productId: 'prod-20', productName: 'Pearl Couscous Original', sku: 'OSE-COU-1', brand: 'osem', status: 'pending', authorizedDate: '2026-04-01', avgMonthlyUnits: 0, marginPercent: 33.0 },
+      { productId: 'prod-22', productName: 'Bartenura Gnocchi 500g', sku: 'TUS-GNO-500', brand: 'tuscanini', status: 'authorized', authorizedDate: '2025-06-01', lastOrderDate: '2026-03-20', avgMonthlyUnits: 1800, marginPercent: 35.0 },
     ],
     compliance: [
       { id: 'comp-21', requirement: 'Pallet Display Height Standards', status: 'pending-review', lastAuditDate: '2026-03-20', nextAuditDate: '2026-09-20', notes: 'Initial compliance review scheduled' },
@@ -586,6 +609,7 @@ export const mockRetailers: Retailer[] = [
     authorizedItems: [
       { productId: 'prod-19', productName: 'Honey 16oz', sku: 'HAD-HON-16', brand: 'haddar', status: 'discontinued', authorizedDate: '2023-03-01', lastOrderDate: '2025-10-15', avgMonthlyUnits: 0, marginPercent: 19.5 },
       { productId: 'prod-17', productName: 'Canola Oil 32oz', sku: 'HAD-CAN-32', brand: 'haddar', status: 'discontinued', authorizedDate: '2023-03-01', lastOrderDate: '2025-09-30', avgMonthlyUnits: 0, marginPercent: 16.8 },
+      { productId: 'prod-22', productName: 'Bartenura Gnocchi 500g', sku: 'TUS-GNO-500', brand: 'tuscanini', status: 'authorized', authorizedDate: '2025-06-01', lastOrderDate: '2026-03-20', avgMonthlyUnits: 1800, marginPercent: 35.0 },
     ],
     compliance: [
       { id: 'comp-23', requirement: 'Pallet Display Height Standards', status: 'compliant', lastAuditDate: '2025-08-15', nextAuditDate: '2026-02-15' },
@@ -689,3 +713,89 @@ export const mockProject: DisplayProject = {
   createdAt: Date.now(),
   updatedAt: Date.now(),
 }
+
+export const mockProjects: DisplayProject[] = [
+  mockProject,
+  {
+    id: 'proj-2',
+    name: 'Pesach 2026 - Walmart',
+    retailerId: 'ret-1',
+    holiday: 'pesach',
+    season: 'pesach',
+    tierCount: 4,
+    palletType: 'full',
+    lipColor: '#0F766E',
+    branding: {
+      lipText: 'PASSOVER ESSENTIALS',
+      lipTextColor: '#FFFFFF',
+      headerText: 'PESACH',
+      headerTextColor: '#FFFFFF',
+      headerBackgroundColor: '#0F766E',
+    },
+    placements: [
+      {
+        id: 'place-8',
+        slotId: '1-0',
+        width: 4,
+        height: 6,
+        depth: 2,
+        color: BRAND_COLORS.haddar,
+        label: 'Matzo Ball Mix',
+        sku: 'HAD-MTZ-1',
+      },
+      {
+        id: 'place-9',
+        slotId: '1-1',
+        width: 5,
+        height: 8,
+        depth: 3,
+        color: BRAND_COLORS.liebers,
+        label: 'Egg Noodles Wide 400g',
+        sku: 'LIE-EGN-400',
+      },
+    ],
+    createdAt: Date.now() - 1000 * 60 * 60 * 24 * 30,
+    updatedAt: Date.now() - 1000 * 60 * 60 * 24 * 7,
+  },
+  {
+    id: 'proj-3',
+    name: 'Rosh Hashanah 2026 - ShopRite',
+    retailerId: 'ret-3',
+    holiday: 'rosh-hashanah',
+    season: 'rosh-hashanah',
+    tierCount: 4,
+    palletType: 'half',
+    lipColor: '#9A3412',
+    branding: {
+      lipText: 'HOLIDAY FAVORITES',
+      lipTextColor: '#FFFFFF',
+      headerText: 'ROSH\nHASHANAH',
+      headerTextColor: '#FFFFFF',
+      headerBackgroundColor: '#9A3412',
+    },
+    placements: [
+      {
+        id: 'place-10',
+        slotId: '1-0',
+        width: 3.2,
+        height: 11.5,
+        depth: 3.2,
+        color: BRAND_COLORS.kedem,
+        label: 'Sparkling Grape Juice 750ml',
+        sku: 'KED-SGJ-750',
+      },
+      {
+        id: 'place-11',
+        slotId: '2-0',
+        width: 3,
+        height: 9,
+        depth: 3,
+        color: BRAND_COLORS.haddar,
+        label: 'Canola Oil 32oz',
+        sku: 'HAD-CAN-32',
+      },
+    ],
+    createdAt: Date.now() - 1000 * 60 * 60 * 24 * 14,
+    updatedAt: Date.now() - 1000 * 60 * 60 * 24 * 2,
+  },
+]

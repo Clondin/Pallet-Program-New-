@@ -14,6 +14,8 @@ export function ThreeDViewer() {
   const setGhostProduct = useDisplayStore(s => s.setGhostProduct)
   const setPickerProduct = useDisplayStore(s => s.setPickerProduct)
   const placeProduct = useDisplayStore(s => s.placeProduct)
+  const rotateProduct = useDisplayStore(s => s.rotateProduct)
+  const removeProduct = useDisplayStore(s => s.removeProduct)
   const show3DSlotGrid = useAppSettingsStore((s) => s.settings.show3DSlotGrid)
   const show3DHeader = useAppSettingsStore((s) => s.settings.show3DHeader)
   const displayEnvironment = useAppSettingsStore(
@@ -32,6 +34,8 @@ export function ThreeDViewer() {
         ghostProduct={ghostProduct}
         selectedProductId={selectedProductId}
         onProductClick={(id) => selectProduct(id === selectedProductId ? null : id)}
+        onRotateProduct={rotateProduct}
+        onDeleteProduct={(id) => { removeProduct(id); selectProduct(null); }}
         onSlotClick={(tierId, slotIndex) => {
           const slotId = `${tierId}-${slotIndex}`
           if (pickerSelectedProduct) {

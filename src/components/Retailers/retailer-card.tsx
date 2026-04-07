@@ -213,6 +213,7 @@ export function RetailerCard({ retailer, onClick, onEdit, onDelete }: RetailerCa
           <div className="flex items-center gap-1">
             <button
               onClick={(e) => { e.stopPropagation(); onEdit(id) }}
+              aria-label={`Edit ${name}`}
               className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-[#888] hover:text-[#0a72ef] hover:bg-[#0a72ef]/5 rounded transition-colors"
             >
               <Pencil className="w-2.5 h-2.5" />
@@ -220,6 +221,7 @@ export function RetailerCard({ retailer, onClick, onEdit, onDelete }: RetailerCa
             </button>
             <button
               onClick={(e) => { e.stopPropagation(); onDelete(id) }}
+              aria-label={`Delete ${name}`}
               className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-[#888] hover:text-red-600 hover:bg-red-50 rounded transition-colors"
             >
               <Trash2 className="w-2.5 h-2.5" />

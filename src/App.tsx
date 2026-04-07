@@ -7,15 +7,17 @@ import { CatalogPage } from './pages/catalog-page'
 import { ProductDetailPage } from './pages/product-detail-page'
 import { RetailersPage } from './pages/retailers-page'
 import { RetailerDetailPage } from './pages/retailer-detail-page'
-import { BrandingPage } from './pages/branding-page'
+import { PalletDetailPage } from './pages/pallet-detail-page'
 import { SettingsPage } from './pages/settings-page'
 import { useDisplayStore } from './stores/display-store'
 import { useCatalogStore } from './stores/catalog-store'
 import { useRetailerStore } from './stores/retailer-store'
 import { useAppSettingsStore } from './stores/app-settings-store'
-import { mockProducts, mockRetailers } from './lib/mock-data'
+import { mockProducts, mockRetailers, mockProjects } from './lib/mock-data'
 
 const PROJECT_STORAGE_KEY = 'palletforge-project'
+const PALLETS_STORAGE_KEY = 'palletforge-pallets'
+const ACTIVE_PALLET_STORAGE_KEY = 'palletforge-active-pallet-id'
 const CATALOG_STORAGE_KEY = 'palletforge-products'
 const RETAILER_STORAGE_KEY = 'palletforge-retailers'
 
@@ -37,9 +39,18 @@ export default function App() {
     useRetailerStore
       .getState()
       .setRetailers(loadPersistedState(RETAILER_STORAGE_KEY) ?? mockRetailers)
-    const persistedProject = loadPersistedState<DisplayProject>(PROJECT_STORAGE_KEY)
-    if (persistedProject) {
-      useDisplayStore.getState().setCurrentProject(persistedProject)
+    const persistedProjects = loadPersistedState<DisplayProject[]>(PALLETS_STORAGE_KEY)
+    const legacyProject = loadPersistedState<DisplayProject>(PROJECT_STORAGE_KEY)
+    const projects = persistedProjects ?? (legacyProject ? [legacyProject] : mockProjects)
+    const activePalletId = localStorage.getItem(ACTIVE_PALLET_STORAGE_KEY)
+    const activeProject =
+      projects.find((project) => project.id === activePalletId) ??
+      (legacyProject ? projects.find((project) => project.id === legacyProject.id) : undefined) ??
+      projects[0]
+
+    useDisplayStore.getState().setProjects(projects)
+    if (activeProject) {
+      useDisplayStore.getState().setCurrentProject(activeProject)
     }
 
     const unsubscribeCatalog = useCatalogStore.subscribe((state) => {
@@ -58,9 +69,17 @@ export default function App() {
 
   useEffect(() => {
     const unsubscribeProject = useDisplayStore.subscribe((state) => {
-      if (!state.currentProject) return
       if (!useAppSettingsStore.getState().settings.autoSaveProject) return
-      localStorage.setItem(PROJECT_STORAGE_KEY, JSON.stringify(state.currentProject))
+
+      localStorage.setItem(PALLETS_STORAGE_KEY, JSON.stringify(state.projects))
+      if (state.currentProject) {
+        localStorage.setItem(PROJECT_STORAGE_KEY, JSON.stringify(state.currentProject))
+        localStorage.setItem(ACTIVE_PALLET_STORAGE_KEY, state.currentProject.id)
+        return
+      }
+
+      localStorage.removeItem(PROJECT_STORAGE_KEY)
+      localStorage.removeItem(ACTIVE_PALLET_STORAGE_KEY)
     })
 
     return () => unsubscribeProject()
@@ -70,12 +89,18 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route element={<AppLayout />}>
-          <Route path="/editor" element={<EditorPage />} />
           <Route path="/catalog" element={<CatalogPage />} />
           <Route path="/catalog/:id" element={<ProductDetailPage />} />
           <Route path="/retailers" element={<RetailersPage />} />
           <Route path="/retailers/:id" element={<RetailerDetailPage />} />
-          <Route path="/branding" element={<BrandingPage />} />
+          <Route
+            path="/retailers/:retailerId/pallets/:palletId"
+            element={<PalletDetailPage />}
+          />
+          <Route
+            path="/retailers/:retailerId/pallets/:palletId/editor"
+            element={<EditorPage />}
+          />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/" element={<HomeRedirect />} />
           <Route path="*" element={<HomeRedirect />} />
@@ -86,5 +111,5 @@ export default function App() {
 }
 
 function HomeRedirect() {
-  return <Navigate to="/editor" replace />
+  return <Navigate to="/retailers" replace />
 }

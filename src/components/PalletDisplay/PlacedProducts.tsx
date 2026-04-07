@@ -8,6 +8,8 @@ interface PlacedProductsProps {
   tiers: TierConfig[]
   selectedProductId?: string | null
   onProductClick?: (productId: string) => void
+  onRotateProduct?: (productId: string) => void
+  onDeleteProduct?: (productId: string) => void
 }
 
 export const PlacedProducts: React.FC<PlacedProductsProps> = ({
@@ -15,6 +17,8 @@ export const PlacedProducts: React.FC<PlacedProductsProps> = ({
   tiers,
   selectedProductId,
   onProductClick,
+  onRotateProduct,
+  onDeleteProduct,
 }) => {
   // Preload all .glb models
   useEffect(() => {
@@ -117,6 +121,8 @@ export const PlacedProducts: React.FC<PlacedProductsProps> = ({
             position={position}
             isSelected={product.id === selectedProductId}
             onClick={() => onProductClick?.(product.id)}
+            onRotate={() => onRotateProduct?.(product.id)}
+            onDelete={() => onDeleteProduct?.(product.id)}
           />
         )
       })}

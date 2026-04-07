@@ -13,9 +13,11 @@ import {
   Retailer,
 } from '../types'
 import { getAppSettingsSnapshot } from './app-settings-store'
+import { nextOrientation } from '../lib/orientation-presets'
 import { useRetailerStore } from './retailer-store'
 
 interface DisplayState {
+  projects: DisplayProject[]
   currentProject: DisplayProject | null
   selectedSlotId: string | null
   selectedProductId: string | null
@@ -29,10 +31,15 @@ interface DisplayState {
   historyIndex: number
   lastUsedConfig: PalletWizardConfig | null
 
-  createProject: (name: string, config: PalletWizardConfig, tierCount?: number) => void
+  setProjects: (projects: DisplayProject[]) => void
+  createProject: (name: string, config: PalletWizardConfig, tierCount?: number) => DisplayProject
   getActiveRetailer: () => Retailer | undefined
+  getProject: (id: string) => DisplayProject | undefined
+  getProjectsForRetailer: (retailerId: string) => DisplayProject[]
+  selectProject: (id: string) => void
   setCurrentProject: (project: DisplayProject) => void
   placeProduct: (product: Product, slotId: string) => void
+  rotateProduct: (placementId: string) => void
   removeProduct: (placementId: string) => void
   moveProduct: (placementId: string, newSlotId: string) => void
   selectSlot: (slotId: string | null) => void
@@ -53,31 +60,63 @@ interface DisplayState {
   redo: () => void
 }
 
-const pushHistory = (state: DisplayState): Pick<DisplayState, 'history' | 'historyIndex'> => {
-  if (!state.currentProject) return { history: state.history, historyIndex: state.historyIndex }
-  const snapshot = structuredClone(state.currentProject)
-  const newHistory = state.history.slice(0, state.historyIndex + 1)
-  newHistory.push(snapshot)
-  if (newHistory.length > 50) newHistory.shift()
+function replaceProject(projects: DisplayProject[], nextProject: DisplayProject) {
+  const existingIndex = projects.findIndex((project) => project.id === nextProject.id)
+  if (existingIndex === -1) {
+    return [...projects, nextProject]
+  }
+
+  return projects.map((project) =>
+    project.id === nextProject.id ? nextProject : project
+  )
+}
+
+function hydrateSelectionState() {
+  const settings = getAppSettingsSnapshot()
   return {
-    history: newHistory,
-    historyIndex: newHistory.length - 1,
+    viewMode: settings.defaultViewMode,
+    activeFace: settings.defaultFace,
+    cameraPreset: settings.defaultCameraPreset,
+  }
+}
+
+function commitProjectUpdate(state: DisplayState, nextProject: DisplayProject) {
+  const snapshot = structuredClone(nextProject)
+  const nextHistory = state.history.slice(0, state.historyIndex + 1)
+  nextHistory.push(snapshot)
+  if (nextHistory.length > 50) nextHistory.shift()
+
+  return {
+    currentProject: nextProject,
+    projects: replaceProject(state.projects, nextProject),
+    history: nextHistory,
+    historyIndex: nextHistory.length - 1,
   }
 }
 
 export const useDisplayStore = create<DisplayState>((set, get) => ({
+  projects: [],
   currentProject: null,
   selectedSlotId: null,
   selectedProductId: null,
   ghostProduct: null,
-  viewMode: getAppSettingsSnapshot().defaultViewMode,
-  activeFace: getAppSettingsSnapshot().defaultFace,
-  cameraPreset: getAppSettingsSnapshot().defaultCameraPreset,
+  ...hydrateSelectionState(),
   isPickerOpen: false,
   pickerSelectedProduct: null,
   history: [],
   historyIndex: -1,
   lastUsedConfig: JSON.parse(localStorage.getItem('lastUsedConfig') ?? 'null'),
+
+  setProjects: (projects) => {
+    const currentProject = projects[0] ?? null
+    set({
+      projects,
+      currentProject,
+      history: currentProject ? [structuredClone(currentProject)] : [],
+      historyIndex: currentProject ? 0 : -1,
+      ...hydrateSelectionState(),
+    })
+  },
 
   createProject: (name, config, tierCount = 4) => {
     const settings = getAppSettingsSnapshot()
@@ -100,8 +139,11 @@ export const useDisplayStore = create<DisplayState>((set, get) => ({
       createdAt: Date.now(),
       updatedAt: Date.now(),
     }
+
     localStorage.setItem('lastUsedConfig', JSON.stringify(config))
-    set({
+
+    set((state) => ({
+      projects: [...state.projects, project],
       currentProject: project,
       lastUsedConfig: config,
       viewMode: settings.defaultViewMode,
@@ -109,7 +151,9 @@ export const useDisplayStore = create<DisplayState>((set, get) => ({
       cameraPreset: settings.defaultCameraPreset,
       history: [structuredClone(project)],
       historyIndex: 0,
-    })
+    }))
+
+    return project
   },
 
   getActiveRetailer: () => {
@@ -118,27 +162,57 @@ export const useDisplayStore = create<DisplayState>((set, get) => ({
     return useRetailerStore.getState().getRetailer(project.retailerId)
   },
 
-  setCurrentProject: (project) => {
-    const settings = getAppSettingsSnapshot()
+  getProject: (id) => get().projects.find((project) => project.id === id),
+
+  getProjectsForRetailer: (retailerId) =>
+    get()
+      .projects
+      .filter((project) => project.retailerId === retailerId)
+      .sort((a, b) => b.updatedAt - a.updatedAt),
+
+  selectProject: (id) => {
+    const project = get().projects.find((entry) => entry.id === id)
+    if (!project) return
+
     set({
       currentProject: project,
-      viewMode: settings.defaultViewMode,
-      activeFace: settings.defaultFace,
-      cameraPreset: settings.defaultCameraPreset,
       history: [structuredClone(project)],
       historyIndex: 0,
+      selectedSlotId: null,
+      selectedProductId: null,
+      ghostProduct: null,
+      isPickerOpen: false,
+      pickerSelectedProduct: null,
+      ...hydrateSelectionState(),
+    })
+  },
+
+  setCurrentProject: (project) => {
+    set({
+      currentProject: project,
+      projects: replaceProject(get().projects, project),
+      history: [structuredClone(project)],
+      historyIndex: 0,
+      selectedSlotId: null,
+      selectedProductId: null,
+      ghostProduct: null,
+      isPickerOpen: false,
+      pickerSelectedProduct: null,
+      ...hydrateSelectionState(),
     })
   },
 
   placeProduct: (product, slotId) => {
     const state = get()
     if (!state.currentProject) return
-    const historyUpdate = pushHistory(state)
 
-    const existingIndex = state.currentProject.placements.findIndex(p => p.slotId === slotId)
-    const filteredPlacements = existingIndex >= 0
-      ? state.currentProject.placements.filter(p => p.slotId !== slotId)
-      : state.currentProject.placements
+    const existingIndex = state.currentProject.placements.findIndex(
+      (placement) => placement.slotId === slotId
+    )
+    const filteredPlacements =
+      existingIndex >= 0
+        ? state.currentProject.placements.filter((placement) => placement.slotId !== slotId)
+        : state.currentProject.placements
 
     const placement: PlacedProduct = {
       id: crypto.randomUUID(),
@@ -150,159 +224,181 @@ export const useDisplayStore = create<DisplayState>((set, get) => ({
       label: product.name,
       sku: product.sku,
       imageUrl: product.imageUrl,
+      modelUrl: product.modelUrl,
+      packaging: product.packaging,
+    }
+
+    const nextProject = {
+      ...state.currentProject,
+      placements: [...filteredPlacements, placement],
+      updatedAt: Date.now(),
     }
 
     set({
-      currentProject: {
-        ...state.currentProject,
-        placements: [...filteredPlacements, placement],
-        updatedAt: Date.now(),
-      },
-      ...historyUpdate,
+      ...commitProjectUpdate(state, nextProject),
       isPickerOpen: false,
       pickerSelectedProduct: null,
     })
   },
 
+  rotateProduct: (placementId) => {
+    const state = get()
+    if (!state.currentProject) return
+
+    const nextProject = {
+      ...state.currentProject,
+      placements: state.currentProject.placements.map((placement) =>
+        placement.id === placementId
+          ? { ...placement, orientation: nextOrientation(placement.orientation) }
+          : placement
+      ),
+      updatedAt: Date.now(),
+    }
+
+    set(commitProjectUpdate(state, nextProject))
+  },
+
   removeProduct: (placementId) => {
     const state = get()
     if (!state.currentProject) return
-    const historyUpdate = pushHistory(state)
+
+    const nextProject = {
+      ...state.currentProject,
+      placements: state.currentProject.placements.filter(
+        (placement) => placement.id !== placementId
+      ),
+      updatedAt: Date.now(),
+    }
 
     set({
-      currentProject: {
-        ...state.currentProject,
-        placements: state.currentProject.placements.filter((p) => p.id !== placementId),
-        updatedAt: Date.now(),
-      },
-      ...historyUpdate,
-      selectedProductId: state.selectedProductId === placementId ? null : state.selectedProductId,
+      ...commitProjectUpdate(state, nextProject),
+      selectedProductId:
+        state.selectedProductId === placementId ? null : state.selectedProductId,
     })
   },
 
   moveProduct: (placementId, newSlotId) => {
     const state = get()
     if (!state.currentProject) return
-    const historyUpdate = pushHistory(state)
 
-    set({
-      currentProject: {
-        ...state.currentProject,
-        placements: state.currentProject.placements.map((p) =>
-          p.id === placementId ? { ...p, slotId: newSlotId } : p
-        ),
-        updatedAt: Date.now(),
-      },
-      ...historyUpdate,
-    })
+    const nextProject = {
+      ...state.currentProject,
+      placements: state.currentProject.placements.map((placement) =>
+        placement.id === placementId
+          ? { ...placement, slotId: newSlotId }
+          : placement
+      ),
+      updatedAt: Date.now(),
+    }
+
+    set(commitProjectUpdate(state, nextProject))
   },
 
-  selectSlot: (slotId) => set({
-    selectedSlotId: slotId,
-    selectedProductId: null,
-    ghostProduct: null,
-    pickerSelectedProduct: null,
-  }),
+  selectSlot: (slotId) =>
+    set({
+      selectedSlotId: slotId,
+      selectedProductId: null,
+      ghostProduct: null,
+      pickerSelectedProduct: null,
+    }),
 
-  selectProduct: (productId) => set({
-    selectedProductId: productId,
-    selectedSlotId: null,
-    ghostProduct: null,
-    pickerSelectedProduct: null,
-  }),
+  selectProduct: (productId) =>
+    set({
+      selectedProductId: productId,
+      selectedSlotId: null,
+      ghostProduct: null,
+      pickerSelectedProduct: null,
+    }),
 
   setGhostProduct: (ghost) => set({ ghostProduct: ghost }),
 
-  setViewMode: (mode) => set({
-    viewMode: mode,
-    selectedSlotId: null,
-    selectedProductId: null,
-    ghostProduct: null,
-    pickerSelectedProduct: null,
-    isPickerOpen: false,
-  }),
+  setViewMode: (mode) =>
+    set({
+      viewMode: mode,
+      selectedSlotId: null,
+      selectedProductId: null,
+      ghostProduct: null,
+      pickerSelectedProduct: null,
+      isPickerOpen: false,
+    }),
 
-  setActiveFace: (face) => set({
-    activeFace: face,
-    selectedSlotId: null,
-    ghostProduct: null,
-    pickerSelectedProduct: null,
-  }),
+  setActiveFace: (face) =>
+    set({
+      activeFace: face,
+      selectedSlotId: null,
+      ghostProduct: null,
+      pickerSelectedProduct: null,
+    }),
 
   setCameraPreset: (preset) => set({ cameraPreset: preset }),
 
   updateBranding: (branding) => {
     const state = get()
     if (!state.currentProject) return
-    const historyUpdate = pushHistory(state)
 
-    set({
-      currentProject: {
-        ...state.currentProject,
-        branding: { ...state.currentProject.branding, ...branding },
-        updatedAt: Date.now(),
-      },
-      ...historyUpdate,
-    })
+    const nextProject = {
+      ...state.currentProject,
+      branding: { ...state.currentProject.branding, ...branding },
+      updatedAt: Date.now(),
+    }
+
+    set(commitProjectUpdate(state, nextProject))
   },
 
   updateLipColor: (color) => {
     const state = get()
     if (!state.currentProject) return
-    const historyUpdate = pushHistory(state)
 
-    set({
-      currentProject: {
-        ...state.currentProject,
-        lipColor: color,
-        updatedAt: Date.now(),
-      },
-      ...historyUpdate,
-    })
+    const nextProject = {
+      ...state.currentProject,
+      lipColor: color,
+      updatedAt: Date.now(),
+    }
+
+    set(commitProjectUpdate(state, nextProject))
   },
 
   updateTierCount: (count) => {
     const state = get()
     if (!state.currentProject) return
-    const historyUpdate = pushHistory(state)
+
     const clamped = Math.min(6, Math.max(2, count))
-
-    const validPlacements = state.currentProject.placements.filter(p => {
-      const tierId = parseInt(p.slotId.split('-')[0], 10)
-      return !isNaN(tierId) && tierId <= clamped
+    const validPlacements = state.currentProject.placements.filter((placement) => {
+      const tierId = parseInt(placement.slotId.split('-')[0], 10)
+      return !Number.isNaN(tierId) && tierId <= clamped
     })
 
-    set({
-      currentProject: {
-        ...state.currentProject,
-        tierCount: clamped,
-        placements: validPlacements,
-        updatedAt: Date.now(),
-      },
-      ...historyUpdate,
-    })
+    const nextProject = {
+      ...state.currentProject,
+      tierCount: clamped,
+      placements: validPlacements,
+      updatedAt: Date.now(),
+    }
+
+    set(commitProjectUpdate(state, nextProject))
   },
 
   setPalletType: (type) => {
     const state = get()
     if (!state.currentProject) return
-    const historyUpdate = pushHistory(state)
 
-    const placements = type === 'half'
-      ? state.currentProject.placements.filter(p => {
-          const slotIndex = parseInt(p.slotId.split('-')[1], 10)
-          return !isNaN(slotIndex) && slotIndex < 1000
-        })
-      : state.currentProject.placements
+    const placements =
+      type === 'half'
+        ? state.currentProject.placements.filter((placement) => {
+            const slotIndex = parseInt(placement.slotId.split('-')[1], 10)
+            return !Number.isNaN(slotIndex) && slotIndex < 1000
+          })
+        : state.currentProject.placements
+
+    const nextProject = {
+      ...state.currentProject,
+      palletType: type,
+      placements,
+      updatedAt: Date.now(),
+    }
 
     set({
-      currentProject: {
-        ...state.currentProject,
-        palletType: type,
-        placements,
-        updatedAt: Date.now(),
-      },
-      ...historyUpdate,
+      ...commitProjectUpdate(state, nextProject),
       activeFace: type === 'half' ? 'front' : state.activeFace,
       selectedSlotId: null,
       selectedProductId: null,
@@ -316,22 +412,26 @@ export const useDisplayStore = create<DisplayState>((set, get) => ({
 
   setPickerProduct: (product) => set({ pickerSelectedProduct: product }),
 
-  resetEditorUi: () => set({
-    selectedSlotId: null,
-    selectedProductId: null,
-    ghostProduct: null,
-    isPickerOpen: false,
-    pickerSelectedProduct: null,
-  }),
+  resetEditorUi: () =>
+    set({
+      selectedSlotId: null,
+      selectedProductId: null,
+      ghostProduct: null,
+      isPickerOpen: false,
+      pickerSelectedProduct: null,
+    }),
 
   undo: () => {
-    const { history, historyIndex } = get()
+    const { history, historyIndex, projects } = get()
     if (historyIndex <= 0) return
 
-    const newIndex = historyIndex - 1
+    const nextHistoryIndex = historyIndex - 1
+    const nextProject = structuredClone(history[nextHistoryIndex])
+
     set({
-      currentProject: structuredClone(history[newIndex]),
-      historyIndex: newIndex,
+      currentProject: nextProject,
+      projects: replaceProject(projects, nextProject),
+      historyIndex: nextHistoryIndex,
       selectedSlotId: null,
       selectedProductId: null,
       ghostProduct: null,
@@ -339,13 +439,16 @@ export const useDisplayStore = create<DisplayState>((set, get) => ({
   },
 
   redo: () => {
-    const { history, historyIndex } = get()
+    const { history, historyIndex, projects } = get()
     if (historyIndex >= history.length - 1) return
 
-    const newIndex = historyIndex + 1
+    const nextHistoryIndex = historyIndex + 1
+    const nextProject = structuredClone(history[nextHistoryIndex])
+
     set({
-      currentProject: structuredClone(history[newIndex]),
-      historyIndex: newIndex,
+      currentProject: nextProject,
+      projects: replaceProject(projects, nextProject),
+      historyIndex: nextHistoryIndex,
       selectedSlotId: null,
       selectedProductId: null,
       ghostProduct: null,

@@ -6,7 +6,7 @@ import { useDisplayStore } from '../../stores/display-store'
 
 export function AppLayout() {
   const { pathname } = useLocation()
-  const isEditor = pathname === '/editor'
+  const isEditor = pathname.endsWith('/editor')
   const resetEditorUi = useDisplayStore((s) => s.resetEditorUi)
 
   useEffect(() => {

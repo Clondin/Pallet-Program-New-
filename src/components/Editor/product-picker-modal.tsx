@@ -25,11 +25,11 @@ export function ProductPickerModal() {
 
   const currentProject = useDisplayStore(s => s.currentProject)
 
+  const allProducts = useCatalogStore(s => s.products)
   const searchQuery = useCatalogStore(s => s.searchQuery)
   const setSearchQuery = useCatalogStore(s => s.setSearchQuery)
   const brandFilter = useCatalogStore(s => s.brandFilter)
   const setBrandFilter = useCatalogStore(s => s.setBrandFilter)
-  const filteredProducts = useCatalogStore(s => s.filteredProducts)
 
   const retailer = useRetailerStore(s =>
     currentProject ? s.retailers.find(r => r.id === currentProject.retailerId) : undefined
@@ -79,25 +79,39 @@ export function ProductPickerModal() {
     }
   }, [isOpen, pickerSelectedProduct])
 
-  if (!isOpen) return null
-
   const projectHoliday = currentProject?.holiday ?? 'none'
 
   const filtered = useMemo(() => {
-    let products = filteredProducts()
+    let products = allProducts
+
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase()
+      products = products.filter(p =>
+        p.name.toLowerCase().includes(q) ||
+        p.sku.toLowerCase().includes(q) ||
+        p.brand.toLowerCase().includes(q)
+      )
+    }
+    if (brandFilter) {
+      products = products.filter(p => p.brand === brandFilter)
+    }
 
     if (authorizedProductIds) {
       products = products.filter(p => authorizedProductIds.has(p.id))
     }
 
-    if (retailer) {
+    if (retailer && projectHoliday !== 'none') {
       products = products.filter(p =>
-        p.holidayTags.includes(projectHoliday) || p.holidayTags.includes('none')
+        p.holidayTags.length === 0 ||
+        p.holidayTags.includes(projectHoliday) ||
+        p.holidayTags.includes('none')
       )
     }
 
     return products
-  }, [filteredProducts, authorizedProductIds, retailer, projectHoliday])
+  }, [allProducts, searchQuery, brandFilter, authorizedProductIds, retailer, projectHoliday])
+
+  if (!isOpen) return null
 
   const handlePlace = () => {
     if (selectedProduct && selectedSlotId) {

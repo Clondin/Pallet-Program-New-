@@ -1,0 +1,121 @@
+import {cleanup, render} from '@testing-library/react'
+import {ReactElement} from 'react'
+import {MemoryRouter} from 'react-router-dom'
+import {DEFAULT_SETTINGS, useAppSettingsStore} from '../stores/app-settings-store'
+import {useCatalogStore} from '../stores/catalog-store'
+import {useDisplayStore} from '../stores/display-store'
+import {useRetailerStore} from '../stores/retailer-store'
+import type {DisplayProject, Product, Retailer} from '../types'
+
+export function resetAllStores() {
+  useAppSettingsStore.setState({settings: DEFAULT_SETTINGS})
+  useCatalogStore.setState({
+    products: [],
+    searchQuery: '',
+    brandFilter: null,
+    categoryFilter: null,
+    holidayFilter: null,
+  })
+  useRetailerStore.setState({retailers: []})
+  useDisplayStore.setState({
+    projects: [],
+    currentProject: null,
+    selectedSlotId: null,
+    selectedProductId: null,
+    ghostProduct: null,
+    viewMode: DEFAULT_SETTINGS.defaultViewMode,
+    activeFace: DEFAULT_SETTINGS.defaultFace,
+    cameraPreset: DEFAULT_SETTINGS.defaultCameraPreset,
+    isPickerOpen: false,
+    pickerSelectedProduct: null,
+    history: [],
+    historyIndex: -1,
+    lastUsedConfig: null,
+  })
+}
+
+export function renderWithRouter(
+  ui: ReactElement,
+  {route = '/'}: {route?: string} = {}
+) {
+  window.history.pushState({}, 'Test', route)
+  return render(<MemoryRouter initialEntries={[route]}>{ui}</MemoryRouter>)
+}
+
+export function makeProduct(overrides: Partial<Product> = {}): Product {
+  return {
+    id: overrides.id ?? 'prod-1',
+    name: overrides.name ?? 'Test Product',
+    sku: overrides.sku ?? 'SKU-1',
+    brand: overrides.brand ?? 'tuscanini',
+    brandColor: overrides.brandColor ?? '#1B4D3E',
+    category: overrides.category ?? 'Pantry',
+    width: overrides.width ?? 4,
+    height: overrides.height ?? 8,
+    depth: overrides.depth ?? 3,
+    weight: overrides.weight ?? 1.5,
+    holidayTags: overrides.holidayTags ?? [],
+    imageUrl: overrides.imageUrl,
+    modelUrl: overrides.modelUrl,
+    packaging: overrides.packaging,
+  }
+}
+
+export function makeRetailer(overrides: Partial<Retailer> = {}): Retailer {
+  return {
+    id: overrides.id ?? 'ret-1',
+    name: overrides.name ?? 'Retailer One',
+    status: overrides.status ?? 'active',
+    tier: overrides.tier ?? 'standard',
+    defaultTierCount: overrides.defaultTierCount ?? 4,
+    maxDisplayHeight: overrides.maxDisplayHeight ?? 60,
+    palletDimensions: overrides.palletDimensions ?? {width: 48, depth: 40, height: 6},
+    notes: overrides.notes,
+    storeCount: overrides.storeCount ?? 10,
+    regions: overrides.regions ?? ['Northeast'],
+    headquartersCity: overrides.headquartersCity ?? 'Brooklyn',
+    headquartersState: overrides.headquartersState ?? 'NY',
+    accountManager: overrides.accountManager ?? 'Alex Cohen',
+    contractStart: overrides.contractStart ?? '2025-01-01',
+    contractEnd: overrides.contractEnd ?? '2026-01-01',
+    website: overrides.website ?? 'example.com',
+    contacts: overrides.contacts ?? [],
+    authorizedItems: overrides.authorizedItems ?? [],
+    compliance: overrides.compliance ?? [],
+    performance: overrides.performance ?? {
+      totalRevenueMTD: 0,
+      totalRevenueYTD: 0,
+      avgOrderValue: 0,
+      fillRate: 0,
+      onTimeDelivery: 0,
+      returnRate: 0,
+      displayComplianceScore: 0,
+    },
+    displayHistory: overrides.displayHistory ?? [],
+    tags: overrides.tags ?? [],
+  }
+}
+
+export function makeProject(overrides: Partial<DisplayProject> = {}): DisplayProject {
+  return {
+    id: overrides.id ?? 'proj-1',
+    name: overrides.name ?? 'Test Project',
+    retailerId: overrides.retailerId ?? 'ret-1',
+    holiday: overrides.holiday ?? 'none',
+    season: overrides.season ?? 'none',
+    tierCount: overrides.tierCount ?? 4,
+    palletType: overrides.palletType ?? 'full',
+    lipColor: overrides.lipColor ?? '#1E3A8A',
+    branding: overrides.branding ?? {
+      lipText: 'ALL YOUR HOLIDAY NEEDS',
+      lipTextColor: '#FFFFFF',
+      headerText: '',
+      headerTextColor: '#FFFFFF',
+    },
+    placements: overrides.placements ?? [],
+    createdAt: overrides.createdAt ?? 1000,
+    updatedAt: overrides.updatedAt ?? 1000,
+  }
+}
+
+export {cleanup}

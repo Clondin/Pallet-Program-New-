@@ -9,6 +9,9 @@ interface ProductHoverEffectProps {
   productWidth: number
   productHeight: number
   productDepth: number
+  onRotate?: () => void
+  onDuplicate?: () => void
+  onDelete?: () => void
   children: React.ReactNode
 }
 
@@ -18,6 +21,9 @@ export const ProductHoverEffect: React.FC<ProductHoverEffectProps> = ({
   productWidth,
   productHeight,
   productDepth,
+  onRotate,
+  onDuplicate,
+  onDelete,
   children,
 }) => {
   const highlightRef = useRef<THREE.Group>(null)
@@ -75,29 +81,53 @@ export const ProductHoverEffect: React.FC<ProductHoverEffectProps> = ({
             <meshBasicMaterial color="#1F2937" />
           </mesh>
 
-          <mesh position={[-1.2, 0, 0.1]}>
-            <circleGeometry args={[0.4, 16]} />
-            <meshBasicMaterial color="#4B5563" />
-          </mesh>
-          <Text position={[-1.2, 0, 0.15]} fontSize={0.45} color="white" anchorX="center" anchorY="middle">
-            ↻
-          </Text>
+          {/* Rotate button */}
+          <group
+            onClick={(e) => {
+              e.stopPropagation()
+              onRotate?.()
+            }}
+          >
+            <mesh position={[-1.2, 0, 0.1]}>
+              <circleGeometry args={[0.4, 16]} />
+              <meshBasicMaterial color="#4B5563" />
+            </mesh>
+            <Text position={[-1.2, 0, 0.15]} fontSize={0.45} color="white" anchorX="center" anchorY="middle">
+              ↻
+            </Text>
+          </group>
 
-          <mesh position={[0, 0, 0.1]}>
-            <circleGeometry args={[0.4, 16]} />
-            <meshBasicMaterial color="#4B5563" />
-          </mesh>
-          <Text position={[0, 0, 0.15]} fontSize={0.45} color="white" anchorX="center" anchorY="middle">
-            ⊞
-          </Text>
+          {/* Duplicate button */}
+          <group
+            onClick={(e) => {
+              e.stopPropagation()
+              onDuplicate?.()
+            }}
+          >
+            <mesh position={[0, 0, 0.1]}>
+              <circleGeometry args={[0.4, 16]} />
+              <meshBasicMaterial color="#4B5563" />
+            </mesh>
+            <Text position={[0, 0, 0.15]} fontSize={0.45} color="white" anchorX="center" anchorY="middle">
+              ⊞
+            </Text>
+          </group>
 
-          <mesh position={[1.2, 0, 0.1]}>
-            <circleGeometry args={[0.4, 16]} />
-            <meshBasicMaterial color="#EF4444" />
-          </mesh>
-          <Text position={[1.2, 0, 0.15]} fontSize={0.45} color="white" anchorX="center" anchorY="middle">
-            ✕
-          </Text>
+          {/* Delete button */}
+          <group
+            onClick={(e) => {
+              e.stopPropagation()
+              onDelete?.()
+            }}
+          >
+            <mesh position={[1.2, 0, 0.1]}>
+              <circleGeometry args={[0.4, 16]} />
+              <meshBasicMaterial color="#EF4444" />
+            </mesh>
+            <Text position={[1.2, 0, 0.15]} fontSize={0.45} color="white" anchorX="center" anchorY="middle">
+              ✕
+            </Text>
+          </group>
         </Billboard>
       </group>
     </group>

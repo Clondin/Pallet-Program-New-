@@ -1,4 +1,4 @@
-import React, { useMemo, useState, Suspense } from 'react'
+import React, { useMemo, Suspense } from 'react'
 import { useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
 import { PlacedProduct } from '../../../types'
@@ -14,22 +14,15 @@ interface GlbProductModelProps {
   onPointerOut?: () => void
 }
 
-const GlbModelInner: React.FC<GlbProductModelProps & { onError: () => void }> = ({
+const GlbModelInner: React.FC<GlbProductModelProps> = ({
   product,
   position,
   rotation = [0, 0, 0],
   onClick,
   onPointerOver,
   onPointerOut,
-  onError,
 }) => {
-  let gltf: ReturnType<typeof useGLTF>
-  try {
-    gltf = useGLTF(product.modelUrl!)
-  } catch {
-    onError()
-    return null
-  }
+  const gltf = useGLTF(product.modelUrl!)
 
   const scaledScene = useMemo(() => {
     const clone = gltf.scene.clone()
@@ -91,46 +84,31 @@ const GlbModelInner: React.FC<GlbProductModelProps & { onError: () => void }> = 
       object={scaledScene}
       position={position}
       rotation={rotation}
-      onClick={(e: THREE.Event) => {
-        ;(e as any).stopPropagation?.()
+      onClick={(e: any) => {
+        e.stopPropagation?.()
         onClick?.()
       }}
-      onPointerOver={(e: THREE.Event) => {
-        ;(e as any).stopPropagation?.()
+      onPointerOver={(e: any) => {
+        e.stopPropagation?.()
         onPointerOver?.()
       }}
-      onPointerOut={(e: THREE.Event) => {
-        ;(e as any).stopPropagation?.()
+      onPointerOut={(e: any) => {
+        e.stopPropagation?.()
         onPointerOut?.()
       }}
     />
   )
 }
 
-export const GlbProductModel: React.FC<GlbProductModelProps> = (props) => {
-  const [hasError, setHasError] = useState(false)
-
-  if (hasError) {
-    // Fall back to textured box or basic box
-    if (props.product.imageUrl) {
-      return <TexturedBoxProduct {...props} />
-    }
-    return <BasicBoxProduct {...props} />
+function FallbackRenderer(props: GlbProductModelProps) {
+  if (props.product.imageUrl) {
+    return <TexturedBoxProduct {...props} />
   }
-
-  return (
-    <Suspense
-      fallback={<BasicBoxProduct {...props} />}
-    >
-      <GlbErrorBoundary onError={() => setHasError(true)}>
-        <GlbModelInner {...props} onError={() => setHasError(true)} />
-      </GlbErrorBoundary>
-    </Suspense>
-  )
+  return <BasicBoxProduct {...props} />
 }
 
 class GlbErrorBoundary extends React.Component<
-  { children: React.ReactNode; onError: () => void },
+  { children: React.ReactNode; fallback: React.ReactNode },
   { hasError: boolean }
 > {
   state = { hasError: false }
@@ -139,12 +117,20 @@ class GlbErrorBoundary extends React.Component<
     return { hasError: true }
   }
 
-  componentDidCatch() {
-    this.props.onError()
-  }
-
   render() {
-    if (this.state.hasError) return null
+    if (this.state.hasError) return this.props.fallback
     return this.props.children
   }
+}
+
+export const GlbProductModel: React.FC<GlbProductModelProps> = (props) => {
+  const fallback = <FallbackRenderer {...props} />
+
+  return (
+    <GlbErrorBoundary fallback={fallback}>
+      <Suspense fallback={<BasicBoxProduct {...props} />}>
+        <GlbModelInner {...props} />
+      </Suspense>
+    </GlbErrorBoundary>
+  )
 }
