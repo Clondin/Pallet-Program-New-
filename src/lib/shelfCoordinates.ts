@@ -227,25 +227,26 @@ export function getShelfPosition(
 
   const displayHalfWidth = (palletConfig.base.width - SHELF_SIDE_INSET * 2) / 2
   const displayHalfDepth = (palletConfig.base.depth - SHELF_SIDE_INSET * 2) / 2
+  const frontBias = Math.min(1.25, Math.max(0.6, shelfDepth * 0.12))
 
   let position: [number, number, number]
   let rotation: [number, number, number]
 
   switch (placement.wall) {
     case 'front':
-      position = [slotCenter, yBase, displayHalfDepth - shelfDepth / 2]
+      position = [slotCenter, yBase, displayHalfDepth - shelfDepth / 2 + frontBias]
       rotation = [0, 0, 0]
       break
     case 'back':
-      position = [-slotCenter, yBase, -(displayHalfDepth - shelfDepth / 2)]
+      position = [-slotCenter, yBase, -(displayHalfDepth - shelfDepth / 2) - frontBias]
       rotation = [0, Math.PI, 0]
       break
     case 'left':
-      position = [-(displayHalfWidth - shelfDepth / 2), yBase, -slotCenter]
+      position = [-(displayHalfWidth - shelfDepth / 2) - frontBias, yBase, -slotCenter]
       rotation = [0, Math.PI / 2, 0]
       break
     case 'right':
-      position = [displayHalfWidth - shelfDepth / 2, yBase, slotCenter]
+      position = [displayHalfWidth - shelfDepth / 2 + frontBias, yBase, slotCenter]
       rotation = [0, -Math.PI / 2, 0]
       break
   }
@@ -254,18 +255,13 @@ export function getShelfPosition(
     rotation = [rotation[0], rotation[1] + Math.PI / 2, rotation[2]]
   }
 
-  const effectiveDepth =
-    placement.displayMode === 'spine-out'
-      ? productDimensions.width
-      : productDimensions.depth
-
   return {
     position,
     rotation,
     availableSpace: {
       width: slotWidth,
       height: tier.trayHeight,
-      depth: Math.max(shelfDepth, effectiveDepth),
+      depth: shelfDepth,
     },
   }
 }

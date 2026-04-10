@@ -8,6 +8,7 @@ interface TexturedBoxProductProps {
   product: PlacedProduct
   position: [number, number, number]
   rotation?: [number, number, number]
+  scale?: [number, number, number]
   onClick?: () => void
   onPointerOver?: () => void
   onPointerOut?: () => void
@@ -17,6 +18,7 @@ const TexturedBoxInner: React.FC<TexturedBoxProductProps> = ({
   product,
   position,
   rotation = [0, 0, 0],
+  scale = [1, 1, 1],
   onClick,
   onPointerOver,
   onPointerOut,
@@ -56,18 +58,13 @@ const TexturedBoxInner: React.FC<TexturedBoxProductProps> = ({
     return [side, side.clone(), top, bottom, front, side.clone()]
   }, [product.color, frontTexture])
 
-  const adjustedPosition: [number, number, number] = [
-    position[0],
-    position[1] + product.height / 2,
-    position[2],
-  ]
+  const adjustedPosition: [number, number, number] = [0, product.height / 2, 0]
 
   return (
-    <mesh
-      position={adjustedPosition}
+    <group
+      position={position}
       rotation={rotation}
-      castShadow
-      receiveShadow
+      scale={scale}
       onClick={(e) => {
         e.stopPropagation()
         onClick?.()
@@ -81,11 +78,13 @@ const TexturedBoxInner: React.FC<TexturedBoxProductProps> = ({
         onPointerOut?.()
       }}
     >
-      <boxGeometry args={[product.width, product.height, product.depth]} />
-      {materials.map((mat, i) => (
-        <primitive key={i} object={mat} attach={`material-${i}`} />
-      ))}
-    </mesh>
+      <mesh position={adjustedPosition} castShadow receiveShadow>
+        <boxGeometry args={[product.width, product.height, product.depth]} />
+        {materials.map((mat, i) => (
+          <primitive key={i} object={mat} attach={`material-${i}`} />
+        ))}
+      </mesh>
+    </group>
   )
 }
 

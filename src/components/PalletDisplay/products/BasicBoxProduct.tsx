@@ -7,6 +7,7 @@ interface BasicBoxProductProps {
   product: PlacedProduct
   position: [number, number, number]
   rotation?: [number, number, number]
+  scale?: [number, number, number]
   onClick?: () => void
   onPointerOver?: () => void
   onPointerOut?: () => void
@@ -16,6 +17,7 @@ export const BasicBoxProduct: React.FC<BasicBoxProductProps> = ({
   product,
   position,
   rotation = [0, 0, 0],
+  scale = [1, 1, 1],
   onClick,
   onPointerOver,
   onPointerOut,
@@ -56,19 +58,16 @@ export const BasicBoxProduct: React.FC<BasicBoxProductProps> = ({
     [brandColor],
   )
 
-  const adjustedPosition: [number, number, number] = [
-    position[0],
-    position[1] + product.height / 2,
-    position[2],
-  ]
+  const adjustedPosition: [number, number, number] = [0, product.height / 2, 0]
 
   const fontSize = Math.max(product.width * 0.08, 0.6)
   const skuFontSize = Math.max(product.width * 0.06, 0.4)
 
   return (
     <group
-      position={adjustedPosition}
+      position={position}
       rotation={rotation}
+      scale={scale}
       onClick={(e) => {
         e.stopPropagation()
         onClick?.()
@@ -82,6 +81,7 @@ export const BasicBoxProduct: React.FC<BasicBoxProductProps> = ({
         onPointerOut?.()
       }}
     >
+      <group position={adjustedPosition}>
       <RoundedBox
         args={[product.width, product.height, product.depth]}
         radius={0.2}
@@ -119,6 +119,7 @@ export const BasicBoxProduct: React.FC<BasicBoxProductProps> = ({
       >
         {product.sku}
       </Text>
+      </group>
     </group>
   )
 }

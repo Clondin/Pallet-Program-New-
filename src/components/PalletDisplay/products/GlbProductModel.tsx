@@ -10,6 +10,7 @@ interface GlbProductModelProps {
   product: PlacedProduct
   position: [number, number, number]
   rotation?: [number, number, number]
+  scale?: [number, number, number]
   onClick?: () => void
   onPointerOver?: () => void
   onPointerOut?: () => void
@@ -19,6 +20,7 @@ const GlbModelInner: React.FC<GlbProductModelProps> = ({
   product,
   position,
   rotation = [0, 0, 0],
+  scale = [1, 1, 1],
   onClick,
   onPointerOver,
   onPointerOut,
@@ -38,10 +40,10 @@ const GlbModelInner: React.FC<GlbProductModelProps> = ({
   }, [gltf.scene, product.width, product.height, product.depth, product.packaging])
 
   return (
-    <primitive
-      object={scaledScene}
+    <group
       position={position}
       rotation={rotation}
+      scale={scale}
       onClick={(e: any) => {
         e.stopPropagation?.()
         onClick?.()
@@ -54,7 +56,9 @@ const GlbModelInner: React.FC<GlbProductModelProps> = ({
         e.stopPropagation?.()
         onPointerOut?.()
       }}
-    />
+    >
+      <primitive object={scaledScene} />
+    </group>
   )
 }
 

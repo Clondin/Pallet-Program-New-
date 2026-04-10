@@ -38,6 +38,7 @@ export const Tier: React.FC<TierProps> = ({
 
   const platformThickness = 1;
   const wallThickness = 0.75;
+  const shelfLipHeight = 1.4;
 
   // For half pallets: no inner column, just a front shelf area + branded sides + solid back
   const innerWidth = isHalf ? config.width : Math.max(2, config.width - config.shelfDepth * 2);
@@ -211,7 +212,7 @@ export const Tier: React.FC<TierProps> = ({
           </mesh>
 
           {/* Front shelf lip only */}
-          <group position={[0, platformThickness + 1, config.depth / 2 - 0.25]}>
+          <group position={[0, platformThickness + shelfLipHeight / 2, config.depth / 2 - 0.21]}>
             <ShelfLip width={config.width} color={lipColor} text={branding?.lipText} textColor={branding?.lipTextColor} />
           </group>
         </>
@@ -293,16 +294,16 @@ export const Tier: React.FC<TierProps> = ({
           </mesh>
 
           {/* Shelf Lips - all 4 faces */}
-          <group position={[0, platformThickness + 1, config.depth / 2 - 0.25]}>
+          <group position={[0, platformThickness + shelfLipHeight / 2, config.depth / 2 - 0.21]}>
             <ShelfLip width={config.width} color={lipColor} text={branding?.lipText} textColor={branding?.lipTextColor} />
           </group>
-          <group position={[0, platformThickness + 1, -config.depth / 2 + 0.25]} rotation={[0, Math.PI, 0]}>
+          <group position={[0, platformThickness + shelfLipHeight / 2, -config.depth / 2 + 0.21]} rotation={[0, Math.PI, 0]}>
             <ShelfLip width={config.width} color={lipColor} text={branding?.lipText} textColor={branding?.lipTextColor} />
           </group>
-          <group position={[-config.width / 2 + 0.25, platformThickness + 1, 0]} rotation={[0, -Math.PI / 2, 0]}>
+          <group position={[-config.width / 2 + 0.21, platformThickness + shelfLipHeight / 2, 0]} rotation={[0, -Math.PI / 2, 0]}>
             <ShelfLip width={config.depth - 1} color={lipColor} text={branding?.lipText} textColor={branding?.lipTextColor} />
           </group>
-          <group position={[config.width / 2 - 0.25, platformThickness + 1, 0]} rotation={[0, Math.PI / 2, 0]}>
+          <group position={[config.width / 2 - 0.21, platformThickness + shelfLipHeight / 2, 0]} rotation={[0, Math.PI / 2, 0]}>
             <ShelfLip width={config.depth - 1} color={lipColor} text={branding?.lipText} textColor={branding?.lipTextColor} />
           </group>
         </>

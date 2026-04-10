@@ -95,6 +95,7 @@ export interface PlacedProduct {
   color: string;           // brand color
   label: string;           // product name
   sku: string;             // SKU code
+  category?: string;
   imageUrl?: string;       // product image URL (Tier 1)
   modelUrl?: string;       // .glb model URL (Tier 3)
   packaging?: PackagingType; // packaging type for scaling strategy
@@ -106,6 +107,11 @@ export interface PlacedProduct {
   colSpan?: number
   quantity?: number
   displayMode?: 'face-out' | 'spine-out'
+  renderStyle?: 'single' | 'facing-row' | 'deep-stock' | 'stepped-stack' | 'case'
+  facings?: number
+  rows?: number
+  layers?: number
+  merchGap?: number
 }
 
 export type CameraPreset = 'front' | 'side' | 'top' | 'isometric';

@@ -1,17 +1,17 @@
 import React, { useState } from 'react'
 import { PlacedProduct, Product } from '../../../types'
 import { getOrientationRotation } from '../../../lib/orientation-presets'
-import { GlbProductModel } from './GlbProductModel'
-import { TexturedBoxProduct } from './TexturedBoxProduct'
-import { BasicBoxProduct } from './BasicBoxProduct'
 import { ProductHoverEffect } from './ProductHoverEffect'
 import { ProductCase } from './ProductCase'
+import { MerchBlockRenderer } from './MerchBlockRenderer'
+import { deriveMerchBlockLayout } from './merchUtils'
 
 interface ProductRendererProps {
   product: PlacedProduct
   products: Product[]
   position: [number, number, number]
   rotation?: [number, number, number]
+  availableSpace?: { width: number; height: number; depth: number }
   isSelected?: boolean
   onClick?: () => void
   onRotate?: () => void
@@ -24,6 +24,7 @@ export const ProductRenderer: React.FC<ProductRendererProps> = ({
   products,
   position,
   rotation: baseRotation = [0, 0, 0],
+  availableSpace = { width: product.width, height: product.height, depth: product.depth },
   isSelected = false,
   onClick,
   onRotate,
@@ -37,6 +38,10 @@ export const ProductRenderer: React.FC<ProductRendererProps> = ({
     baseRotation[1] + orientationRotation[1],
     baseRotation[2] + orientationRotation[2],
   ]
+  const merchLayout = deriveMerchBlockLayout(product, availableSpace)
+  const hoverWidth = product.caseConfig ? product.width : Math.max(product.width, merchLayout.blockWidth)
+  const hoverDepth = product.caseConfig ? product.depth : Math.max(product.depth, merchLayout.blockDepth)
+  const hoverHeight = product.caseConfig ? product.height : Math.max(product.height, merchLayout.blockHeight)
 
   const sharedProps = {
     product,
@@ -62,21 +67,45 @@ export const ProductRenderer: React.FC<ProductRendererProps> = ({
       }
     }
     if (product.modelUrl) {
-      return <GlbProductModel {...sharedProps} />
+      return (
+        <MerchBlockRenderer
+          product={product}
+          layout={merchLayout}
+          onClick={onClick}
+          onPointerOver={() => setHovered(true)}
+          onPointerOut={() => setHovered(false)}
+        />
+      )
     }
     if (product.imageUrl) {
-      return <TexturedBoxProduct {...sharedProps} />
+      return (
+        <MerchBlockRenderer
+          product={product}
+          layout={merchLayout}
+          onClick={onClick}
+          onPointerOver={() => setHovered(true)}
+          onPointerOut={() => setHovered(false)}
+        />
+      )
     }
-    return <BasicBoxProduct {...sharedProps} />
+    return (
+      <MerchBlockRenderer
+        product={product}
+        layout={merchLayout}
+        onClick={onClick}
+        onPointerOver={() => setHovered(true)}
+        onPointerOut={() => setHovered(false)}
+      />
+    )
   }
 
   return (
     <ProductHoverEffect
       isSelected={isSelected}
       isHovered={hovered}
-      productWidth={product.width}
-      productHeight={product.height}
-      productDepth={product.depth}
+      productWidth={hoverWidth}
+      productHeight={hoverHeight}
+      productDepth={hoverDepth}
       position={position}
       rotation={rotation}
       onRotate={onRotate}

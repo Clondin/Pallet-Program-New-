@@ -126,6 +126,7 @@ export const PlacedProducts: React.FC<PlacedProductsProps> = ({
             products={catalogProducts}
             position={position}
             rotation={shelfPosition.rotation}
+            availableSpace={shelfPosition.availableSpace}
             isSelected={product.id === selectedProductId}
             onClick={() => onProductClick?.(product.id)}
             onRotate={() => onRotateProduct?.(product.id)}

@@ -12,8 +12,8 @@ interface ShelfLipProps {
 
 export const ShelfLip: React.FC<ShelfLipProps> = ({ width, color = '#3B7DD8', text, textColor = '#FFFFFF' }) => {
   const lipMaterial = useMemo(() => getLipMaterial(color), [color]);
-  const thickness = 0.5;
-  const height = 2;
+  const thickness = 0.42;
+  const height = 1.4;
 
   // Groove material (slightly darker than lip color)
   const grooveMaterial = useMemo(() => {
@@ -79,7 +79,7 @@ export const ShelfLip: React.FC<ShelfLipProps> = ({ width, color = '#3B7DD8', te
     return (
       <Text
         position={[0, 0, thickness / 2 + 0.01]}
-        fontSize={0.8}
+        fontSize={0.62}
         color={textColor}
         anchorX="center"
         anchorY="middle"
@@ -98,7 +98,7 @@ export const ShelfLip: React.FC<ShelfLipProps> = ({ width, color = '#3B7DD8', te
       
       {/* Subtle horizontal groove */}
       <mesh position={[0, 0, thickness / 2 + 0.005]}>
-        <planeGeometry args={[width, 0.15]} />
+        <planeGeometry args={[width, 0.1]} />
         <primitive object={grooveMaterial} attach="material" />
       </mesh>
 

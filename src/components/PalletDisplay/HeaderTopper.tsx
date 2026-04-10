@@ -25,9 +25,9 @@ export const HeaderTopper: React.FC<HeaderTopperProps> = ({
     return defaultHeaderMaterial;
   }, [backgroundColor, defaultHeaderMaterial]);
 
-  const width = 36;
-  const height = 12;
-  const thickness = 1.5;
+  const width = 42;
+  const height = 15;
+  const thickness = 1.15;
 
   // Create a trapezoidal shape
   const shape = useMemo(() => {
@@ -51,8 +51,15 @@ export const HeaderTopper: React.FC<HeaderTopperProps> = ({
 
   return (
     <group position={[0, yPosition, 0]}>
+      <mesh position={[-11, 1.8, -0.2]} rotation={[0.08, 0, 0]} material={headerMaterial} castShadow receiveShadow>
+        <boxGeometry args={[1.1, 6.5, 0.55]} />
+      </mesh>
+      <mesh position={[11, 1.8, -0.2]} rotation={[0.08, 0, 0]} material={headerMaterial} castShadow receiveShadow>
+        <boxGeometry args={[1.1, 6.5, 0.55]} />
+      </mesh>
+
       {/* The topper itself, tilted back 15 degrees */}
-      <group rotation={[-15 * (Math.PI / 180), 0, 0]}>
+      <group rotation={[-13 * (Math.PI / 180), 0, 0]}>
         <mesh
           position={[0, 0, -thickness / 2]}
           material={headerMaterial}
@@ -65,7 +72,7 @@ export const HeaderTopper: React.FC<HeaderTopperProps> = ({
         {text && (
           <Text
             position={[0, height / 2, thickness / 2 + 0.3]}
-            fontSize={3.5}
+            fontSize={4}
             color={textColor}
             anchorX="center"
             anchorY="middle"

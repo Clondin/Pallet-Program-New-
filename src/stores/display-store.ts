@@ -313,6 +313,7 @@ export const useDisplayStore = create<DisplayState>((set, get) => ({
       color: product.brandColor,
       label: product.name,
       sku: product.sku,
+      category: product.category,
       imageUrl: product.imageUrl,
       modelUrl: product.modelUrl,
       packaging: product.packaging,

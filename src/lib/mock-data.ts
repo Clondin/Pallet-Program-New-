@@ -251,6 +251,21 @@ export const mockProducts: Product[] = [
     weight: 0.9,
     holidayTags: [],
   },
+  {
+    id: 'prod-23',
+    name: 'Ramen Noodles',
+    sku: 'GEF-RAM-1',
+    brand: 'gefen',
+    brandColor: BRAND_COLORS.gefen,
+    category: 'Pasta',
+    width: 4,
+    height: 5.5,
+    depth: 3,
+    weight: 0.4,
+    modelUrl: '/models/gefen-ramen-noodles.glb',
+    packaging: 'bag',
+    holidayTags: [],
+  },
 
   // Lieber's
   {
@@ -432,6 +447,7 @@ export const mockRetailers: Retailer[] = [
       { productId: 'prod-18', productName: 'Matzo Ball Mix', sku: 'HAD-MTZ-1', brand: 'haddar', status: 'authorized', authorizedDate: '2024-03-01', lastOrderDate: '2026-03-14', avgMonthlyUnits: 2800, marginPercent: 40.1 },
       { productId: 'prod-9', productName: 'Whole Hearts of Palm 14oz', sku: 'GEF-HOP-14', brand: 'gefen', status: 'discontinued', authorizedDate: '2023-06-01', lastOrderDate: '2025-11-30', avgMonthlyUnits: 0, marginPercent: 18.2 },
       { productId: 'prod-22', productName: 'Bartenura Gnocchi 500g', sku: 'TUS-GNO-500', brand: 'tuscanini', status: 'authorized', authorizedDate: '2025-06-01', lastOrderDate: '2026-03-20', avgMonthlyUnits: 1800, marginPercent: 35.0 },
+      { productId: 'prod-23', productName: 'Ramen Noodles', sku: 'GEF-RAM-1', brand: 'gefen', status: 'authorized', authorizedDate: '2026-04-09', avgMonthlyUnits: 0, marginPercent: 32.0 },
     ],
     compliance: [
       { id: 'comp-1', requirement: 'Pallet Display Height Standards', status: 'compliant', lastAuditDate: '2026-02-15', nextAuditDate: '2026-08-15' },
@@ -481,6 +497,7 @@ export const mockRetailers: Retailer[] = [
       { productId: 'prod-2', productName: 'Balsamic Vinegar Bronze 250ml', sku: 'TUS-BALS-250', brand: 'tuscanini', status: 'pending', authorizedDate: '2026-02-20', avgMonthlyUnits: 0, marginPercent: 36.8 },
       { productId: 'prod-20', productName: 'Pearl Couscous Original', sku: 'OSE-COU-1', brand: 'osem', status: 'authorized', authorizedDate: '2025-03-01', lastOrderDate: '2026-03-08', avgMonthlyUnits: 3200, marginPercent: 31.4 },
       { productId: 'prod-22', productName: 'Bartenura Gnocchi 500g', sku: 'TUS-GNO-500', brand: 'tuscanini', status: 'authorized', authorizedDate: '2025-06-01', lastOrderDate: '2026-03-20', avgMonthlyUnits: 1800, marginPercent: 35.0 },
+      { productId: 'prod-23', productName: 'Ramen Noodles', sku: 'GEF-RAM-1', brand: 'gefen', status: 'authorized', authorizedDate: '2026-04-09', avgMonthlyUnits: 0, marginPercent: 32.0 },
     ],
     compliance: [
       { id: 'comp-6', requirement: 'Pallet Display Height Standards', status: 'compliant', lastAuditDate: '2026-01-10', nextAuditDate: '2026-07-10' },
@@ -537,6 +554,7 @@ export const mockRetailers: Retailer[] = [
       { productId: 'prod-21', productName: 'Bamba Peanut Snack', sku: 'OSE-BAM-1', brand: 'osem', status: 'authorized', authorizedDate: '2024-11-01', lastOrderDate: '2026-03-19', avgMonthlyUnits: 5200, marginPercent: 43.5 },
       { productId: 'prod-11', productName: 'Chestnuts Roasted', sku: 'GEF-CHST-1', brand: 'gefen', status: 'pending', authorizedDate: '2026-03-15', avgMonthlyUnits: 0, marginPercent: 28.0 },
       { productId: 'prod-22', productName: 'Bartenura Gnocchi 500g', sku: 'TUS-GNO-500', brand: 'tuscanini', status: 'authorized', authorizedDate: '2025-06-01', lastOrderDate: '2026-03-20', avgMonthlyUnits: 1800, marginPercent: 35.0 },
+      { productId: 'prod-23', productName: 'Ramen Noodles', sku: 'GEF-RAM-1', brand: 'gefen', status: 'authorized', authorizedDate: '2026-04-09', avgMonthlyUnits: 0, marginPercent: 32.0 },
     ],
     compliance: [
       { id: 'comp-10', requirement: 'Pallet Display Height Standards', status: 'compliant', lastAuditDate: '2026-02-20', nextAuditDate: '2026-08-20' },
@@ -585,6 +603,7 @@ export const mockRetailers: Retailer[] = [
       { productId: 'prod-1', productName: 'Extra Virgin Olive Oil 750ml', sku: 'TUS-EVOO-750', brand: 'tuscanini', status: 'pending', authorizedDate: '2026-03-10', avgMonthlyUnits: 0, marginPercent: 35.0 },
       { productId: 'prod-18', productName: 'Matzo Ball Mix', sku: 'HAD-MTZ-1', brand: 'haddar', status: 'authorized', authorizedDate: '2025-01-15', lastOrderDate: '2026-03-12', avgMonthlyUnits: 900, marginPercent: 39.5 },
       { productId: 'prod-22', productName: 'Bartenura Gnocchi 500g', sku: 'TUS-GNO-500', brand: 'tuscanini', status: 'authorized', authorizedDate: '2025-06-01', lastOrderDate: '2026-03-20', avgMonthlyUnits: 1800, marginPercent: 35.0 },
+      { productId: 'prod-23', productName: 'Ramen Noodles', sku: 'GEF-RAM-1', brand: 'gefen', status: 'authorized', authorizedDate: '2026-04-09', avgMonthlyUnits: 0, marginPercent: 32.0 },
     ],
     compliance: [
       { id: 'comp-15', requirement: 'Pallet Display Height Standards', status: 'compliant', lastAuditDate: '2026-01-25', nextAuditDate: '2026-07-25' },
@@ -627,6 +646,7 @@ export const mockRetailers: Retailer[] = [
       { productId: 'prod-21', productName: 'Bamba Peanut Snack', sku: 'OSE-BAM-1', brand: 'osem', status: 'authorized', authorizedDate: '2025-09-01', lastOrderDate: '2026-03-22', avgMonthlyUnits: 4600, marginPercent: 40.8 },
       { productId: 'prod-4', productName: 'Tomato Sauce 680g', sku: 'TUS-TOM-680', brand: 'tuscanini', status: 'pending', authorizedDate: '2026-03-01', avgMonthlyUnits: 0, marginPercent: 34.2 },
       { productId: 'prod-22', productName: 'Bartenura Gnocchi 500g', sku: 'TUS-GNO-500', brand: 'tuscanini', status: 'authorized', authorizedDate: '2025-06-01', lastOrderDate: '2026-03-20', avgMonthlyUnits: 1800, marginPercent: 35.0 },
+      { productId: 'prod-23', productName: 'Ramen Noodles', sku: 'GEF-RAM-1', brand: 'gefen', status: 'authorized', authorizedDate: '2026-04-09', avgMonthlyUnits: 0, marginPercent: 32.0 },
     ],
     compliance: [
       { id: 'comp-18', requirement: 'Pallet Display Height Standards', status: 'compliant', lastAuditDate: '2026-02-28', nextAuditDate: '2026-08-28' },
@@ -665,6 +685,7 @@ export const mockRetailers: Retailer[] = [
       { productId: 'prod-8', productName: 'Tea Biscuits', sku: 'KED-TBSC-1', brand: 'kedem', status: 'authorized', authorizedDate: '2024-09-15', lastOrderDate: '2026-03-10', avgMonthlyUnits: 1600, marginPercent: 42.0 },
       { productId: 'prod-20', productName: 'Pearl Couscous Original', sku: 'OSE-COU-1', brand: 'osem', status: 'pending', authorizedDate: '2026-04-01', avgMonthlyUnits: 0, marginPercent: 33.0 },
       { productId: 'prod-22', productName: 'Bartenura Gnocchi 500g', sku: 'TUS-GNO-500', brand: 'tuscanini', status: 'authorized', authorizedDate: '2025-06-01', lastOrderDate: '2026-03-20', avgMonthlyUnits: 1800, marginPercent: 35.0 },
+      { productId: 'prod-23', productName: 'Ramen Noodles', sku: 'GEF-RAM-1', brand: 'gefen', status: 'authorized', authorizedDate: '2026-04-09', avgMonthlyUnits: 0, marginPercent: 32.0 },
     ],
     compliance: [
       { id: 'comp-21', requirement: 'Pallet Display Height Standards', status: 'pending-review', lastAuditDate: '2026-03-20', nextAuditDate: '2026-09-20', notes: 'Initial compliance review scheduled' },
@@ -699,6 +720,7 @@ export const mockRetailers: Retailer[] = [
       { productId: 'prod-17', productName: 'Canola Oil 32oz', sku: 'HAD-CAN-32', brand: 'haddar', status: 'discontinued', authorizedDate: '2023-03-01', lastOrderDate: '2025-09-30', avgMonthlyUnits: 0, marginPercent: 16.8 },
       { productId: 'prod-8', productName: 'Tea Biscuits', sku: 'KED-TBSC-1', brand: 'kedem', status: 'authorized', authorizedDate: '2024-09-15', lastOrderDate: '2026-03-10', avgMonthlyUnits: 1600, marginPercent: 42.0 },
       { productId: 'prod-22', productName: 'Bartenura Gnocchi 500g', sku: 'TUS-GNO-500', brand: 'tuscanini', status: 'authorized', authorizedDate: '2025-06-01', lastOrderDate: '2026-03-20', avgMonthlyUnits: 1800, marginPercent: 35.0 },
+      { productId: 'prod-23', productName: 'Ramen Noodles', sku: 'GEF-RAM-1', brand: 'gefen', status: 'authorized', authorizedDate: '2026-04-09', avgMonthlyUnits: 0, marginPercent: 32.0 },
     ],
     compliance: [
       { id: 'comp-23', requirement: 'Pallet Display Height Standards', status: 'compliant', lastAuditDate: '2025-08-15', nextAuditDate: '2026-02-15' },
