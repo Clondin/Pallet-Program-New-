@@ -2,17 +2,19 @@ import { useEffect } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, Boxes, CalendarDays, Package, PenLine, Store } from 'lucide-react'
 import { BrandingPreview } from '../components/Branding/branding-preview'
-import { ColorPickerField } from '../components/Branding/color-picker-field'
 import { useDisplayStore } from '../stores/display-store'
 import { useRetailerStore } from '../stores/retailer-store'
 import type { Holiday } from '../types'
 
+const HOLIDAY_OPTIONS: { value: Holiday; label: string }[] = [
+  { value: 'none', label: 'Everyday' },
+  { value: 'rosh-hashanah', label: 'Rosh Hashanah' },
+  { value: 'pesach', label: 'Pesach' },
+  { value: 'sukkos', label: 'Sukkos' },
+]
+
 function formatHoliday(holiday: Holiday) {
-  if (holiday === 'none') return 'Everyday'
-  return holiday
-    .split('-')
-    .map((part) => part[0].toUpperCase() + part.slice(1))
-    .join(' ')
+  return HOLIDAY_OPTIONS.find((o) => o.value === holiday)?.label ?? holiday
 }
 
 function Stat({
@@ -43,8 +45,9 @@ export function PalletDetailPage() {
   )
   const currentProjectId = useDisplayStore((state) => state.currentProject?.id)
   const selectProject = useDisplayStore((state) => state.selectProject)
-  const updateBranding = useDisplayStore((state) => state.updateBranding)
-  const updateLipColor = useDisplayStore((state) => state.updateLipColor)
+  const setPalletType = useDisplayStore((state) => state.setPalletType)
+  const updateName = useDisplayStore((state) => state.updateName)
+  const updateHoliday = useDisplayStore((state) => state.updateHoliday)
   const retailer = useRetailerStore((state) =>
     retailerId ? state.getRetailer(retailerId) : undefined
   )
@@ -83,9 +86,11 @@ export function PalletDetailPage() {
       <div className="flex items-start justify-between gap-6 mb-8">
         <div>
           <p className="text-[11px] uppercase tracking-wider text-[#999]">Pallet</p>
-          <h1 className="text-[28px] font-semibold tracking-display text-[#171717] mt-1">
-            {pallet.name}
-          </h1>
+          <input
+            value={pallet.name}
+            onChange={(e) => updateName(e.target.value)}
+            className="text-[28px] font-semibold tracking-display text-[#171717] mt-1 bg-transparent border-none outline-none focus:ring-2 focus:ring-[#0a72ef]/30 rounded-md px-1 -mx-1 w-full"
+          />
           <div className="flex flex-wrap items-center gap-3 mt-3 text-[12px] text-[#666]">
             <span className="px-2 py-1 rounded-md bg-[#f5f5f5] font-medium">
               {formatHoliday(pallet.holiday)}
@@ -119,80 +124,35 @@ export function PalletDetailPage() {
       <div className="grid grid-cols-1 xl:grid-cols-[0.95fr_1.05fr] gap-6">
         <div className="space-y-6">
           <BrandingPreview branding={pallet.branding} lipColor={pallet.lipColor} />
-
-          <div className="bg-white shadow-card rounded-xl p-6">
-            <h3 className="text-[15px] font-semibold text-[#171717]">Branding</h3>
-            <p className="text-[12px] text-[#888] mt-1">
-              Branding is owned by this pallet, not globally.
-            </p>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-6">
-              <ColorPickerField
-                label="Header Background"
-                value={pallet.branding.headerBackgroundColor || '#00A3C7'}
-                onChange={(color) => updateBranding({ headerBackgroundColor: color })}
-              />
-              <ColorPickerField
-                label="Lip Color"
-                value={pallet.lipColor}
-                onChange={updateLipColor}
-              />
-              <ColorPickerField
-                label="Header Text Color"
-                value={pallet.branding.headerTextColor || '#FFFFFF'}
-                onChange={(color) => updateBranding({ headerTextColor: color })}
-              />
-              <ColorPickerField
-                label="Lip Text Color"
-                value={pallet.branding.lipTextColor || '#FFFFFF'}
-                onChange={(color) => updateBranding({ lipTextColor: color })}
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-6">
-              <div>
-                <label className="block text-[12px] font-medium text-[#555] mb-2">
-                  Header Text
-                </label>
-                <textarea
-                  value={pallet.branding.headerText || ''}
-                  onChange={(event) =>
-                    updateBranding({ headerText: event.target.value })
-                  }
-                  rows={4}
-                  className="w-full px-3 py-2 text-[13px] shadow-border rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-[#0a72ef]/30 focus:shadow-none resize-none"
-                />
-              </div>
-              <div>
-                <label className="block text-[12px] font-medium text-[#555] mb-2">
-                  Lip Text
-                </label>
-                <input
-                  value={pallet.branding.lipText || ''}
-                  onChange={(event) =>
-                    updateBranding({ lipText: event.target.value })
-                  }
-                  className="w-full px-3 py-2 text-[13px] shadow-border rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-[#0a72ef]/30 focus:shadow-none"
-                />
-              </div>
-            </div>
-          </div>
         </div>
 
         <div className="bg-white shadow-card rounded-xl p-6">
           <h3 className="text-[15px] font-semibold text-[#171717]">Pallet Summary</h3>
           <div className="grid grid-cols-2 gap-4 mt-5">
             <div className="rounded-lg bg-[#fafafa] px-4 py-4">
-              <p className="text-[10px] uppercase tracking-wider text-[#999]">Holiday</p>
-              <p className="text-[14px] font-semibold text-[#171717] mt-1">
-                {formatHoliday(pallet.holiday)}
-              </p>
+              <p className="text-[10px] uppercase tracking-wider text-[#999] mb-2">Holiday</p>
+              <select
+                value={pallet.holiday}
+                onChange={(e) => updateHoliday(e.target.value as Holiday)}
+                className="w-full text-[14px] font-semibold text-[#171717] bg-transparent border-none outline-none cursor-pointer focus:ring-2 focus:ring-[#0a72ef]/30 rounded-md -ml-1 pl-1"
+              >
+                {HOLIDAY_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
             </div>
             <div className="rounded-lg bg-[#fafafa] px-4 py-4">
-              <p className="text-[10px] uppercase tracking-wider text-[#999]">Structure</p>
-              <p className="text-[14px] font-semibold text-[#171717] mt-1 capitalize">
-                {pallet.palletType} pallet
-              </p>
+              <p className="text-[10px] uppercase tracking-wider text-[#999] mb-2">Structure</p>
+              <select
+                value={pallet.palletType}
+                onChange={(e) => setPalletType(e.target.value as 'full' | 'half')}
+                className="w-full text-[14px] font-semibold text-[#171717] bg-transparent border-none outline-none cursor-pointer focus:ring-2 focus:ring-[#0a72ef]/30 rounded-md capitalize -ml-1 pl-1"
+              >
+                <option value="full">Full Pallet</option>
+                <option value="half">Half Pallet</option>
+              </select>
             </div>
             <div className="rounded-lg bg-[#fafafa] px-4 py-4">
               <p className="text-[10px] uppercase tracking-wider text-[#999]">Tiers</p>

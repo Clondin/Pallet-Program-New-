@@ -62,6 +62,8 @@ interface DisplayState {
   updateLipColor: (color: string) => void
   updateTierCount: (count: number) => void
   setPalletType: (type: PalletType) => void
+  updateName: (name: string) => void
+  updateHoliday: (holiday: DisplayProject['holiday']) => void
   openPicker: () => void
   closePicker: () => void
   setPickerProduct: (product: Product | null) => void
@@ -504,6 +506,33 @@ export const useDisplayStore = create<DisplayState>((set, get) => ({
       selectedProductId: null,
       ghostProduct: null,
     })
+  },
+
+  updateName: (name) => {
+    const state = get()
+    if (!state.currentProject) return
+
+    const nextProject = {
+      ...state.currentProject,
+      name,
+      updatedAt: Date.now(),
+    }
+
+    set(commitProjectUpdate(state, nextProject))
+  },
+
+  updateHoliday: (holiday) => {
+    const state = get()
+    if (!state.currentProject) return
+
+    const nextProject = {
+      ...state.currentProject,
+      holiday,
+      season: holiday,
+      updatedAt: Date.now(),
+    }
+
+    set(commitProjectUpdate(state, nextProject))
   },
 
   openPicker: () => set({ isPickerOpen: true }),

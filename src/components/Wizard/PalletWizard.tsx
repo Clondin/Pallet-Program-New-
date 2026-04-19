@@ -1,20 +1,14 @@
 import { useReducer, useCallback, useMemo, useState, Suspense } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { Canvas } from '@react-three/fiber'
-import { X, ArrowLeft, ArrowRight, Sparkles } from 'lucide-react'
+import { X, Sparkles } from 'lucide-react'
 import {
   WizardState,
-  WizardAction,
   WizardPalletConfig,
-  WizardStep as WizardStepNum,
   getInitialWizardState,
   wizardReducer,
 } from './wizardTypes'
-import { WizardStep } from './WizardStep'
 import { PalletTypeStep } from './steps/PalletTypeStep'
-import { DimensionsStep } from './steps/DimensionsStep'
-import { ShelfConfigStep } from './steps/ShelfConfigStep'
-import { BrandingStep } from './steps/BrandingStep'
 import { PalletWizardPreview } from './preview/PalletWizardPreview'
 
 interface PalletWizardProps {
@@ -24,8 +18,6 @@ interface PalletWizardProps {
   initialState?: Partial<WizardState>
   editMode?: boolean
 }
-
-const STEP_LABELS = ['Pallet Type', 'Dimensions', 'Shelf & Walls', 'Branding']
 
 export function PalletWizard({
   open,
@@ -38,24 +30,7 @@ export function PalletWizard({
     wizardReducer,
     { ...getInitialWizardState(), ...initialState },
   )
-  const [direction, setDirection] = useState(1)
   const [showConfirmClose, setShowConfirmClose] = useState(false)
-
-  const step = state.currentStep
-
-  const goNext = useCallback(() => {
-    if (step < 4) {
-      setDirection(1)
-      dispatch({ type: 'SET_STEP', step: (step + 1) as WizardStepNum })
-    }
-  }, [step])
-
-  const goBack = useCallback(() => {
-    if (step > 1) {
-      setDirection(-1)
-      dispatch({ type: 'SET_STEP', step: (step - 1) as WizardStepNum })
-    }
-  }, [step])
 
   const handleClose = useCallback(() => {
     setShowConfirmClose(true)
@@ -67,9 +42,6 @@ export function PalletWizard({
   }, [onClose])
 
   const handleCreate = useCallback(() => {
-    const totalTierHeight =
-      state.tierHeights.reduce((s, h) => s + h, 0) + state.tierCount
-
     const isCustom =
       state.palletType === 'full' &&
       Object.values(state.walls).every((w) => w.type === 'shelves')
@@ -158,46 +130,20 @@ export function PalletWizard({
           <h2 className="text-[16px] font-bold" style={{ color: '#0F172A' }}>
             {editMode ? 'Edit Pallet Display' : 'Create New Pallet Display'}
           </h2>
-          <div className="flex items-center gap-3">
-            <span className="text-[12px]" style={{ color: '#94A3B8' }}>
-              Step {step} of 4
-            </span>
-            <button
-              onClick={handleClose}
-              className="flex items-center justify-center rounded-md transition-colors hover:bg-gray-100"
-              style={{ width: 32, height: 32, color: '#94A3B8' }}
-            >
-              <X size={16} />
-            </button>
-          </div>
+          <button
+            onClick={handleClose}
+            className="flex items-center justify-center rounded-md transition-colors hover:bg-gray-100"
+            style={{ width: 32, height: 32, color: '#94A3B8' }}
+          >
+            <X size={16} />
+          </button>
         </div>
 
         {/* Split panel body */}
         <div className="flex flex-1 min-h-0">
           {/* Left: Configuration */}
           <div className="relative flex-[55] min-w-0" style={{ borderRight: '1px solid #E2E8F0' }}>
-            <AnimatePresence mode="wait" custom={direction}>
-              {step === 1 && (
-                <WizardStep key="step-1" direction={direction}>
-                  <PalletTypeStep state={state} dispatch={dispatch} />
-                </WizardStep>
-              )}
-              {step === 2 && (
-                <WizardStep key="step-2" direction={direction}>
-                  <DimensionsStep state={state} dispatch={dispatch} />
-                </WizardStep>
-              )}
-              {step === 3 && (
-                <WizardStep key="step-3" direction={direction}>
-                  <ShelfConfigStep state={state} dispatch={dispatch} />
-                </WizardStep>
-              )}
-              {step === 4 && (
-                <WizardStep key="step-4" direction={direction}>
-                  <BrandingStep state={state} dispatch={dispatch} />
-                </WizardStep>
-              )}
-            </AnimatePresence>
+            <PalletTypeStep state={state} dispatch={dispatch} />
           </div>
 
           {/* Right: 3D Preview */}
@@ -231,64 +177,21 @@ export function PalletWizard({
 
         {/* Footer */}
         <div
-          className="flex items-center justify-between px-6 shrink-0"
+          className="flex items-center justify-end px-6 shrink-0"
           style={{
             height: 64,
             background: '#FAFBFC',
             borderTop: '1px solid #E2E8F0',
           }}
         >
-          {/* Back button */}
-          <div style={{ width: 100 }}>
-            {step > 1 && (
-              <button
-                onClick={goBack}
-                className="inline-flex items-center gap-1.5 text-[13px] font-medium transition-colors hover:text-gray-900"
-                style={{ color: '#64748B' }}
-              >
-                <ArrowLeft size={14} />
-                Back
-              </button>
-            )}
-          </div>
-
-          {/* Step dots */}
-          <div className="flex items-center gap-2">
-            {[1, 2, 3, 4].map((s) => (
-              <div
-                key={s}
-                className="rounded-full transition-all duration-300"
-                style={{
-                  width: s === step ? 10 : 8,
-                  height: s === step ? 10 : 8,
-                  background: s <= step ? '#2563EB' : '#E2E8F0',
-                }}
-              />
-            ))}
-          </div>
-
-          {/* Next / Create button */}
-          <div style={{ width: 160 }} className="flex justify-end">
-            {step < 4 ? (
-              <button
-                onClick={goNext}
-                className="inline-flex items-center gap-1.5 px-5 py-2 rounded-lg text-[13px] font-medium text-white transition-colors hover:opacity-90"
-                style={{ background: '#2563EB' }}
-              >
-                Next
-                <ArrowRight size={14} />
-              </button>
-            ) : (
-              <button
-                onClick={handleCreate}
-                className="inline-flex items-center gap-2 px-6 py-2 rounded-lg text-[13px] font-medium text-white transition-colors hover:opacity-90"
-                style={{ background: '#2563EB' }}
-              >
-                <Sparkles size={14} />
-                {editMode ? 'Update Pallet' : 'Create Pallet'}
-              </button>
-            )}
-          </div>
+          <button
+            onClick={handleCreate}
+            className="inline-flex items-center gap-2 px-6 py-2 rounded-lg text-[13px] font-medium text-white transition-colors hover:opacity-90"
+            style={{ background: '#2563EB' }}
+          >
+            <Sparkles size={14} />
+            {editMode ? 'Update Pallet' : 'Create Pallet'}
+          </button>
         </div>
 
         {/* Confirm close dialog */}

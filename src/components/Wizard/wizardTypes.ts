@@ -1,6 +1,6 @@
 import type { WallFace } from '../../types'
 
-export type WizardStep = 1 | 2 | 3 | 4
+export type WizardStep = 1
 
 export type DimensionPreset = '48x40' | '48x48' | '42x42' | '48x42' | 'custom'
 

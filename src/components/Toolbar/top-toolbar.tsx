@@ -23,7 +23,6 @@ export function TopToolbar() {
   const historyIndex = useDisplayStore(s => s.historyIndex)
   const historyLength = useDisplayStore(s => s.history.length)
   const currentProject = useDisplayStore(s => s.currentProject)
-  const setPalletType = useDisplayStore(s => s.setPalletType)
   const editorGridColumns = useAppSettingsStore(
     (s) => s.settings.editorGridColumns
   )
@@ -72,21 +71,6 @@ export function TopToolbar() {
   return (
     <div className="fixed top-0 left-[200px] right-0 z-40 flex justify-center px-8">
       <div className="mt-4 mx-auto max-w-fit px-5 py-2 bg-white/90 backdrop-blur-md shadow-card rounded-lg flex items-center gap-6">
-        {/* Half / Full Toggle */}
-        <div className="flex items-center shadow-ring rounded-md overflow-hidden">
-          {(['half', 'full'] as PalletType[]).map((type) => (
-            <button
-              key={type}
-              onClick={() => setPalletType(type)}
-              className={`text-[11px] font-medium px-3.5 py-1.5 transition-colors capitalize ${
-                palletType === type ? 'bg-[#171717] text-white' : 'bg-white text-[#666] hover:bg-[#fafafa]'
-              }`}
-            >
-              {type}
-            </button>
-          ))}
-        </div>
-
         {/* 2D/3D Toggle */}
         <div className="flex items-center shadow-ring rounded-md overflow-hidden" style={{ boxShadow: undefined }}>
           <button

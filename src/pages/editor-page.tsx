@@ -40,17 +40,17 @@ export function EditorPage() {
 
   return (
     <>
-      {retailerId && palletId && (
-        <div className="absolute left-[232px] top-5 z-30">
-          <Link
-            to={`/retailers/${retailerId}/pallets/${palletId}`}
-            className="inline-flex items-center px-3 py-1.5 rounded-md bg-white/90 backdrop-blur text-[12px] font-medium text-[#555] hover:text-[#171717] transition-colors"
-          >
-            Back to pallet
-          </Link>
-        </div>
-      )}
       <div className="flex-1 h-screen relative">
+        {retailerId && palletId && (
+          <div className="absolute left-4 top-5 z-30">
+            <Link
+              to={`/retailers/${retailerId}/pallets/${palletId}`}
+              className="inline-flex items-center px-3 py-1.5 rounded-md bg-white/90 backdrop-blur text-[12px] font-medium text-[#555] hover:text-[#171717] transition-colors shadow-sm"
+            >
+              Back to pallet
+            </Link>
+          </div>
+        )}
         {viewMode === '3d' ? <ThreeDViewer /> : <GridEditor />}
       </div>
       <ProductPickerModal />
