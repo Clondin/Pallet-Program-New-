@@ -35,6 +35,7 @@ export const mockProducts: Product[] = [
     height: 12,
     depth: 3.5,
     weight: 1.8,
+    unitsPerCase: 12,
     holidayTags: ['rosh-hashanah'],
   },
   {
@@ -48,6 +49,7 @@ export const mockProducts: Product[] = [
     height: 8,
     depth: 2,
     weight: 0.8,
+    unitsPerCase: 12,
     holidayTags: [],
   },
   {
@@ -61,6 +63,7 @@ export const mockProducts: Product[] = [
     height: 9,
     depth: 2.5,
     weight: 1.1,
+    unitsPerCase: 12,
     holidayTags: [],
   },
   {
@@ -74,6 +77,7 @@ export const mockProducts: Product[] = [
     height: 6,
     depth: 3,
     weight: 1.6,
+    unitsPerCase: 12,
     holidayTags: [],
   },
 
@@ -89,6 +93,7 @@ export const mockProducts: Product[] = [
     height: 11.5,
     depth: 3.2,
     weight: 2.0,
+    unitsPerCase: 12,
     holidayTags: ['rosh-hashanah'],
   },
   {
@@ -102,6 +107,7 @@ export const mockProducts: Product[] = [
     height: 10,
     depth: 3.5,
     weight: 2.4,
+    unitsPerCase: 12,
     modelUrl: '/models/kedem-grape-juice.glb',
     packaging: 'bottle',
     holidayTags: ['rosh-hashanah'],
@@ -117,6 +123,7 @@ export const mockProducts: Product[] = [
     height: kedemCase6Dimensions.height,
     depth: kedemCase6Dimensions.depth,
     weight: Number(getCaseWeight(2.4, kedemCase6Layout).toFixed(1)),
+    unitsPerCase: 6,
     packaging: 'box',
     caseConfig: {
       unitProductId: 'prod-6',
@@ -138,6 +145,7 @@ export const mockProducts: Product[] = [
     height: kedemCase12Dimensions.height,
     depth: kedemCase12Dimensions.depth,
     weight: Number(getCaseWeight(2.4, kedemCase12Layout).toFixed(1)),
+    unitsPerCase: 12,
     packaging: 'box',
     caseConfig: {
       unitProductId: 'prod-6',
@@ -159,6 +167,7 @@ export const mockProducts: Product[] = [
     height: kedemCase24Dimensions.height,
     depth: kedemCase24Dimensions.depth,
     weight: Number(getCaseWeight(2.4, kedemCase24Layout).toFixed(1)),
+    unitsPerCase: 24,
     packaging: 'box',
     caseConfig: {
       unitProductId: 'prod-6',
@@ -180,6 +189,7 @@ export const mockProducts: Product[] = [
     height: 10,
     depth: 4,
     weight: 4.2,
+    unitsPerCase: 8,
     holidayTags: ['rosh-hashanah'],
   },
   {
@@ -193,6 +203,7 @@ export const mockProducts: Product[] = [
     height: 3,
     depth: 2,
     weight: 0.5,
+    unitsPerCase: 12,
     modelUrl: '/models/kedem-tea-biscuits.glb',
     packaging: 'box',
     holidayTags: [],
@@ -210,6 +221,7 @@ export const mockProducts: Product[] = [
     height: 5,
     depth: 3,
     weight: 1.0,
+    unitsPerCase: 12,
     holidayTags: [],
   },
   {
@@ -223,6 +235,7 @@ export const mockProducts: Product[] = [
     height: 4.2,
     depth: 3,
     weight: 0.9,
+    unitsPerCase: 12,
     holidayTags: [],
   },
   {
@@ -236,6 +249,7 @@ export const mockProducts: Product[] = [
     height: 6,
     depth: 2,
     weight: 0.5,
+    unitsPerCase: 12,
     holidayTags: [],
   },
   {
@@ -249,6 +263,7 @@ export const mockProducts: Product[] = [
     height: 4.5,
     depth: 2.5,
     weight: 0.9,
+    unitsPerCase: 12,
     holidayTags: [],
   },
   {
@@ -262,6 +277,7 @@ export const mockProducts: Product[] = [
     height: 5.5,
     depth: 3,
     weight: 0.4,
+    unitsPerCase: 24,
     modelUrl: '/models/gefen-ramen-noodles.glb',
     packaging: 'bag',
     holidayTags: [],
@@ -279,6 +295,7 @@ export const mockProducts: Product[] = [
     height: 8,
     depth: 3,
     weight: 0.9,
+    unitsPerCase: 12,
     holidayTags: [],
   },
   {
@@ -292,6 +309,7 @@ export const mockProducts: Product[] = [
     height: 5,
     depth: 2,
     weight: 0.5,
+    unitsPerCase: 12,
     holidayTags: [],
   },
   {
@@ -305,6 +323,7 @@ export const mockProducts: Product[] = [
     height: 6,
     depth: 2.5,
     weight: 0.8,
+    unitsPerCase: 24,
     holidayTags: [],
   },
   {
@@ -318,6 +337,7 @@ export const mockProducts: Product[] = [
     height: 4.5,
     depth: 1.5,
     weight: 0.3,
+    unitsPerCase: 24,
     holidayTags: [],
   },
 
@@ -333,6 +353,7 @@ export const mockProducts: Product[] = [
     height: 9,
     depth: 3,
     weight: 2.1,
+    unitsPerCase: 12,
     holidayTags: [],
   },
   {
@@ -346,6 +367,7 @@ export const mockProducts: Product[] = [
     height: 6,
     depth: 2,
     weight: 0.4,
+    unitsPerCase: 24,
     holidayTags: ['rosh-hashanah', 'pesach'],
   },
   {
@@ -359,6 +381,7 @@ export const mockProducts: Product[] = [
     height: 5.5,
     depth: 3,
     weight: 1.2,
+    unitsPerCase: 12,
     holidayTags: ['rosh-hashanah'],
   },
 
@@ -374,6 +397,7 @@ export const mockProducts: Product[] = [
     height: 7,
     depth: 2.5,
     weight: 0.6,
+    unitsPerCase: 12,
     holidayTags: [],
   },
   {
@@ -387,6 +411,7 @@ export const mockProducts: Product[] = [
     height: 8,
     depth: 3,
     weight: 0.2,
+    unitsPerCase: 24,
     holidayTags: [],
   },
   {
@@ -400,6 +425,7 @@ export const mockProducts: Product[] = [
     height: 8,
     depth: 2.5,
     weight: 1.1,
+    unitsPerCase: 12,
     modelUrl: '/models/bartenura-gnocchi.glb',
     packaging: 'bag',
     holidayTags: [],
@@ -749,6 +775,12 @@ export const mockProject: DisplayProject = {
     headerTextColor: '#FFFFFF',
     headerBackgroundColor: '#EF4444',
   },
+  assortment: [
+    { productId: 'prod-1', cases: 5 },
+    { productId: 'prod-5', cases: 8 },
+    { productId: 'prod-18', cases: 3 },
+    { productId: 'prod-4', cases: 4 },
+  ],
   placements: [
     {
       id: 'place-1',
@@ -839,10 +871,11 @@ export const mockProjects: DisplayProject[] = [
     branding: {
       lipText: 'PASSOVER ESSENTIALS',
       lipTextColor: '#FFFFFF',
-      headerText: 'PESACH',
-      headerTextColor: '#FFFFFF',
-      headerBackgroundColor: '#0F766E',
-    },
+    headerText: 'PESACH',
+    headerTextColor: '#FFFFFF',
+    headerBackgroundColor: '#0F766E',
+  },
+    assortment: [],
     placements: [
       {
         id: 'place-8',
@@ -884,6 +917,7 @@ export const mockProjects: DisplayProject[] = [
       headerTextColor: '#FFFFFF',
       headerBackgroundColor: '#9A3412',
     },
+    assortment: [],
     placements: [
       {
         id: 'place-10',

@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { Retailer } from '../types'
+import { AuthorizedItem, Retailer } from '../types'
 
 interface RetailerState {
   retailers: Retailer[]
@@ -7,6 +7,13 @@ interface RetailerState {
   addRetailer: (retailer: Retailer) => void
   updateRetailer: (id: string, updates: Partial<Retailer>) => void
   deleteRetailer: (id: string) => void
+  addAuthorizedItem: (retailerId: string, item: AuthorizedItem) => void
+  removeAuthorizedItem: (retailerId: string, productId: string) => void
+  updateAuthorizedItemStatus: (
+    retailerId: string,
+    productId: string,
+    status: AuthorizedItem['status'],
+  ) => void
   getRetailer: (id: string) => Retailer | undefined
 }
 
@@ -20,5 +27,45 @@ export const useRetailerStore = create<RetailerState>((set, get) => ({
   deleteRetailer: (id) => set(s => ({
     retailers: s.retailers.filter(r => r.id !== id)
   })),
+  addAuthorizedItem: (retailerId, item) =>
+    set((state) => ({
+      retailers: state.retailers.map((retailer) => {
+        if (retailer.id !== retailerId) return retailer
+        if (retailer.authorizedItems.some((existing) => existing.productId === item.productId)) {
+          return retailer
+        }
+
+        return {
+          ...retailer,
+          authorizedItems: [...retailer.authorizedItems, item],
+        }
+      }),
+    })),
+  removeAuthorizedItem: (retailerId, productId) =>
+    set((state) => ({
+      retailers: state.retailers.map((retailer) =>
+        retailer.id === retailerId
+          ? {
+              ...retailer,
+              authorizedItems: retailer.authorizedItems.filter(
+                (item) => item.productId !== productId,
+              ),
+            }
+          : retailer,
+      ),
+    })),
+  updateAuthorizedItemStatus: (retailerId, productId, status) =>
+    set((state) => ({
+      retailers: state.retailers.map((retailer) =>
+        retailer.id === retailerId
+          ? {
+              ...retailer,
+              authorizedItems: retailer.authorizedItems.map((item) =>
+                item.productId === productId ? { ...item, status } : item,
+              ),
+            }
+          : retailer,
+      ),
+    })),
   getRetailer: (id) => get().retailers.find(r => r.id === id),
 }))

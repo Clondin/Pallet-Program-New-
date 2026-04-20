@@ -10,6 +10,7 @@ interface DisplayStructureProps {
   branding?: DisplayBranding;
   showSlotGrid?: boolean;
   showHeader?: boolean;
+  slotsOnly?: boolean;
   hoveredSlot: string | null;
   selectedSlot: string | null;
   onPointerOver: (tierId: number, slotIndex: number, position: [number, number, number], e: any) => void;
@@ -24,6 +25,7 @@ export const DisplayStructure: React.FC<DisplayStructureProps> = ({
   branding,
   showSlotGrid,
   showHeader,
+  slotsOnly = false,
   hoveredSlot,
   selectedSlot,
   onPointerOver,
@@ -46,6 +48,7 @@ export const DisplayStructure: React.FC<DisplayStructureProps> = ({
           lipColor={lipColor}
           branding={branding}
           showSlotGrid={showSlotGrid}
+          slotsOnly={slotsOnly}
           hoveredSlot={hoveredSlot}
           selectedSlot={selectedSlot}
           onPointerOver={onPointerOver}
@@ -54,7 +57,7 @@ export const DisplayStructure: React.FC<DisplayStructureProps> = ({
         />
       ))}
 
-      {showHeader && (
+      {showHeader && !slotsOnly && (
         <HeaderTopper
           yPosition={totalHeight}
           text={branding?.headerText}

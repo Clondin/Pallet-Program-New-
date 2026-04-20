@@ -54,6 +54,7 @@ export function makeProduct(overrides: Partial<Product> = {}): Product {
     height: overrides.height ?? 8,
     depth: overrides.depth ?? 3,
     weight: overrides.weight ?? 1.5,
+    unitsPerCase: overrides.unitsPerCase,
     holidayTags: overrides.holidayTags ?? [],
     imageUrl: overrides.imageUrl,
     modelUrl: overrides.modelUrl,
@@ -117,6 +118,8 @@ export function makeProject(overrides: Partial<DisplayProject> = {}): DisplayPro
       headerTextColor: '#FFFFFF',
     },
     placements: overrides.placements ?? [],
+    assortment: overrides.assortment ?? [],
+    shipByDate: overrides.shipByDate,
     createdAt: overrides.createdAt ?? 1000,
     updatedAt: overrides.updatedAt ?? 1000,
   }

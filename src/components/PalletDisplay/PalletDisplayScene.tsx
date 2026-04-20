@@ -10,6 +10,11 @@ import { RetailEnvironment } from './RetailEnvironment';
 import { GhostProduct } from './GhostProduct';
 import { PlacedProducts } from './PlacedProducts';
 
+// Kayco half pallet visual components
+import { PalletBase as KaycoPalletBase } from '@/components/scene/pallet/PalletBase';
+import { DisplayStructure as KaycoDisplayStructure } from '@/components/scene/pallet/DisplayStructure';
+import { createPalletConfig } from '@/lib/palletPresets';
+
 export const PalletDisplayScene: React.FC<PalletDisplayProps> = ({
   tierCount = 4,
   palletType = 'full',
@@ -48,6 +53,12 @@ export const PalletDisplayScene: React.FC<PalletDisplayProps> = ({
   } = useSlotInteraction(onSlotClick, onSlotHover, onSlotHoverEnd);
 
   const { isAnimating } = useCameraPresets(cameraPreset);
+
+  // Kayco PalletConfig for half pallet visuals
+  const kaycoPallet = useMemo(() => {
+    if (!isHalf) return null;
+    return createPalletConfig('half', '48x40');
+  }, [isHalf]);
 
   // Calculate ghost product position if needed
   const ghostPosition = useMemo(() => {
@@ -148,25 +159,52 @@ export const PalletDisplayScene: React.FC<PalletDisplayProps> = ({
       <RetailEnvironment environmentType={environment} />
 
       <group position={[0, 0, 0]}>
-        <Pallet
-          width={effectiveDimensions.width}
-          depth={effectiveDimensions.depth}
-          height={effectiveDimensions.height}
-        />
+        {isHalf && kaycoPallet ? (
+          <>
+            {/* Kayco half pallet visuals */}
+            <KaycoPalletBase pallet={kaycoPallet} />
+            <KaycoDisplayStructure pallet={kaycoPallet} />
 
-        <DisplayStructure
-          tiers={tiers}
-          palletType={palletType}
-          lipColor={lipColor}
-          branding={branding}
-          showSlotGrid={showSlotGrid}
-          showHeader={showHeader}
-          hoveredSlot={hoveredSlot}
-          selectedSlot={selectedSlot}
-          onPointerOver={handlePointerOver}
-          onPointerOut={handlePointerOut}
-          onClick={handleClick}
-        />
+            {/* Slot grid overlay from existing system (invisible structure, just interaction) */}
+            <DisplayStructure
+              tiers={tiers}
+              palletType={palletType}
+              lipColor={lipColor}
+              branding={branding}
+              showSlotGrid={showSlotGrid}
+              showHeader={false}
+              slotsOnly
+              hoveredSlot={hoveredSlot}
+              selectedSlot={selectedSlot}
+              onPointerOver={handlePointerOver}
+              onPointerOut={handlePointerOut}
+              onClick={handleClick}
+            />
+          </>
+        ) : (
+          <>
+            {/* Full pallet: original rendering */}
+            <Pallet
+              width={effectiveDimensions.width}
+              depth={effectiveDimensions.depth}
+              height={effectiveDimensions.height}
+            />
+
+            <DisplayStructure
+              tiers={tiers}
+              palletType={palletType}
+              lipColor={lipColor}
+              branding={branding}
+              showSlotGrid={showSlotGrid}
+              showHeader={showHeader}
+              hoveredSlot={hoveredSlot}
+              selectedSlot={selectedSlot}
+              onPointerOver={handlePointerOver}
+              onPointerOut={handlePointerOut}
+              onClick={handleClick}
+            />
+          </>
+        )}
 
         <PlacedProducts
           products={placedProducts}

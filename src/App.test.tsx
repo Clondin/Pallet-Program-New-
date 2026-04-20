@@ -37,6 +37,10 @@ vi.mock('./pages/pallet-detail-page', () => ({
   PalletDetailPage: () => <div>Pallet Detail</div>,
 }))
 
+vi.mock('./pages/program-rollup-page', () => ({
+  ProgramRollupPage: () => <div>Program Rollup</div>,
+}))
+
 vi.mock('./pages/settings-page', () => ({
   SettingsPage: () => <div>Settings Page</div>,
 }))

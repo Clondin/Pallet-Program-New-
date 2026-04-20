@@ -13,6 +13,7 @@ interface TierProps {
   lipColor?: string;
   branding?: DisplayBranding;
   showSlotGrid?: boolean;
+  slotsOnly?: boolean;
   hoveredSlot: string | null;
   selectedSlot: string | null;
   onPointerOver: (tierId: number, slotIndex: number, position: [number, number, number], e: any) => void;
@@ -26,6 +27,7 @@ export const Tier: React.FC<TierProps> = ({
   lipColor,
   branding,
   showSlotGrid = true,
+  slotsOnly = false,
   hoveredSlot,
   selectedSlot,
   onPointerOver,
@@ -156,6 +158,8 @@ export const Tier: React.FC<TierProps> = ({
 
   return (
     <group position={[0, config.yOffset, 0]}>
+      {!slotsOnly && (
+        <>
       {/* Base Platform */}
       <RoundedBox
         args={[config.width, platformThickness, config.depth]}
@@ -306,6 +310,9 @@ export const Tier: React.FC<TierProps> = ({
           <group position={[config.width / 2 - 0.21, platformThickness + shelfLipHeight / 2, 0]} rotation={[0, Math.PI / 2, 0]}>
             <ShelfLip width={config.depth - 1} color={lipColor} text={branding?.lipText} textColor={branding?.lipTextColor} />
           </group>
+        </>
+      )}
+
         </>
       )}
 

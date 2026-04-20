@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, Boxes, CalendarDays, Package, PenLine, Store } from 'lucide-react'
+import { AssortmentTable } from '../components/Assortment/assortment-table'
 import { BrandingPreview } from '../components/Branding/branding-preview'
 import { useDisplayStore } from '../stores/display-store'
 import { useRetailerStore } from '../stores/retailer-store'
@@ -15,6 +16,22 @@ const HOLIDAY_OPTIONS: { value: Holiday; label: string }[] = [
 
 function formatHoliday(holiday: Holiday) {
   return HOLIDAY_OPTIONS.find((o) => o.value === holiday)?.label ?? holiday
+}
+
+function formatDateInputValue(timestamp?: number) {
+  if (!timestamp) return ''
+
+  const date = new Date(timestamp)
+  const year = date.getFullYear()
+  const month = `${date.getMonth() + 1}`.padStart(2, '0')
+  const day = `${date.getDate()}`.padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+function parseDateInputValue(value: string) {
+  const [year, month, day] = value.split('-').map(Number)
+  if (!year || !month || !day) return undefined
+  return new Date(year, month - 1, day, 12).getTime()
 }
 
 function Stat({
@@ -48,6 +65,7 @@ export function PalletDetailPage() {
   const setPalletType = useDisplayStore((state) => state.setPalletType)
   const updateName = useDisplayStore((state) => state.updateName)
   const updateHoliday = useDisplayStore((state) => state.updateHoliday)
+  const updateShipByDate = useDisplayStore((state) => state.updateShipByDate)
   const retailer = useRetailerStore((state) =>
     retailerId ? state.getRetailer(retailerId) : undefined
   )
@@ -196,6 +214,24 @@ export function PalletDetailPage() {
             )}
           </div>
         </div>
+      </div>
+
+      <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+        <label className="text-[12px] font-medium text-[#555]">Ship By</label>
+        <input
+          type="date"
+          value={formatDateInputValue(pallet.shipByDate)}
+          onChange={(event) =>
+            updateShipByDate(
+              event.target.value ? parseDateInputValue(event.target.value) : undefined,
+            )
+          }
+          className="px-3 py-1.5 text-[13px] shadow-border rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-[#0a72ef]/30 focus:shadow-none w-full sm:w-auto"
+        />
+      </div>
+
+      <div className="mt-6">
+        <AssortmentTable project={pallet} retailer={retailer} />
       </div>
     </div>
   )

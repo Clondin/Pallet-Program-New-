@@ -31,6 +31,9 @@ describe('merchUtils', () => {
         height: 10.4,
         depth: 8.05,
         packaging: 'box',
+        category: 'Beverages',
+        label: 'Concord Grape Juice 1L (6-Pack)',
+        sku: 'KED-CGJ-1L-CS6',
         caseConfig: {
           unitProductId: 'u',
           layout: { cols: 3, rows: 2, layers: 1 },

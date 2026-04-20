@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import {
   ArrowLeft,
   Boxes,
@@ -11,16 +11,20 @@ import {
   Package,
   Phone,
   Plus,
+  Search,
   Shield,
   Star,
+  Trash2,
   User,
+  X,
 } from 'lucide-react'
+import { useCatalogStore } from '../stores/catalog-store'
 import { useRetailerStore } from '../stores/retailer-store'
 import { useDisplayStore } from '../stores/display-store'
 import { PalletWizard } from '../components/Wizard/PalletWizard'
 import type { WizardPalletConfig } from '../components/Wizard/wizardTypes'
 import { BRAND_COLORS } from '../lib/mock-data'
-import type { Brand, DisplayProject, Holiday, Retailer } from '../types'
+import type { AuthorizedItem, Brand, DisplayProject, Holiday, Retailer } from '../types'
 
 type Tab = 'pallets' | 'overview' | 'items' | 'contacts' | 'compliance'
 
@@ -28,8 +32,6 @@ const TABS: { value: Tab; label: string }[] = [
   { value: 'pallets', label: 'Pallets' },
   { value: 'overview', label: 'Overview' },
   { value: 'items', label: 'Items' },
-  { value: 'contacts', label: 'Contacts' },
-  { value: 'compliance', label: 'Compliance' },
 ]
 
 const TIER_LABEL: Record<string, { text: string; color: string }> = {
@@ -48,6 +50,12 @@ const STATUS_COLORS: Record<string, { bg: string; text: string; dot: string }> =
   active: { bg: 'bg-emerald-50', text: 'text-emerald-700', dot: 'bg-emerald-500' },
   inactive: { bg: 'bg-[#f5f5f5]', text: 'text-[#999]', dot: 'bg-[#ccc]' },
 }
+
+const ITEM_STATUS_OPTIONS: AuthorizedItem['status'][] = [
+  'authorized',
+  'pending',
+  'discontinued',
+]
 
 function formatHoliday(holiday: Holiday) {
   if (holiday === 'none') return 'Everyday'
@@ -68,6 +76,14 @@ function fmtCurrency(v: number) {
   if (v >= 1000000) return `$${(v / 1000000).toFixed(1)}M`
   if (v >= 1000) return `$${(v / 1000).toFixed(0)}K`
   return `$${v}`
+}
+
+function getTodayDateString() {
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = `${now.getMonth() + 1}`.padStart(2, '0')
+  const day = `${now.getDate()}`.padStart(2, '0')
+  return `${year}-${month}-${day}`
 }
 
 function StatusBadge({ status }: { status: string }) {
@@ -198,62 +214,263 @@ function OverviewTab({ retailer }: { retailer: Retailer }) {
   )
 }
 
-function ItemsTab({ retailer }: { retailer: Retailer }) {
-  const grouped = useMemo(() => {
-    const map = new Map<string, typeof retailer.authorizedItems>()
-    for (const item of retailer.authorizedItems) {
-      const key = item.status
-      if (!map.has(key)) map.set(key, [])
-      map.get(key)!.push(item)
-    }
-    return map
-  }, [retailer.authorizedItems])
+function AddAuthorizedItemModal({
+  retailer,
+  open,
+  onClose,
+}: {
+  retailer: Retailer
+  open: boolean
+  onClose: () => void
+}) {
+  const [search, setSearch] = useState('')
+  const products = useCatalogStore((state) => state.products)
+  const addAuthorizedItem = useRetailerStore((state) => state.addAuthorizedItem)
 
-  const order = ['authorized', 'pending', 'discontinued']
+  const availableProducts = useMemo(() => {
+    const existingIds = new Set(retailer.authorizedItems.map((item) => item.productId))
+    const query = search.trim().toLowerCase()
+
+    return products
+      .filter((product) => !existingIds.has(product.id))
+      .filter((product) => {
+        if (!query) return true
+        return (
+          product.name.toLowerCase().includes(query) ||
+          product.sku.toLowerCase().includes(query) ||
+          product.brand.toLowerCase().includes(query) ||
+          product.category.toLowerCase().includes(query)
+        )
+      })
+      .sort(
+        (left, right) =>
+          left.brand.localeCompare(right.brand) || left.name.localeCompare(right.name),
+      )
+  }, [products, retailer.authorizedItems, search])
+
+  if (!open) return null
+
+  function handleAdd(productId: string) {
+    const product = products.find((candidate) => candidate.id === productId)
+    if (!product) return
+
+    addAuthorizedItem(retailer.id, {
+      productId: product.id,
+      productName: product.name,
+      sku: product.sku,
+      brand: product.brand,
+      status: 'authorized',
+      authorizedDate: getTodayDateString(),
+      avgMonthlyUnits: 0,
+      marginPercent: 0,
+    })
+    setSearch('')
+    onClose()
+  }
 
   return (
-    <div className="bg-white shadow-card rounded-lg overflow-hidden">
-      {/* Table header */}
-      <div className="grid grid-cols-[1fr_100px_100px_90px] gap-4 px-5 py-3 text-[10px] font-medium uppercase tracking-wider text-[#bbb]" style={{ boxShadow: '0 1px 0 0 rgba(0,0,0,0.04)' }}>
-        <span>Product</span>
-        <span className="text-right">Monthly Units</span>
-        <span className="text-right">Margin</span>
-        <span className="text-right">Status</span>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
+      <div className="bg-white w-full max-w-[720px] mx-4 max-h-[80vh] flex flex-col shadow-elevated rounded-lg overflow-hidden">
+        <div
+          className="flex items-center justify-between px-6 py-4"
+          style={{ boxShadow: '0 1px 0 0 rgba(0,0,0,0.06)' }}
+        >
+          <div>
+            <h3 className="text-[15px] font-semibold text-[#171717]">Add Item</h3>
+            <p className="text-[12px] text-[#888] mt-1">
+              Search the catalog and add an item to {retailer.name}
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            aria-label="Close add item modal"
+            className="p-1 rounded-md hover:bg-[#f5f5f5] text-[#ccc] hover:text-[#888] transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        <div className="px-6 pt-5 pb-3">
+          <div className="relative">
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#999]" />
+            <input
+              type="text"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Search by name, SKU, brand, or category..."
+              className="w-full pl-10 pr-4 py-2.5 bg-[#fafafa] text-[13px] shadow-border rounded-md placeholder:text-[#aaa] focus:ring-2 focus:ring-[#0a72ef]/20 focus:outline-none focus:shadow-none"
+            />
+          </div>
+          <p className="text-[11px] text-[#999] mt-2">
+            {availableProducts.length} products available to add
+          </p>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-6 pb-6 space-y-2">
+          {availableProducts.length === 0 ? (
+            <div className="py-12 text-center text-[12px] text-[#888]">
+              No products match your search or all catalog items have already been added.
+            </div>
+          ) : (
+            availableProducts.map((product) => (
+              <div
+                key={product.id}
+                className="flex items-center gap-4 rounded-lg border border-[#f0f0f0] px-4 py-3"
+              >
+                <div
+                  className="w-1.5 self-stretch rounded-full shrink-0"
+                  style={{ backgroundColor: product.brandColor }}
+                />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="text-[13px] font-medium text-[#171717] truncate">
+                      {product.name}
+                    </p>
+                    <span className="text-[10px] uppercase tracking-wide text-[#999]">
+                      {product.category}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-[11px] text-[#999] font-mono">{product.sku}</span>
+                    <span className="text-[11px] text-[#777] capitalize">{product.brand}</span>
+                  </div>
+                </div>
+                <button
+                  onClick={() => handleAdd(product.id)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-[#171717] text-white text-[12px] font-medium hover:bg-[#333] transition-colors shrink-0"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  Add
+                </button>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function ItemsTab({ retailer }: { retailer: Retailer }) {
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false)
+  const updateAuthorizedItemStatus = useRetailerStore(
+    (state) => state.updateAuthorizedItemStatus,
+  )
+  const removeAuthorizedItem = useRetailerStore((state) => state.removeAuthorizedItem)
+
+  const items = useMemo(() => {
+    const statusOrder = new Map(ITEM_STATUS_OPTIONS.map((status, index) => [status, index]))
+    return [...retailer.authorizedItems].sort(
+      (left, right) =>
+        (statusOrder.get(left.status) ?? 99) - (statusOrder.get(right.status) ?? 99) ||
+        left.brand.localeCompare(right.brand) ||
+        left.productName.localeCompare(right.productName),
+    )
+  }, [retailer.authorizedItems])
+
+  return (
+    <>
+      <div className="flex items-center justify-between gap-4 mb-4">
+        <div>
+          <p className="text-[12px] text-[#888]">
+            Manage retailer-specific assortment authorization and status.
+          </p>
+        </div>
+        <button
+          onClick={() => setIsAddModalOpen(true)}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-[#171717] text-white text-[13px] font-medium hover:bg-[#333] transition-colors shrink-0"
+        >
+          <Plus className="w-3.5 h-3.5" />
+          Add Item
+        </button>
       </div>
 
-      {order.map((status) => {
-        const items = grouped.get(status)
-        if (!items?.length) return null
+      <div className="bg-white shadow-card rounded-lg overflow-hidden">
+        <div
+          className="grid grid-cols-[minmax(0,1.3fr)_100px_100px_140px_88px] gap-4 px-5 py-3 text-[10px] font-medium uppercase tracking-wider text-[#bbb]"
+          style={{ boxShadow: '0 1px 0 0 rgba(0,0,0,0.04)' }}
+        >
+          <span>Product</span>
+          <span className="text-right">Monthly Units</span>
+          <span className="text-right">Margin</span>
+          <span className="text-right">Status</span>
+          <span className="text-right">Action</span>
+        </div>
 
-        return items.map((item) => (
-          <div
-            key={`${item.productId}-${item.sku}`}
-            className="grid grid-cols-[1fr_100px_100px_90px] gap-4 px-5 py-3 items-center hover:bg-[#fafafa] transition-colors"
-            style={{ boxShadow: '0 -1px 0 0 rgba(0,0,0,0.03)' }}
-          >
-            <div className="min-w-0">
-              <p className="text-[13px] font-medium text-[#171717] truncate">{item.productName}</p>
-              <div className="flex items-center gap-2 mt-0.5">
-                <span className="text-[11px] text-[#999] font-mono">{item.sku}</span>
-                <div
-                  className="w-2 h-2 rounded-full"
-                  style={{ backgroundColor: BRAND_COLORS[item.brand as Brand] }}
-                />
+        {items.length === 0 ? (
+          <div className="px-5 py-14 text-center">
+            <Package className="w-6 h-6 text-[#ccc] mx-auto mb-2" />
+            <p className="text-[13px] font-medium text-[#171717]">No items yet</p>
+            <p className="text-[12px] text-[#888] mt-1">
+              Add catalog products to build this retailer&apos;s authorized assortment.
+            </p>
+          </div>
+        ) : (
+          items.map((item) => (
+            <div
+              key={`${item.productId}-${item.sku}`}
+              className="grid grid-cols-[minmax(0,1.3fr)_100px_100px_140px_88px] gap-4 px-5 py-3 items-center hover:bg-[#fafafa] transition-colors"
+              style={{ boxShadow: '0 -1px 0 0 rgba(0,0,0,0.03)' }}
+            >
+              <div className="min-w-0">
+                <p className="text-[13px] font-medium text-[#171717] truncate">
+                  {item.productName}
+                </p>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <span className="text-[11px] text-[#999] font-mono">{item.sku}</span>
+                  <div
+                    className="w-2 h-2 rounded-full"
+                    style={{ backgroundColor: BRAND_COLORS[item.brand as Brand] }}
+                  />
+                  <span className="text-[11px] text-[#777] capitalize">{item.brand}</span>
+                </div>
+              </div>
+              <p className="text-[12px] text-[#555] tabular-nums text-right">
+                {item.avgMonthlyUnits > 0 ? item.avgMonthlyUnits.toLocaleString() : '--'}
+              </p>
+              <p className="text-[12px] text-[#555] tabular-nums text-right">
+                {item.marginPercent > 0 ? `${item.marginPercent}%` : '--'}
+              </p>
+              <div className="text-right">
+                <select
+                  aria-label={`Status for ${item.productName}`}
+                  value={item.status}
+                  onChange={(event) =>
+                    updateAuthorizedItemStatus(
+                      retailer.id,
+                      item.productId,
+                      event.target.value as AuthorizedItem['status'],
+                    )
+                  }
+                  className="w-full px-2 py-1.5 text-[12px] text-[#171717] shadow-border rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-[#0a72ef]/30 focus:shadow-none"
+                >
+                  {ITEM_STATUS_OPTIONS.map((status) => (
+                    <option key={status} value={status}>
+                      {status.replace(/-/g, ' ')}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="text-right">
+                <button
+                  onClick={() => removeAuthorizedItem(retailer.id, item.productId)}
+                  aria-label={`Remove ${item.productName}`}
+                  className="inline-flex items-center justify-center w-8 h-8 rounded-md text-[#999] hover:text-red-600 hover:bg-red-50 transition-colors"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
               </div>
             </div>
-            <p className="text-[12px] text-[#555] tabular-nums text-right">
-              {item.avgMonthlyUnits > 0 ? item.avgMonthlyUnits.toLocaleString() : '--'}
-            </p>
-            <p className="text-[12px] text-[#555] tabular-nums text-right">
-              {item.marginPercent > 0 ? `${item.marginPercent}%` : '--'}
-            </p>
-            <div className="text-right">
-              <StatusBadge status={item.status} />
-            </div>
-          </div>
-        ))
-      })}
-    </div>
+          ))
+        )}
+      </div>
+
+      <AddAuthorizedItemModal
+        retailer={retailer}
+        open={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+      />
+    </>
   )
 }
 
@@ -342,6 +559,10 @@ export function RetailerDetailPage() {
   const [activeTab, setActiveTab] = useState<Tab>('pallets')
   const [wizardOpen, setWizardOpen] = useState(false)
   const createProject = useDisplayStore((state) => state.createProject)
+  const seasonOptions = useMemo(() => {
+    const seasons = new Set(pallets.map((pallet) => pallet.season))
+    return Array.from(seasons).filter((season) => season !== 'none')
+  }, [pallets])
 
   const handleWizardComplete = (config: WizardPalletConfig) => {
     const project = createProject(
@@ -473,19 +694,33 @@ export function RetailerDetailPage() {
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
-              {pallets.map((pallet) => (
-                <PalletCard key={pallet.id} pallet={pallet} retailerId={retailer.id} />
-              ))}
-            </div>
+            <>
+              {seasonOptions.length > 0 && (
+                <div className="flex flex-wrap items-center gap-2 mb-4">
+                  <span className="text-[12px] text-[#888]">Program summary:</span>
+                  {seasonOptions.map((season) => (
+                    <Link
+                      key={season}
+                      to={`/retailers/${id}/program/${season}`}
+                      className="text-[12px] font-medium text-[#0a72ef] hover:underline"
+                    >
+                      {formatHoliday(season)}
+                    </Link>
+                  ))}
+                </div>
+              )}
+              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+                {pallets.map((pallet) => (
+                  <PalletCard key={pallet.id} pallet={pallet} retailerId={retailer.id} />
+                ))}
+              </div>
+            </>
           )}
         </>
       )}
 
       {activeTab === 'overview' && <OverviewTab retailer={retailer} />}
       {activeTab === 'items' && <ItemsTab retailer={retailer} />}
-      {activeTab === 'contacts' && <ContactsTab retailer={retailer} />}
-      {activeTab === 'compliance' && <ComplianceTab retailer={retailer} />}
 
       <PalletWizard
         open={wizardOpen}

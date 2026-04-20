@@ -150,7 +150,8 @@ export function PalletWizard({
           <div className="flex-[45] min-w-0" style={{ background: '#1A1A2E' }}>
             <Canvas
               camera={{ position: [60, 40, 60], fov: 45 }}
-              gl={{ antialias: true }}
+              dpr={[1, 1.5]}
+              gl={{ antialias: true, powerPreference: "high-performance" }}
               style={{ width: '100%', height: '100%' }}
             >
               <Suspense fallback={null}>

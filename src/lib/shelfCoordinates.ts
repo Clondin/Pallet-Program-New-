@@ -48,33 +48,64 @@ export function buildTierConfigs(
   const width = 46
   const depth = palletType === 'half' ? 20 : 38
   const shelfDepth = DEFAULT_SHELF_DEPTH
-  const baseTrayHeight = 14
-  const topTrayHeight = 7
-  const baseSlotSize = 6
-  const topSlotSize = 4
   const tiers: TierConfig[] = []
 
-  let currentY = 0
+  if (palletType === 'half') {
+    // Match Kayco DisplayStructure geometry:
+    // baseY = 6 + 0.6 = 6.6, shelves at baseY + 2 + row * (rowHeight + stripHeight)
+    // rowHeight=9, stripHeight=2, so stride=11
+    // Shelf Y positions: 8.6, 19.6, 30.6, 41.6
+    // yBase = palletHeight(6) + yOffset + PLATFORM_THICKNESS(1)
+    // So yOffset = shelfY - 6 - 1 = shelfY - 7
+    const rowHeight = 9
+    const stripHeight = 2
+    const kaycoBaseY = 0.6 // offset above pallet top
+    const baseSlotSize = 6
+    const topSlotSize = 4
 
-  for (let i = 0; i < count; i += 1) {
-    const progress = count > 1 ? i / (count - 1) : 0
-    const trayHeight =
-      baseTrayHeight - progress * (baseTrayHeight - topTrayHeight)
-    const slotGridSize =
-      baseSlotSize - progress * (baseSlotSize - topSlotSize)
+    for (let i = 0; i < count; i += 1) {
+      const shelfY = kaycoBaseY + 2 + i * (rowHeight + stripHeight)
+      const progress = count > 1 ? i / (count - 1) : 0
+      const slotGridSize = baseSlotSize - progress * (baseSlotSize - topSlotSize)
 
-    tiers.push({
-      id: i + 1,
-      width,
-      depth,
-      height: trayHeight,
-      shelfDepth,
-      trayHeight,
-      yOffset: currentY,
-      slotGridSize,
-    })
+      tiers.push({
+        id: i + 1,
+        width,
+        depth,
+        height: rowHeight,
+        shelfDepth,
+        trayHeight: rowHeight,
+        yOffset: shelfY - PLATFORM_THICKNESS,
+        slotGridSize,
+      })
+    }
+  } else {
+    const baseTrayHeight = 14
+    const topTrayHeight = 7
+    const baseSlotSize = 6
+    const topSlotSize = 4
+    let currentY = 0
 
-    currentY += trayHeight + PLATFORM_THICKNESS
+    for (let i = 0; i < count; i += 1) {
+      const progress = count > 1 ? i / (count - 1) : 0
+      const trayHeight =
+        baseTrayHeight - progress * (baseTrayHeight - topTrayHeight)
+      const slotGridSize =
+        baseSlotSize - progress * (baseSlotSize - topSlotSize)
+
+      tiers.push({
+        id: i + 1,
+        width,
+        depth,
+        height: trayHeight,
+        shelfDepth,
+        trayHeight,
+        yOffset: currentY,
+        slotGridSize,
+      })
+
+      currentY += trayHeight + PLATFORM_THICKNESS
+    }
   }
 
   return tiers
@@ -213,11 +244,15 @@ export function getShelfPosition(
     throw new Error(`Tier ${placement.tier} not found`)
   }
 
+  const isHalfPallet = tier.depth < 30 // half pallet tiers have depth ~20
   const shelfDepth = tier.shelfDepth || DEFAULT_SHELF_DEPTH
+
+  // For half pallets, use the Kayco tower footprint (no inset — structure fills the tower)
+  const inset = isHalfPallet ? 1 : SHELF_SIDE_INSET
   const wallWidth =
     placement.wall === 'front' || placement.wall === 'back'
-      ? palletConfig.base.width - SHELF_SIDE_INSET * 2
-      : palletConfig.base.depth - SHELF_SIDE_INSET * 2
+      ? palletConfig.base.width - inset * 2
+      : palletConfig.base.depth - inset * 2
 
   const cellWidth = wallWidth / wallConfig.gridColumns
   const slotWidth = cellWidth * placement.colSpan
@@ -225,9 +260,9 @@ export function getShelfPosition(
   const slotCenter =
     -wallWidth / 2 + placement.gridCol * cellWidth + slotWidth / 2
 
-  const displayHalfWidth = (palletConfig.base.width - SHELF_SIDE_INSET * 2) / 2
-  const displayHalfDepth = (palletConfig.base.depth - SHELF_SIDE_INSET * 2) / 2
-  const frontBias = Math.min(1.25, Math.max(0.6, shelfDepth * 0.12))
+  const displayHalfWidth = (palletConfig.base.width - inset * 2) / 2
+  const displayHalfDepth = (palletConfig.base.depth - inset * 2) / 2
+  const frontBias = isHalfPallet ? 3 : Math.min(1.25, Math.max(0.6, shelfDepth * 0.12))
 
   let position: [number, number, number]
   let rotation: [number, number, number]

@@ -11,7 +11,8 @@ export const PalletDisplay: React.FC<PalletDisplayProps> = (props) => {
       <Canvas
         shadows
         camera={{ position: initialCameraPosition, fov: 45 }}
-        gl={{ antialias: true, toneMappingExposure: 1.2 }}
+        dpr={[1, 1.5]}
+        gl={{ antialias: true, toneMappingExposure: 1.2, powerPreference: "high-performance" }}
       >
         <Suspense fallback={null}>
           <PalletDisplayScene {...props} />

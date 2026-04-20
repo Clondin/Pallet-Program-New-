@@ -6,6 +6,11 @@ export interface DisplayBranding {
   headerBackgroundColor?: string; // default uses cardboard color
 }
 
+export interface AssortmentEntry {
+  productId: string
+  cases: number
+}
+
 export interface ProductDimensions {
   width: number
   height: number
@@ -187,6 +192,7 @@ export interface Product {
   height: number
   depth: number
   weight: number
+  unitsPerCase?: number
   imageUrl?: string
   modelUrl?: string
   packaging?: PackagingType
@@ -295,6 +301,8 @@ export interface DisplayProject {
   lipColor: string
   branding: DisplayBranding
   placements: PlacedProduct[]
+  assortment: AssortmentEntry[]
+  shipByDate?: number
   createdAt: number
   updatedAt: number
 }

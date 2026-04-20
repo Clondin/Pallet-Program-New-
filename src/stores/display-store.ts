@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import {
+  AssortmentEntry,
   DisplayProject,
   PlacedProduct,
   GhostProduct,
@@ -64,6 +65,10 @@ interface DisplayState {
   setPalletType: (type: PalletType) => void
   updateName: (name: string) => void
   updateHoliday: (holiday: DisplayProject['holiday']) => void
+  updateAssortment: (productId: string, cases: number) => void
+  setAssortment: (assortment: AssortmentEntry[]) => void
+  updateShipByDate: (date: number | undefined) => void
+  populateFromAssortment: () => void
   openPicker: () => void
   closePicker: () => void
   setPickerProduct: (product: Product | null) => void
@@ -178,6 +183,7 @@ export const useDisplayStore = create<DisplayState>((set, get) => ({
         headerTextColor: '#FFFFFF',
       },
       placements: [],
+      assortment: [],
       createdAt: Date.now(),
       updatedAt: Date.now(),
     }
@@ -529,6 +535,180 @@ export const useDisplayStore = create<DisplayState>((set, get) => ({
       ...state.currentProject,
       holiday,
       season: holiday,
+      updatedAt: Date.now(),
+    }
+
+    set(commitProjectUpdate(state, nextProject))
+  },
+
+  updateAssortment: (productId, cases) => {
+    const state = get()
+    if (!state.currentProject) return
+
+    const existing = state.currentProject.assortment
+    const nextAssortment =
+      cases > 0
+        ? existing.some((entry) => entry.productId === productId)
+          ? existing.map((entry) =>
+              entry.productId === productId ? { ...entry, cases } : entry
+            )
+          : [...existing, { productId, cases }]
+        : existing.filter((entry) => entry.productId !== productId)
+
+    const nextProject = {
+      ...state.currentProject,
+      assortment: nextAssortment,
+      updatedAt: Date.now(),
+    }
+
+    set(commitProjectUpdate(state, nextProject))
+  },
+
+  setAssortment: (assortment) => {
+    const state = get()
+    if (!state.currentProject) return
+
+    const nextProject = {
+      ...state.currentProject,
+      assortment,
+      updatedAt: Date.now(),
+    }
+
+    set(commitProjectUpdate(state, nextProject))
+  },
+
+  updateShipByDate: (date) => {
+    const state = get()
+    if (!state.currentProject) return
+
+    const nextProject = {
+      ...state.currentProject,
+      shipByDate: date,
+      updatedAt: Date.now(),
+    }
+
+    set(commitProjectUpdate(state, nextProject))
+  },
+
+  populateFromAssortment: () => {
+    const state = get()
+    if (!state.currentProject) return
+
+    const assortment = state.currentProject.assortment ?? []
+    const activeEntries = assortment.filter(e => e.cases > 0)
+    if (activeEntries.length === 0) return
+
+    const allProducts = useCatalogStore.getState().products
+    const productMap = new Map(allProducts.map(p => [p.id, p]))
+
+    // Sort by weight descending — heaviest first
+    const sorted = [...activeEntries]
+      .map(entry => ({ ...entry, product: productMap.get(entry.productId) }))
+      .filter(entry => entry.product)
+      .sort((a, b) => (b.product!.weight ?? 0) - (a.product!.weight ?? 0))
+
+    const tierCount = state.currentProject.tierCount
+
+    const context = buildValidationContext(state)
+    if (!context) return
+
+    const wallConfig = context.wallConfigs.front
+    const gridColumns = wallConfig.gridColumns
+
+    // Weight-based tier assignment:
+    // Tier 1 (bottom) = heavy items only (heaviest by weight)
+    // Tier N (top)     = lightest items (chips, small packages)
+    // Tiers 2 to N-1   = everything else
+    const placements: PlacedProduct[] = []
+
+    // Categorize by weight thresholds
+    const HEAVY_THRESHOLD = 1.5  // lbs — anything above goes on tier 1
+    const LIGHT_THRESHOLD = 0.6  // lbs — anything below goes on top tier
+
+    const heavy: typeof sorted = []
+    const mid: typeof sorted = []
+    const light: typeof sorted = []
+
+    for (const entry of sorted) {
+      const w = entry.product!.weight ?? 0
+      if (w >= HEAVY_THRESHOLD) heavy.push(entry)
+      else if (w <= LIGHT_THRESHOLD) light.push(entry)
+      else mid.push(entry)
+    }
+
+    // Build assignment: tier 1 = heavy, tier N = light, tiers 2-(N-1) = mid
+    const assignments: Array<{ product: typeof sorted[0]['product'], tier: number }> = []
+
+    // Heavy → tier 1
+    for (const entry of heavy) {
+      assignments.push({ product: entry.product, tier: 1 })
+    }
+
+    // Light → top tier
+    for (const entry of light) {
+      assignments.push({ product: entry.product, tier: tierCount })
+    }
+
+    // Mid → distribute across tiers 2 to (N-1), or overflow to 2-N if needed
+    const midTierStart = 2
+    const midTierEnd = Math.max(midTierStart, tierCount - 1)
+    const midTierCount = midTierEnd - midTierStart + 1
+    for (let i = 0; i < mid.length; i++) {
+      const tier = midTierStart + (i % midTierCount)
+      assignments.push({ product: mid[i].product, tier })
+    }
+
+    for (let i = 0; i < assignments.length; i++) {
+      const { product, tier } = assignments[i]
+      if (!product) continue
+
+      // Find next available column on this tier
+      const usedCols = placements
+        .filter(p => p.tier === tier && p.wall === 'front')
+        .reduce((max, p) => Math.max(max, (p.gridCol ?? 0) + (p.colSpan ?? 1)), 0)
+
+      if (usedCols >= gridColumns) continue // tier is full
+
+      const dimensions = resolveProductDimensions(product, allProducts)
+      const colSpan = getEffectiveColSpan(
+        product,
+        'face-out',
+        wallConfig,
+        'front',
+        context.palletConfig,
+        allProducts,
+      )
+
+      const gridCol = Math.min(usedCols, gridColumns - colSpan)
+      const slotId = `${tier}-${gridCol}`
+
+      placements.push({
+        id: crypto.randomUUID(),
+        sourceProductId: product.id,
+        slotId,
+        width: dimensions.width,
+        height: dimensions.height,
+        depth: dimensions.depth,
+        color: product.brandColor,
+        label: product.name,
+        sku: product.sku,
+        category: product.category,
+        imageUrl: product.imageUrl,
+        modelUrl: product.modelUrl,
+        packaging: product.packaging,
+        caseConfig: product.caseConfig,
+        wall: 'front',
+        tier,
+        gridCol,
+        colSpan,
+        quantity: 1,
+        displayMode: 'face-out',
+      })
+    }
+
+    const nextProject = {
+      ...state.currentProject,
+      placements,
       updatedAt: Date.now(),
     }
 

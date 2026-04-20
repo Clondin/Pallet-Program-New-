@@ -8,7 +8,9 @@ import { ProductDetailPage } from './pages/product-detail-page'
 import { RetailersPage } from './pages/retailers-page'
 import { RetailerDetailPage } from './pages/retailer-detail-page'
 import { PalletDetailPage } from './pages/pallet-detail-page'
+import { ProgramRollupPage } from './pages/program-rollup-page'
 import { SettingsPage } from './pages/settings-page'
+import { ScenePage } from './pages/scene-page'
 import { useDisplayStore } from './stores/display-store'
 import { useCatalogStore } from './stores/catalog-store'
 import { useRetailerStore } from './stores/retailer-store'
@@ -122,7 +124,12 @@ export default function App() {
       .setRetailers(retailers)
     const persistedProjects = loadPersistedState<DisplayProject[]>(PALLETS_STORAGE_KEY)
     const legacyProject = loadPersistedState<DisplayProject>(PROJECT_STORAGE_KEY)
-    const projects = persistedProjects ?? (legacyProject ? [legacyProject] : mockProjects)
+    const projects = (persistedProjects ?? (legacyProject ? [legacyProject] : mockProjects)).map(
+      (project) => ({
+        ...project,
+        assortment: project.assortment ?? [],
+      }),
+    )
     const activePalletId = localStorage.getItem(ACTIVE_PALLET_STORAGE_KEY)
     const activeProject =
       projects.find((project) => project.id === activePalletId) ??
@@ -182,6 +189,11 @@ export default function App() {
             path="/retailers/:retailerId/pallets/:palletId/editor"
             element={<EditorPage />}
           />
+          <Route
+            path="/retailers/:retailerId/program/:season"
+            element={<ProgramRollupPage />}
+          />
+          <Route path="/scene" element={<ScenePage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/" element={<HomeRedirect />} />
           <Route path="*" element={<HomeRedirect />} />
