@@ -5,6 +5,8 @@ export interface RollupRow {
   productId: string
   productName: string
   sku: string
+  upc: string
+  kaycoItemNumber: string
   brand: string
   unitsPerCase: number | null
   palletCases: Map<string, number>
@@ -30,6 +32,8 @@ export function buildRollupData(
           productId: entry.productId,
           productName: product?.name ?? entry.productId,
           sku: product?.sku ?? '',
+          upc: product?.upc ?? '',
+          kaycoItemNumber: product?.kaycoItemNumber ?? '',
           brand: product?.brand ?? '',
           unitsPerCase: product ? getUnitsPerCase(product) : null,
           palletCases: new Map(),

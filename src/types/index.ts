@@ -185,6 +185,8 @@ export interface Product {
   id: string
   name: string
   sku: string
+  upc?: string
+  kaycoItemNumber?: string
   brand: Brand
   brandColor: string
   category: string
@@ -288,6 +290,7 @@ export interface PalletWizardConfig {
   palletType: PalletType
   season: Holiday
   retailerId: string
+  seasonId?: string | null
 }
 
 export interface DisplayProject {
@@ -296,6 +299,7 @@ export interface DisplayProject {
   retailerId: string
   holiday: Holiday
   season: Holiday
+  seasonId: string | null
   tierCount: number
   palletType: PalletType
   lipColor: string
@@ -305,6 +309,13 @@ export interface DisplayProject {
   shipByDate?: number
   createdAt: number
   updatedAt: number
+}
+
+export interface Season {
+  id: string
+  name: string
+  archived: boolean
+  createdAt: number
 }
 
 export interface SlotGridItem {

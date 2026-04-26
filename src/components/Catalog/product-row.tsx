@@ -66,7 +66,16 @@ export function ProductRow({ product }: ProductRowProps) {
                 </span>
               )}
             </div>
-            <div className="text-[11px] text-[#999] font-mono">{product.sku}</div>
+            <div className="text-[11px] text-[#999] font-mono">
+              {product.upc || product.kaycoItemNumber
+                ? [
+                    product.upc && `UPC ${product.upc}`,
+                    product.kaycoItemNumber && `Kayco #${product.kaycoItemNumber}`,
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')
+                : product.sku}
+            </div>
           </div>
         </div>
       </td>

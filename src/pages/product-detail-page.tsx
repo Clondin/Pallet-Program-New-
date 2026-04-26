@@ -77,6 +77,8 @@ export function ProductDetailPage() {
   const [form, setForm] = useState(() => ({
     name: product?.name ?? '',
     sku: product?.sku ?? '',
+    upc: product?.upc ?? '',
+    kaycoItemNumber: product?.kaycoItemNumber ?? '',
     brand: product?.brand ?? ('tuscanini' as Brand),
     category: product?.category ?? '',
     width: product?.width ?? 0,
@@ -113,7 +115,9 @@ export function ProductDetailPage() {
   useEffect(() => {
     if (!product) return
     setForm({
-      name: product.name, sku: product.sku, brand: product.brand,
+      name: product.name, sku: product.sku,
+      upc: product.upc ?? '', kaycoItemNumber: product.kaycoItemNumber ?? '',
+      brand: product.brand,
       category: product.category, width: product.width, height: product.height,
       depth: product.depth, weight: product.weight,
       holiday: product.holidayTags[0] ?? 'none',
@@ -146,7 +150,9 @@ export function ProductDetailPage() {
 
   const handleReset = () => {
     setForm({
-      name: product.name, sku: product.sku, brand: product.brand,
+      name: product.name, sku: product.sku,
+      upc: product.upc ?? '', kaycoItemNumber: product.kaycoItemNumber ?? '',
+      brand: product.brand,
       category: product.category, width: product.width, height: product.height,
       depth: product.depth, weight: product.weight,
       holiday: product.holidayTags[0] ?? 'none',
@@ -157,7 +163,10 @@ export function ProductDetailPage() {
   const handleSave = () => {
     const holidayTags = form.holiday === 'none' ? [] : [form.holiday as Holiday]
     updateProduct(product.id, {
-      name: form.name, sku: form.sku, brand: form.brand,
+      name: form.name, sku: form.sku,
+      upc: form.upc.trim() || undefined,
+      kaycoItemNumber: form.kaycoItemNumber.trim() || undefined,
+      brand: form.brand,
       brandColor: BRAND_COLORS[form.brand], category: form.category,
       width: form.width, height: form.height, depth: form.depth,
       weight: form.weight, holidayTags,
@@ -206,8 +215,22 @@ export function ProductDetailPage() {
                 {HOLIDAY_LABELS[primaryHoliday]}
               </span>
             </div>
-            <div className="flex items-center gap-4 text-[12px] text-[#888]">
-              <span className="inline-flex items-center gap-1.5"><Tag className="w-3 h-3" />{product.sku}</span>
+            <div className="flex items-center gap-4 text-[12px] text-[#888] flex-wrap">
+              {product.upc && (
+                <span className="inline-flex items-center gap-1.5">
+                  <Tag className="w-3 h-3" />UPC {product.upc}
+                </span>
+              )}
+              {product.kaycoItemNumber && (
+                <span className="inline-flex items-center gap-1.5">
+                  <Tag className="w-3 h-3" />Kayco #{product.kaycoItemNumber}
+                </span>
+              )}
+              {!product.upc && !product.kaycoItemNumber && (
+                <span className="inline-flex items-center gap-1.5">
+                  <Tag className="w-3 h-3" />{product.sku}
+                </span>
+              )}
               <span className="inline-flex items-center gap-1.5"><Boxes className="w-3 h-3" />{product.category}</span>
             </div>
           </div>
@@ -342,6 +365,8 @@ export function ProductDetailPage() {
                 {[
                   { label: 'Product Name', key: 'name', mono: false },
                   { label: 'SKU', key: 'sku', mono: true },
+                  { label: 'UPC', key: 'upc', mono: true },
+                  { label: 'Kayco Item #', key: 'kaycoItemNumber', mono: true },
                 ].map((f) => (
                   <div key={f.key}>
                     <label className="block text-[10px] font-medium uppercase tracking-wider text-[#999] mb-2">{f.label}</label>

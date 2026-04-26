@@ -246,7 +246,16 @@ export function ProductPickerModal() {
                   </div>
                   <div className="text-[13px] font-medium text-[#171717] truncate">{product.name}</div>
                   <div className="flex items-center gap-2">
-                    <div className="text-[10px] text-[#bbb] font-mono">{product.sku}</div>
+                    <div className="text-[10px] text-[#bbb] font-mono">
+                      {product.upc || product.kaycoItemNumber
+                        ? [
+                            product.upc && `UPC ${product.upc}`,
+                            product.kaycoItemNumber && `Kayco #${product.kaycoItemNumber}`,
+                          ]
+                            .filter(Boolean)
+                            .join(' · ')
+                        : product.sku}
+                    </div>
                     {!product.caseConfig && (
                       <span className="text-[10px] font-medium text-[#4f46e5] bg-[#eef2ff] px-1.5 py-0.5 rounded">
                         Single

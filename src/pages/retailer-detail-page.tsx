@@ -331,7 +331,16 @@ function AddAuthorizedItemModal({
                     </span>
                   </div>
                   <div className="flex items-center gap-2 mt-1">
-                    <span className="text-[11px] text-[#999] font-mono">{product.sku}</span>
+                    <span className="text-[11px] text-[#999] font-mono">
+                      {product.upc || product.kaycoItemNumber
+                        ? [
+                            product.upc && `UPC ${product.upc}`,
+                            product.kaycoItemNumber && `Kayco #${product.kaycoItemNumber}`,
+                          ]
+                            .filter(Boolean)
+                            .join(' · ')
+                        : product.sku}
+                    </span>
                     <span className="text-[11px] text-[#777] capitalize">{product.brand}</span>
                   </div>
                 </div>

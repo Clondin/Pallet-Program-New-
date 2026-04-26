@@ -1,9 +1,10 @@
 import { useState, useCallback, useMemo, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'motion/react'
-import { ArrowLeft, ArrowRight, Check, X } from 'lucide-react'
+import { ArrowLeft, ArrowRight, CalendarRange, Check, Plus, X } from 'lucide-react'
 import { useDisplayStore } from '../../stores/display-store'
 import { useRetailerStore } from '../../stores/retailer-store'
+import { useSeasonStore } from '../../stores/season-store'
 import { useAppSettingsStore } from '../../stores/app-settings-store'
 import type { Holiday, PalletType, RetailerTier } from '../../types'
 
@@ -97,12 +98,17 @@ export function PalletCreationWizard({
   const lastUsedConfig = useDisplayStore((state) => state.lastUsedConfig)
   const createProject = useDisplayStore((state) => state.createProject)
   const retailers = useRetailerStore((state) => state.retailers)
+  const seasons = useSeasonStore((state) => state.seasons)
+  const createSeason = useSeasonStore((state) => state.createSeason)
   const appSettings = useAppSettingsStore((s) => s.settings)
 
   const retailerSelectionRequired = !pinnedRetailerId
   const steps = retailerSelectionRequired
-    ? ['Pallet Type', 'Holiday', 'Retailer', 'Name']
-    : ['Pallet Type', 'Holiday', 'Name']
+    ? ['Pallet Type', 'Season', 'Retailer', 'Name']
+    : ['Pallet Type', 'Season', 'Name']
+
+  const seasonStepIndex = 1
+  const retailerStepIndex = retailerSelectionRequired ? 2 : -1
 
   const [step, setStep] = useState(0)
   const [direction, setDirection] = useState(1)
@@ -115,15 +121,22 @@ export function PalletCreationWizard({
   const [retailerId, setRetailerId] = useState<string>(
     pinnedRetailerId ?? lastUsedConfig?.retailerId ?? ''
   )
+  const [seasonId, setSeasonId] = useState<string | null>(
+    lastUsedConfig?.seasonId ?? null
+  )
   const [name, setName] = useState('')
 
   const selectedRetailer = retailers.find((retailer) => retailer.id === retailerId)
 
+  const selectedSeasonName = seasonId
+    ? seasons.find((entry) => entry.id === seasonId)?.name
+    : null
+
   const defaultName = useMemo(() => {
     if (!selectedRetailer) return ''
-    const seasonLabel = SEASONS.find((entry) => entry.value === season)?.label ?? 'Everyday'
-    return `${seasonLabel} - ${selectedRetailer.name}`
-  }, [season, selectedRetailer])
+    const prefix = selectedSeasonName ?? 'Pallet'
+    return `${prefix} - ${selectedRetailer.name}`
+  }, [selectedSeasonName, selectedRetailer])
 
   useEffect(() => {
     if (!open) return
@@ -134,6 +147,7 @@ export function PalletCreationWizard({
     setPalletType(lastUsedConfig?.palletType ?? appSettings.defaultPalletType)
     setSeason(lastUsedConfig?.season ?? appSettings.defaultHoliday)
     setRetailerId(nextRetailerId)
+    setSeasonId(lastUsedConfig?.seasonId ?? null)
   }, [open, lastUsedConfig, pinnedRetailerId])
 
   useEffect(() => {
@@ -142,15 +156,14 @@ export function PalletCreationWizard({
   }, [defaultName, open])
 
   const canProceed = useMemo(() => {
-    const retailerStepIndex = retailerSelectionRequired ? 2 : -1
     const nameStepIndex = steps.length - 1
 
     if (step === 0) return !!palletType
-    if (step === 1) return !!season
+    if (step === seasonStepIndex) return true
     if (step === retailerStepIndex) return !!retailerId
     if (step === nameStepIndex) return name.trim().length > 0
     return false
-  }, [step, palletType, season, retailerId, name, retailerSelectionRequired, steps.length])
+  }, [step, palletType, retailerId, name, seasonStepIndex, retailerStepIndex, steps.length])
 
   const goNext = useCallback(() => {
     if (step < steps.length - 1) {
@@ -172,13 +185,13 @@ export function PalletCreationWizard({
     const retailer = retailers.find((entry) => entry.id === retailerId)
     const project = createProject(
       name.trim(),
-      { palletType, season, retailerId },
+      { palletType, season, retailerId, seasonId },
       retailer?.defaultTierCount ?? 4
     )
 
     onClose()
     navigate(`/retailers/${retailerId}/pallets/${project.id}`)
-  }, [retailerId, name, retailers, palletType, season, createProject, navigate, onClose])
+  }, [retailerId, name, retailers, palletType, season, seasonId, createProject, navigate, onClose])
 
   const slideVariants = {
     enter: (dir: number) => ({ x: dir > 0 ? 80 : -80, opacity: 0 }),
@@ -254,35 +267,76 @@ export function PalletCreationWizard({
               </motion.div>
             )}
 
-            {step === 1 && (
+            {step === seasonStepIndex && (
               <motion.div
-                key="step-1"
+                key="step-season"
                 custom={direction}
                 variants={slideVariants}
                 initial="enter"
                 animate="center"
                 exit="exit"
                 transition={{ duration: 0.25, ease: 'easeInOut' }}
-                className="grid grid-cols-2 gap-4"
+                className="space-y-3 max-h-[340px] overflow-y-auto pr-1"
               >
-                {SEASONS.map((entry) => (
-                  <SelectionCard
-                    key={entry.value}
-                    selected={season === entry.value}
-                    onClick={() => setSeason(entry.value)}
-                  >
-                    <div className="flex flex-col items-center text-center gap-3 py-3">
-                      <span className="text-3xl">{entry.icon}</span>
-                      <p className="text-[15px] font-medium text-white">{entry.label}</p>
+                <SelectionCard
+                  selected={seasonId === null}
+                  onClick={() => setSeasonId(null)}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-md bg-white/[0.06] flex items-center justify-center">
+                      <CalendarRange size={16} className="text-white/40" />
                     </div>
-                  </SelectionCard>
-                ))}
+                    <div>
+                      <p className="text-[14px] font-medium text-white">No season</p>
+                      <p className="text-[11px] text-[#777] mt-0.5">
+                        Tag this pallet with a season later.
+                      </p>
+                    </div>
+                  </div>
+                </SelectionCard>
+
+                {seasons
+                  .filter((entry) => !entry.archived)
+                  .sort((a, b) => a.name.localeCompare(b.name))
+                  .map((entry) => (
+                    <SelectionCard
+                      key={entry.id}
+                      selected={seasonId === entry.id}
+                      onClick={() => setSeasonId(entry.id)}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-md bg-white/[0.08] flex items-center justify-center">
+                          <CalendarRange size={16} className="text-white" />
+                        </div>
+                        <div>
+                          <p className="text-[14px] font-medium text-white">{entry.name}</p>
+                        </div>
+                      </div>
+                    </SelectionCard>
+                  ))}
+
+                <button
+                  onClick={() => {
+                    const name = window.prompt('Name for the new season:')
+                    if (!name || !name.trim()) return
+                    const created = createSeason(name)
+                    setSeasonId(created.id)
+                  }}
+                  className="w-full rounded-xl border border-dashed border-white/[0.12] hover:border-white/30 hover:bg-white/[0.04] p-4 text-left transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-md bg-white/[0.06] flex items-center justify-center">
+                      <Plus size={16} className="text-white/60" />
+                    </div>
+                    <p className="text-[14px] font-medium text-white/80">Create new season…</p>
+                  </div>
+                </button>
               </motion.div>
             )}
 
-            {retailerSelectionRequired && step === 2 && (
+            {retailerSelectionRequired && step === retailerStepIndex && (
               <motion.div
-                key="step-2"
+                key="step-retailer"
                 custom={direction}
                 variants={slideVariants}
                 initial="enter"
@@ -335,7 +389,10 @@ export function PalletCreationWizard({
                     {selectedRetailer?.name ?? 'Select a retailer'}
                   </p>
                   <p className="text-[12px] text-[#777] mt-3">
-                    Holiday: {SEASONS.find((entry) => entry.value === season)?.label ?? 'Everyday'}
+                    Season:{' '}
+                    {seasonId
+                      ? seasons.find((entry) => entry.id === seasonId)?.name ?? '—'
+                      : 'None'}
                   </p>
                 </div>
 

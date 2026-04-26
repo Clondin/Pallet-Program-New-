@@ -1,11 +1,21 @@
 import { NavLink } from 'react-router-dom'
-import { Building2, Package, Settings, HelpCircle, PenLine } from 'lucide-react'
+import {
+  Building2,
+  CalendarRange,
+  HardHat,
+  HelpCircle,
+  Package,
+  PenLine,
+  Settings,
+} from 'lucide-react'
 import { useDisplayStore } from '../../stores/display-store'
 import { useRetailerStore } from '../../stores/retailer-store'
 
 const navItems = [
   { to: '/retailers', label: 'Retailers', icon: Building2 },
   { to: '/catalog', label: 'Catalog', icon: Package },
+  { to: '/seasons', label: 'Seasons', icon: CalendarRange },
+  { to: '/builders', label: 'Builders', icon: HardHat },
   { to: '/settings', label: 'Settings', icon: Settings },
 ]
 

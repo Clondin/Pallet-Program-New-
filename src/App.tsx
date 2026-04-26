@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useEffect } from 'react'
-import { DisplayProject, Product, Retailer } from './types'
+import { DisplayProject, Product, Retailer, Season } from './types'
 import { AppLayout } from './components/layout/app-layout'
 import { EditorPage } from './pages/editor-page'
 import { CatalogPage } from './pages/catalog-page'
@@ -9,11 +9,14 @@ import { RetailersPage } from './pages/retailers-page'
 import { RetailerDetailPage } from './pages/retailer-detail-page'
 import { PalletDetailPage } from './pages/pallet-detail-page'
 import { ProgramRollupPage } from './pages/program-rollup-page'
+import { SeasonsPage } from './pages/seasons-page'
+import { BuildersPage } from './pages/builders-page'
 import { SettingsPage } from './pages/settings-page'
 import { ScenePage } from './pages/scene-page'
 import { useDisplayStore } from './stores/display-store'
 import { useCatalogStore } from './stores/catalog-store'
 import { useRetailerStore } from './stores/retailer-store'
+import { useSeasonStore } from './stores/season-store'
 import { useAppSettingsStore } from './stores/app-settings-store'
 import { mockProducts, mockRetailers, mockProjects } from './lib/mock-data'
 
@@ -22,6 +25,7 @@ const PALLETS_STORAGE_KEY = 'palletforge-pallets'
 const ACTIVE_PALLET_STORAGE_KEY = 'palletforge-active-pallet-id'
 const CATALOG_STORAGE_KEY = 'palletforge-products'
 const RETAILER_STORAGE_KEY = 'palletforge-retailers'
+const SEASONS_STORAGE_KEY = 'palletforge-seasons'
 
 function loadPersistedState<T>(key: string): T | null {
   try {
@@ -122,12 +126,22 @@ export default function App() {
     useRetailerStore
       .getState()
       .setRetailers(retailers)
+
+    const persistedSeasons = loadPersistedState<Season[]>(SEASONS_STORAGE_KEY) ?? []
+    useSeasonStore.getState().setSeasons(
+      persistedSeasons.map((season) => ({
+        ...season,
+        archived: season.archived ?? false,
+      })),
+    )
+
     const persistedProjects = loadPersistedState<DisplayProject[]>(PALLETS_STORAGE_KEY)
     const legacyProject = loadPersistedState<DisplayProject>(PROJECT_STORAGE_KEY)
     const projects = (persistedProjects ?? (legacyProject ? [legacyProject] : mockProjects)).map(
       (project) => ({
         ...project,
         assortment: project.assortment ?? [],
+        seasonId: project.seasonId ?? null,
       }),
     )
     const activePalletId = localStorage.getItem(ACTIVE_PALLET_STORAGE_KEY)
@@ -149,9 +163,14 @@ export default function App() {
       localStorage.setItem(RETAILER_STORAGE_KEY, JSON.stringify(state.retailers))
     })
 
+    const unsubscribeSeasons = useSeasonStore.subscribe((state) => {
+      localStorage.setItem(SEASONS_STORAGE_KEY, JSON.stringify(state.seasons))
+    })
+
     return () => {
       unsubscribeCatalog()
       unsubscribeRetailers()
+      unsubscribeSeasons()
     }
   }, [])
 
@@ -193,6 +212,8 @@ export default function App() {
             path="/retailers/:retailerId/program/:season"
             element={<ProgramRollupPage />}
           />
+          <Route path="/seasons" element={<SeasonsPage />} />
+          <Route path="/builders" element={<BuildersPage />} />
           <Route path="/scene" element={<ScenePage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/" element={<HomeRedirect />} />

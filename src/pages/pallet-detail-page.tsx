@@ -3,20 +3,10 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, Boxes, CalendarDays, Package, PenLine, Store } from 'lucide-react'
 import { AssortmentTable } from '../components/Assortment/assortment-table'
 import { BrandingPreview } from '../components/Branding/branding-preview'
+import { useCatalogStore } from '../stores/catalog-store'
 import { useDisplayStore } from '../stores/display-store'
 import { useRetailerStore } from '../stores/retailer-store'
-import type { Holiday } from '../types'
-
-const HOLIDAY_OPTIONS: { value: Holiday; label: string }[] = [
-  { value: 'none', label: 'Everyday' },
-  { value: 'rosh-hashanah', label: 'Rosh Hashanah' },
-  { value: 'pesach', label: 'Pesach' },
-  { value: 'sukkos', label: 'Sukkos' },
-]
-
-function formatHoliday(holiday: Holiday) {
-  return HOLIDAY_OPTIONS.find((o) => o.value === holiday)?.label ?? holiday
-}
+import { useSeasonStore } from '../stores/season-store'
 
 function formatDateInputValue(timestamp?: number) {
   if (!timestamp) return ''
@@ -64,11 +54,14 @@ export function PalletDetailPage() {
   const selectProject = useDisplayStore((state) => state.selectProject)
   const setPalletType = useDisplayStore((state) => state.setPalletType)
   const updateName = useDisplayStore((state) => state.updateName)
-  const updateHoliday = useDisplayStore((state) => state.updateHoliday)
+  const updateSeasonId = useDisplayStore((state) => state.updateSeasonId)
   const updateShipByDate = useDisplayStore((state) => state.updateShipByDate)
   const retailer = useRetailerStore((state) =>
     retailerId ? state.getRetailer(retailerId) : undefined
   )
+  const seasons = useSeasonStore((state) => state.seasons)
+  const createSeason = useSeasonStore((state) => state.createSeason)
+  const products = useCatalogStore((state) => state.products)
 
   useEffect(() => {
     if (palletId && currentProjectId !== palletId) {
@@ -110,9 +103,11 @@ export function PalletDetailPage() {
             className="text-[28px] font-semibold tracking-display text-[#171717] mt-1 bg-transparent border-none outline-none focus:ring-2 focus:ring-[#0a72ef]/30 rounded-md px-1 -mx-1 w-full"
           />
           <div className="flex flex-wrap items-center gap-3 mt-3 text-[12px] text-[#666]">
-            <span className="px-2 py-1 rounded-md bg-[#f5f5f5] font-medium">
-              {formatHoliday(pallet.holiday)}
-            </span>
+            {pallet.seasonId && (
+              <span className="px-2 py-1 rounded-md bg-[#f5f5f5] font-medium">
+                {seasons.find((s) => s.id === pallet.seasonId)?.name ?? 'Season'}
+              </span>
+            )}
             <span className="px-2 py-1 rounded-md bg-[#f5f5f5] font-medium capitalize">
               {pallet.palletType} pallet
             </span>
@@ -148,20 +143,6 @@ export function PalletDetailPage() {
           <h3 className="text-[15px] font-semibold text-[#171717]">Pallet Summary</h3>
           <div className="grid grid-cols-2 gap-4 mt-5">
             <div className="rounded-lg bg-[#fafafa] px-4 py-4">
-              <p className="text-[10px] uppercase tracking-wider text-[#999] mb-2">Holiday</p>
-              <select
-                value={pallet.holiday}
-                onChange={(e) => updateHoliday(e.target.value as Holiday)}
-                className="w-full text-[14px] font-semibold text-[#171717] bg-transparent border-none outline-none cursor-pointer focus:ring-2 focus:ring-[#0a72ef]/30 rounded-md -ml-1 pl-1"
-              >
-                {HOLIDAY_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="rounded-lg bg-[#fafafa] px-4 py-4">
               <p className="text-[10px] uppercase tracking-wider text-[#999] mb-2">Structure</p>
               <select
                 value={pallet.palletType}
@@ -173,15 +154,39 @@ export function PalletDetailPage() {
               </select>
             </div>
             <div className="rounded-lg bg-[#fafafa] px-4 py-4">
+              <p className="text-[10px] uppercase tracking-wider text-[#999] mb-2">Season</p>
+              <select
+                value={pallet.seasonId ?? ''}
+                onChange={(event) => {
+                  const value = event.target.value
+                  if (value === '__new__') {
+                    const name = window.prompt('Name for the new season:')
+                    if (!name || !name.trim()) return
+                    const created = createSeason(name)
+                    updateSeasonId(created.id)
+                    return
+                  }
+                  updateSeasonId(value === '' ? null : value)
+                }}
+                className="w-full text-[14px] font-semibold text-[#171717] bg-transparent border-none outline-none cursor-pointer focus:ring-2 focus:ring-[#0a72ef]/30 rounded-md -ml-1 pl-1"
+              >
+                <option value="">Unassigned</option>
+                {seasons
+                  .filter((season) => !season.archived || season.id === pallet.seasonId)
+                  .sort((a, b) => a.name.localeCompare(b.name))
+                  .map((season) => (
+                    <option key={season.id} value={season.id}>
+                      {season.name}
+                      {season.archived ? ' (archived)' : ''}
+                    </option>
+                  ))}
+                <option value="__new__">+ Create new season…</option>
+              </select>
+            </div>
+            <div className="rounded-lg bg-[#fafafa] px-4 py-4">
               <p className="text-[10px] uppercase tracking-wider text-[#999]">Tiers</p>
               <p className="text-[14px] font-semibold text-[#171717] mt-1">
                 {pallet.tierCount}
-              </p>
-            </div>
-            <div className="rounded-lg bg-[#fafafa] px-4 py-4">
-              <p className="text-[10px] uppercase tracking-wider text-[#999]">Products</p>
-              <p className="text-[14px] font-semibold text-[#171717] mt-1">
-                {pallet.placements.length}
               </p>
             </div>
           </div>
@@ -194,7 +199,11 @@ export function PalletDetailPage() {
               </p>
             ) : (
               <div className="grid gap-3 mt-4">
-                {pallet.placements.map((placement) => (
+                {pallet.placements.map((placement) => {
+                  const product = products.find((p) => p.id === placement.sourceProductId)
+                  const upc = product?.upc
+                  const kayco = product?.kaycoItemNumber
+                  return (
                   <div
                     key={placement.id}
                     className="rounded-lg bg-[#fafafa] px-4 py-3 flex items-center justify-between gap-3"
@@ -203,13 +212,20 @@ export function PalletDetailPage() {
                       <p className="text-[13px] font-medium text-[#171717]">
                         {placement.label}
                       </p>
-                      <p className="text-[11px] text-[#888] mt-1">{placement.sku}</p>
+                      <p className="text-[11px] text-[#888] mt-1 font-mono">
+                        {upc || kayco
+                          ? [upc && `UPC ${upc}`, kayco && `Kayco #${kayco}`]
+                              .filter(Boolean)
+                              .join(' · ')
+                          : '— no UPC / Kayco # set'}
+                      </p>
                     </div>
                     <span className="text-[11px] font-medium text-[#666]">
                       Slot {placement.slotId}
                     </span>
                   </div>
-                ))}
+                  )
+                })}
               </div>
             )}
           </div>

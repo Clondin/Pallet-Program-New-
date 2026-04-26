@@ -75,7 +75,10 @@ export function AssortmentTable({ project, retailer }: AssortmentTableProps) {
                 Product
               </th>
               <th className="text-left text-[10px] font-medium uppercase tracking-wider text-[#bbb] px-4 py-3">
-                SKU
+                UPC
+              </th>
+              <th className="text-left text-[10px] font-medium uppercase tracking-wider text-[#bbb] px-4 py-3">
+                Kayco #
               </th>
               <th className="text-right text-[10px] font-medium uppercase tracking-wider text-[#bbb] px-4 py-3">
                 Pack
@@ -91,7 +94,7 @@ export function AssortmentTable({ project, retailer }: AssortmentTableProps) {
           <tbody>
             {filteredRows.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-6 py-8 text-center">
+                <td colSpan={6} className="px-6 py-8 text-center">
                   <Package className="w-6 h-6 text-[#ccc] mx-auto mb-2" />
                   <p className="text-[12px] text-[#888]">No authorized products found</p>
                 </td>
@@ -108,7 +111,10 @@ export function AssortmentTable({ project, retailer }: AssortmentTableProps) {
                     </p>
                     <p className="text-[11px] text-[#999]">{row.brand}</p>
                   </td>
-                  <td className="px-4 py-3 text-[12px] text-[#666] font-mono">{row.sku}</td>
+                  <td className="px-4 py-3 text-[12px] text-[#666] font-mono">{row.upc || '—'}</td>
+                  <td className="px-4 py-3 text-[12px] text-[#666] font-mono">
+                    {row.kaycoItemNumber || '—'}
+                  </td>
                   <td className="px-4 py-3 text-[12px] text-[#666] text-right tabular-nums">
                     {row.unitsPerCase ?? '—'}
                   </td>
@@ -151,7 +157,7 @@ export function AssortmentTable({ project, retailer }: AssortmentTableProps) {
               <tr className="border-t-2 border-[#e5e5e5] bg-[#fafafa]">
                 <td
                   className="px-6 py-3 text-[12px] font-semibold text-[#171717]"
-                  colSpan={3}
+                  colSpan={4}
                 >
                   Totals
                 </td>

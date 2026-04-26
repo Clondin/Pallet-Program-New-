@@ -22,7 +22,10 @@ export function ProgramMatrix({ pallets, rows }: ProgramMatrixProps) {
                 Product
               </th>
               <th className="text-left text-[10px] font-medium uppercase tracking-wider text-[#bbb] px-4 py-3">
-                SKU
+                UPC
+              </th>
+              <th className="text-left text-[10px] font-medium uppercase tracking-wider text-[#bbb] px-4 py-3">
+                Kayco #
               </th>
               <th className="text-right text-[10px] font-medium uppercase tracking-wider text-[#bbb] px-4 py-3">
                 Pack
@@ -62,7 +65,10 @@ export function ProgramMatrix({ pallets, rows }: ProgramMatrixProps) {
                   <p className="text-[13px] font-medium text-[#171717]">{row.productName}</p>
                   <p className="text-[11px] text-[#999]">{row.brand}</p>
                 </td>
-                <td className="px-4 py-2.5 text-[12px] text-[#666] font-mono">{row.sku}</td>
+                <td className="px-4 py-2.5 text-[12px] text-[#666] font-mono">{row.upc || '—'}</td>
+                <td className="px-4 py-2.5 text-[12px] text-[#666] font-mono">
+                  {row.kaycoItemNumber || '—'}
+                </td>
                 <td className="px-4 py-2.5 text-[12px] text-[#666] text-right tabular-nums">
                   {row.unitsPerCase ?? '—'}
                 </td>
@@ -92,7 +98,7 @@ export function ProgramMatrix({ pallets, rows }: ProgramMatrixProps) {
             <tr className="border-t-2 border-[#e5e5e5] bg-[#fafafa]">
               <td
                 className="px-6 py-3 text-[12px] font-semibold text-[#171717] sticky left-0 bg-[#fafafa] z-10"
-                colSpan={3}
+                colSpan={4}
               >
                 Totals
               </td>

@@ -4,6 +4,8 @@ export interface AssortmentRow {
   productId: string
   productName: string
   sku: string
+  upc: string
+  kaycoItemNumber: string
   brand: string
   unitsPerCase: number | null
   cases: number
@@ -71,6 +73,8 @@ export function buildAssortmentRows(
         productId: item.productId,
         productName: item.productName,
         sku: item.sku,
+        upc: product?.upc ?? '',
+        kaycoItemNumber: product?.kaycoItemNumber ?? '',
         brand: item.brand,
         unitsPerCase,
         cases,
