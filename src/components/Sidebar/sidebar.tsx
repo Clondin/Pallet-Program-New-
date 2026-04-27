@@ -12,7 +12,7 @@ import { useDisplayStore } from '../../stores/display-store'
 import { useRetailerStore } from '../../stores/retailer-store'
 
 const navItems = [
-  { to: '/retailers', label: 'Retailers', icon: Building2 },
+  { to: '/retailers', label: 'Programs', icon: Building2 },
   { to: '/catalog', label: 'Catalog', icon: Package },
   { to: '/seasons', label: 'Seasons', icon: CalendarRange },
   { to: '/builders', label: 'Builders', icon: HardHat },

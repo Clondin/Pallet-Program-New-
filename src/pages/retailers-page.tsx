@@ -9,12 +9,11 @@ import {
 import { useRetailerStore } from '../stores/retailer-store'
 import { RetailerCard } from '../components/Retailers/retailer-card'
 import { RetailerForm } from '../components/Retailers/retailer-form'
-import type { Retailer, RetailerStatus, RetailerTier } from '../types'
+import type { Retailer, RetailerStatus } from '../types'
 
 const STATUS_FILTERS: { value: RetailerStatus | 'all'; label: string }[] = [
   { value: 'all', label: 'All' },
   { value: 'active', label: 'Active' },
-  { value: 'pending', label: 'Pending' },
   { value: 'inactive', label: 'Inactive' },
 ]
 
@@ -27,7 +26,6 @@ export function RetailersPage() {
   const [editingRetailerId, setEditingRetailerId] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<RetailerStatus | 'all'>('all')
-  const [tierFilter, setTierFilter] = useState<RetailerTier | 'all'>('all')
   const [sortBy, setSortBy] = useState<SortKey>('revenue')
 
   const editingRetailer = editingRetailerId
@@ -49,7 +47,6 @@ export function RetailersPage() {
     }
 
     if (statusFilter !== 'all') result = result.filter((r) => r.status === statusFilter)
-    if (tierFilter !== 'all') result = result.filter((r) => r.tier === tierFilter)
 
     result.sort((a, b) => {
       switch (sortBy) {
@@ -61,7 +58,7 @@ export function RetailersPage() {
       }
     })
     return result
-  }, [retailers, searchQuery, statusFilter, tierFilter, sortBy])
+  }, [retailers, searchQuery, statusFilter, sortBy])
 
   function handleAdd() {
     setEditingRetailerId(null)
@@ -106,10 +103,10 @@ export function RetailersPage() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h2 className="text-[28px] font-semibold tracking-display text-[#171717]">
-            Retailers
+            Programs
           </h2>
           <p className="text-[13px] text-[#888] mt-1">
-            {retailers.length} accounts
+            {retailers.length} {retailers.length === 1 ? 'program' : 'programs'}
           </p>
         </div>
         <button
@@ -117,7 +114,7 @@ export function RetailersPage() {
           className="flex items-center gap-2 px-4 py-2 text-[13px] font-medium text-white bg-[#171717] hover:bg-[#333] rounded-md transition-colors"
         >
           <Plus className="w-3.5 h-3.5" />
-          Add Retailer
+          Add Program
         </button>
       </div>
 
@@ -150,17 +147,6 @@ export function RetailersPage() {
           ))}
         </div>
 
-        <select
-          value={tierFilter}
-          onChange={(e) => setTierFilter(e.target.value as RetailerTier | 'all')}
-          className="shadow-border rounded-md px-3 py-[7px] text-[12px] font-medium text-[#555] bg-white focus:outline-none cursor-pointer"
-        >
-          <option value="all">All Tiers</option>
-          <option value="enterprise">Enterprise</option>
-          <option value="premium">Premium</option>
-          <option value="standard">Standard</option>
-        </select>
-
         <div className="ml-auto flex items-center gap-1.5">
           <ArrowUpDown className="w-3 h-3 text-[#999]" />
           <select
@@ -182,11 +168,11 @@ export function RetailersPage() {
           <div className="w-12 h-12 rounded-lg shadow-card flex items-center justify-center mb-4 bg-white">
             <Building2 className="w-5 h-5 text-[#ccc]" />
           </div>
-          <p className="text-[14px] font-medium text-[#555]">No retailers found</p>
+          <p className="text-[14px] font-medium text-[#555]">No programs found</p>
           <p className="text-[12px] text-[#999] mt-1">
-            {searchQuery || statusFilter !== 'all' || tierFilter !== 'all'
+            {searchQuery || statusFilter !== 'all'
               ? 'Try adjusting your filters'
-              : 'Add your first retailer to get started'}
+              : 'Add your first program to get started'}
           </p>
         </div>
       ) : (

@@ -2,7 +2,6 @@ import {
   MapPin,
   Package,
   ChevronRight,
-  Star,
 } from 'lucide-react'
 import type { Retailer, Brand } from '../../types'
 import { BRAND_COLORS } from '../../lib/mock-data'
@@ -11,12 +10,6 @@ const STATUS_STYLE = {
   active: { dot: 'bg-emerald-500', text: 'text-emerald-700' },
   pending: { dot: 'bg-amber-400', text: 'text-amber-700' },
   inactive: { dot: 'bg-[#ccc]', text: 'text-[#999]' },
-}
-
-const TIER_LABEL: Record<string, { text: string; color: string }> = {
-  enterprise: { text: 'Enterprise', color: '#7c3aed' },
-  premium: { text: 'Premium', color: '#0a72ef' },
-  standard: { text: 'Standard', color: '#666' },
 }
 
 function fmtCurrency(v: number) {
@@ -33,8 +26,7 @@ interface RetailerCardProps {
 }
 
 export function RetailerCard({ retailer, onClick }: RetailerCardProps) {
-  const { id, name, status, tier, storeCount, headquartersCity, headquartersState, performance, authorizedItems } = retailer
-  const tierCfg = TIER_LABEL[tier] ?? TIER_LABEL.standard
+  const { id, name, status, storeCount, headquartersCity, headquartersState, performance, authorizedItems } = retailer
   const statusStyle = STATUS_STYLE[status]
   const authorizedCount = authorizedItems.filter((i) => i.status === 'authorized').length
 
@@ -53,9 +45,6 @@ export function RetailerCard({ retailer, onClick }: RetailerCardProps) {
         <div className="flex items-center justify-between mb-1">
           <div className="flex items-center gap-2 min-w-0">
             <h3 className="text-[15px] font-semibold text-[#171717] truncate">{name}</h3>
-            {tier === 'enterprise' && (
-              <Star className="w-3 h-3 text-amber-400 fill-amber-400 shrink-0" />
-            )}
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
             <span className={`w-[6px] h-[6px] rounded-full ${statusStyle.dot}`} />
@@ -67,13 +56,6 @@ export function RetailerCard({ retailer, onClick }: RetailerCardProps) {
         <div className="flex items-center gap-1 text-[#999] mb-4">
           <MapPin className="w-3 h-3" />
           <span className="text-[11px]">{headquartersCity}, {headquartersState}</span>
-          <span className="mx-1 text-[#ddd]">/</span>
-          <span
-            className="text-[10px] font-medium"
-            style={{ color: tierCfg.color }}
-          >
-            {tierCfg.text}
-          </span>
         </div>
 
         {/* Metrics row */}
