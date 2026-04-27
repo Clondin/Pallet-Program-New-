@@ -1,6 +1,7 @@
 import { ArrowUpRight } from 'lucide-react'
 import type { Retailer } from '../../types'
 import { useDisplayStore } from '../../stores/display-store'
+import { useCatalogStore } from '../../stores/catalog-store'
 
 const STATUS_STYLE = {
   active: { dot: 'bg-emerald-500', text: 'text-emerald-700' },
@@ -25,6 +26,7 @@ export function RetailerCard({ retailer, onClick }: RetailerCardProps) {
   const { id, name, status, authorizedItems } = retailer
   const statusStyle = STATUS_STYLE[status]
   const projects = useDisplayStore((state) => state.projects)
+  const products = useCatalogStore((state) => state.products)
   const retailerPallets = projects.filter((p) => p.retailerId === id)
   const halfPallets = retailerPallets.filter((p) => p.palletType === 'half').length
   const fullPallets = retailerPallets.filter((p) => p.palletType === 'full').length
@@ -42,15 +44,31 @@ export function RetailerCard({ retailer, onClick }: RetailerCardProps) {
       priceByProduct.set(item.productId, item.casePrice)
     }
   }
+  const costByProduct = new Map<string, number>()
+  for (const product of products) {
+    if (typeof product.caseCost === 'number') {
+      costByProduct.set(product.id, product.caseCost)
+    }
+  }
   let computedRevenue = 0
+  let computedCost = 0
   for (const pallet of retailerPallets) {
     for (const entry of pallet.assortment) {
       const price = priceByProduct.get(entry.productId)
+      const cost = costByProduct.get(entry.productId)
       if (typeof price === 'number' && entry.cases > 0) {
         computedRevenue += price * entry.cases
       }
+      if (typeof cost === 'number' && entry.cases > 0) {
+        computedCost += cost * entry.cases
+      }
+    }
+    if (typeof pallet.laborCost === 'number') {
+      computedCost += pallet.laborCost
     }
   }
+  const marginPct =
+    computedRevenue > 0 ? ((computedRevenue - computedCost) / computedRevenue) * 100 : null
 
   return (
     <div
@@ -73,15 +91,37 @@ export function RetailerCard({ retailer, onClick }: RetailerCardProps) {
         </div>
       </div>
 
-      {/* Revenue — hero stat */}
-      <div className="mb-4">
-        <p className="text-[10px] font-medium text-[#999] uppercase tracking-wider">Revenue</p>
-        <p className="text-[24px] font-semibold text-[#171717] tabular-nums tracking-tight mt-0.5">
-          {fmtCurrency(computedRevenue)}
-        </p>
+      {/* Hero stats — Revenue, Margin, Total Pallets */}
+      <div className="grid grid-cols-3 gap-4 mb-4">
+        <div>
+          <p className="text-[10px] font-medium text-[#999] uppercase tracking-wider">Revenue</p>
+          <p className="text-[20px] font-semibold text-[#171717] tabular-nums tracking-tight mt-0.5">
+            {fmtCurrency(computedRevenue)}
+          </p>
+        </div>
+        <div>
+          <p className="text-[10px] font-medium text-[#999] uppercase tracking-wider">Margin</p>
+          <p
+            className={`text-[20px] font-semibold tabular-nums tracking-tight mt-0.5 ${
+              marginPct === null
+                ? 'text-[#999]'
+                : marginPct < 0
+                  ? 'text-red-600'
+                  : 'text-[#171717]'
+            }`}
+          >
+            {marginPct === null ? '—' : `${marginPct.toFixed(0)}%`}
+          </p>
+        </div>
+        <div>
+          <p className="text-[10px] font-medium text-[#999] uppercase tracking-wider">Total</p>
+          <p className="text-[20px] font-semibold text-[#171717] tabular-nums tracking-tight mt-0.5">
+            {halfPallets + fullPallets}
+          </p>
+        </div>
       </div>
 
-      {/* Pallet breakdown */}
+      {/* Breakdown — Half / Full / Items */}
       <div className="grid grid-cols-3 gap-2 rounded-lg bg-[#fafafa] p-3">
         <div>
           <p className="text-[9px] font-medium text-[#999] uppercase tracking-wider">Half</p>

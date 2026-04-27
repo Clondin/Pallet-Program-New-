@@ -56,6 +56,7 @@ export function PalletDetailPage() {
   const updateName = useDisplayStore((state) => state.updateName)
   const updateSeasonId = useDisplayStore((state) => state.updateSeasonId)
   const updateBuildLocation = useDisplayStore((state) => state.updateBuildLocation)
+  const updateLaborCost = useDisplayStore((state) => state.updateLaborCost)
   const updateShipByDate = useDisplayStore((state) => state.updateShipByDate)
   const retailer = useRetailerStore((state) =>
     retailerId ? state.getRetailer(retailerId) : undefined
@@ -190,7 +191,7 @@ export function PalletDetailPage() {
                 {pallet.tierCount}
               </p>
             </div>
-            <div className="rounded-lg bg-[#fafafa] px-4 py-4 col-span-2">
+            <div className="rounded-lg bg-[#fafafa] px-4 py-4">
               <p className="text-[10px] uppercase tracking-wider text-[#999] mb-2">Build location</p>
               <select
                 value={pallet.buildLocation ?? ''}
@@ -205,6 +206,28 @@ export function PalletDetailPage() {
                 <option value="goshen">Goshen</option>
                 <option value="third-party">3rd Party Location</option>
               </select>
+            </div>
+            <div className="rounded-lg bg-[#fafafa] px-4 py-4">
+              <p className="text-[10px] uppercase tracking-wider text-[#999] mb-2">Labor cost</p>
+              <div className="flex items-center gap-1">
+                <span className="text-[14px] font-semibold text-[#999]">$</span>
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  value={pallet.laborCost ?? ''}
+                  onChange={(event) => {
+                    const val = event.target.value.replace(/[^0-9.]/g, '')
+                    if (val === '') {
+                      updateLaborCost(null)
+                      return
+                    }
+                    const num = parseFloat(val)
+                    updateLaborCost(isNaN(num) ? null : num)
+                  }}
+                  placeholder="75"
+                  className="flex-1 text-[14px] font-semibold text-[#171717] bg-transparent border-none outline-none focus:ring-2 focus:ring-[#0a72ef]/30 rounded-md -ml-1 pl-1"
+                />
+              </div>
             </div>
           </div>
 

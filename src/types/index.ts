@@ -188,6 +188,7 @@ export interface Product {
   upc?: string
   kaycoItemNumber?: string
   buyer?: string
+  caseCost?: number
   brand: Brand
   brandColor: string
   category: string
@@ -305,6 +306,7 @@ export interface DisplayProject {
   season: Holiday
   seasonId: string | null
   buildLocation: BuildLocation | null
+  laborCost: number | null
   tierCount: number
   palletType: PalletType
   lipColor: string

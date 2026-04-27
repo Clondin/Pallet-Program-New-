@@ -67,6 +67,7 @@ interface DisplayState {
   updateHoliday: (holiday: DisplayProject['holiday']) => void
   updateSeasonId: (seasonId: string | null) => void
   updateBuildLocation: (location: DisplayProject['buildLocation']) => void
+  updateLaborCost: (cost: number | null) => void
   updateAssortment: (productId: string, cases: number) => void
   setAssortment: (assortment: AssortmentEntry[]) => void
   updateShipByDate: (date: number | undefined) => void
@@ -177,6 +178,7 @@ export const useDisplayStore = create<DisplayState>((set, get) => ({
       season: config.season,
       seasonId: config.seasonId ?? null,
       buildLocation: null,
+      laborCost: 75,
       tierCount,
       palletType: config.palletType,
       lipColor: settings.defaultLipColor,
@@ -565,6 +567,19 @@ export const useDisplayStore = create<DisplayState>((set, get) => ({
     const nextProject = {
       ...state.currentProject,
       buildLocation: location,
+      updatedAt: Date.now(),
+    }
+
+    set(commitProjectUpdate(state, nextProject))
+  },
+
+  updateLaborCost: (cost) => {
+    const state = get()
+    if (!state.currentProject) return
+
+    const nextProject = {
+      ...state.currentProject,
+      laborCost: cost,
       updatedAt: Date.now(),
     }
 
