@@ -79,8 +79,9 @@ function mergeRetailers(
   )
 
   const mergedRetailers = persistedRetailers.map((retailer) => {
+    const status = retailer.status === 'pending' ? 'active' : retailer.status
     const fallbackRetailer = fallbackMap.get(retailer.id)
-    if (!fallbackRetailer) return retailer
+    if (!fallbackRetailer) return { ...retailer, status }
 
     const authorizedItems = [...retailer.authorizedItems]
     const authorizedIds = new Set(
@@ -95,6 +96,7 @@ function mergeRetailers(
 
     return {
       ...retailer,
+      status,
       authorizedItems,
     }
   })
@@ -102,7 +104,10 @@ function mergeRetailers(
   const persistedIds = new Set(persistedRetailers.map((retailer) => retailer.id))
   fallbackRetailers.forEach((retailer) => {
     if (!persistedIds.has(retailer.id)) {
-      mergedRetailers.push(retailer)
+      mergedRetailers.push({
+        ...retailer,
+        status: retailer.status === 'pending' ? 'active' : retailer.status,
+      })
     }
   })
 

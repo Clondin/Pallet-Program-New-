@@ -7,6 +7,7 @@ import {
   ArrowUpDown,
 } from 'lucide-react'
 import { useRetailerStore } from '../stores/retailer-store'
+import { useDisplayStore } from '../stores/display-store'
 import { RetailerCard } from '../components/Retailers/retailer-card'
 import { RetailerForm } from '../components/Retailers/retailer-form'
 import type { Retailer, RetailerStatus } from '../types'
@@ -17,16 +18,17 @@ const STATUS_FILTERS: { value: RetailerStatus | 'all'; label: string }[] = [
   { value: 'inactive', label: 'Inactive' },
 ]
 
-type SortKey = 'name' | 'revenue' | 'stores' | 'items'
+type SortKey = 'pallets' | 'name' | 'revenue' | 'stores' | 'items'
 
 export function RetailersPage() {
   const { retailers, addRetailer, updateRetailer, deleteRetailer } = useRetailerStore()
+  const projects = useDisplayStore((state) => state.projects)
   const navigate = useNavigate()
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [editingRetailerId, setEditingRetailerId] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<RetailerStatus | 'all'>('all')
-  const [sortBy, setSortBy] = useState<SortKey>('revenue')
+  const [sortBy, setSortBy] = useState<SortKey>('pallets')
 
   const editingRetailer = editingRetailerId
     ? retailers.find((r) => r.id === editingRetailerId) ?? null
@@ -48,8 +50,21 @@ export function RetailersPage() {
 
     if (statusFilter !== 'all') result = result.filter((r) => r.status === statusFilter)
 
+    const palletCountByRetailer = new Map<string, number>()
+    for (const project of projects) {
+      palletCountByRetailer.set(
+        project.retailerId,
+        (palletCountByRetailer.get(project.retailerId) ?? 0) + 1,
+      )
+    }
+
     result.sort((a, b) => {
       switch (sortBy) {
+        case 'pallets':
+          return (
+            (palletCountByRetailer.get(b.id) ?? 0) -
+            (palletCountByRetailer.get(a.id) ?? 0)
+          )
         case 'name': return a.name.localeCompare(b.name)
         case 'revenue': return b.performance.totalRevenueYTD - a.performance.totalRevenueYTD
         case 'stores': return b.storeCount - a.storeCount
@@ -58,7 +73,7 @@ export function RetailersPage() {
       }
     })
     return result
-  }, [retailers, searchQuery, statusFilter, sortBy])
+  }, [retailers, projects, searchQuery, statusFilter, sortBy])
 
   function handleAdd() {
     setEditingRetailerId(null)
@@ -154,9 +169,9 @@ export function RetailersPage() {
             onChange={(e) => setSortBy(e.target.value as SortKey)}
             className="text-[12px] font-medium text-[#555] bg-transparent border-none focus:outline-none cursor-pointer"
           >
+            <option value="pallets">Pallets</option>
             <option value="revenue">Revenue</option>
             <option value="name">Name</option>
-            <option value="stores">Stores</option>
             <option value="items">Items</option>
           </select>
         </div>

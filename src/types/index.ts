@@ -229,6 +229,7 @@ export interface AuthorizedItem {
   lastOrderDate?: string
   avgMonthlyUnits: number
   marginPercent: number
+  casePrice?: number
 }
 
 export interface ComplianceRecord {

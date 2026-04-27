@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Minus, Package, Plus, RefreshCw } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Minus, Package, Plus } from 'lucide-react'
 import { useCatalogStore } from '../../stores/catalog-store'
 import { useDisplayStore } from '../../stores/display-store'
+import { useRetailerStore } from '../../stores/retailer-store'
 import {
   buildAssortmentRows,
   computeAssortmentTotals,
@@ -18,6 +19,9 @@ export function AssortmentTable({ project, retailer }: AssortmentTableProps) {
   const products = useCatalogStore((state) => state.products)
   const updateAssortment = useDisplayStore((state) => state.updateAssortment)
   const populateFromAssortment = useDisplayStore((state) => state.populateFromAssortment)
+  const updateAuthorizedItemCasePrice = useRetailerStore(
+    (state) => state.updateAuthorizedItemCasePrice,
+  )
 
   // Auto-populate pallet when assortment changes
   const prevAssortmentRef = useRef(JSON.stringify(project.assortment))
@@ -46,8 +50,8 @@ export function AssortmentTable({ project, retailer }: AssortmentTableProps) {
   }, [rows, search])
 
   const totals = useMemo(
-    () => computeAssortmentTotals(project.assortment, products),
-    [products, project.assortment],
+    () => computeAssortmentTotals(project.assortment, products, retailer),
+    [products, project.assortment, retailer],
   )
 
   return (
@@ -84,7 +88,13 @@ export function AssortmentTable({ project, retailer }: AssortmentTableProps) {
                 Pack
               </th>
               <th className="text-right text-[10px] font-medium uppercase tracking-wider text-[#bbb] px-4 py-3">
+                Case Price
+              </th>
+              <th className="text-right text-[10px] font-medium uppercase tracking-wider text-[#bbb] px-4 py-3">
                 Cases
+              </th>
+              <th className="text-right text-[10px] font-medium uppercase tracking-wider text-[#bbb] px-4 py-3">
+                Revenue
               </th>
               <th className="text-right text-[10px] font-medium uppercase tracking-wider text-[#bbb] px-6 py-3">
                 Total Units
@@ -94,7 +104,7 @@ export function AssortmentTable({ project, retailer }: AssortmentTableProps) {
           <tbody>
             {filteredRows.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-6 py-8 text-center">
+                <td colSpan={8} className="px-6 py-8 text-center">
                   <Package className="w-6 h-6 text-[#ccc] mx-auto mb-2" />
                   <p className="text-[12px] text-[#888]">No authorized products found</p>
                 </td>
@@ -117,6 +127,31 @@ export function AssortmentTable({ project, retailer }: AssortmentTableProps) {
                   </td>
                   <td className="px-4 py-3 text-[12px] text-[#666] text-right tabular-nums">
                     {row.unitsPerCase ?? '—'}
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center justify-end gap-1">
+                      <span className="text-[12px] text-[#999]">$</span>
+                      <input
+                        type="text"
+                        inputMode="decimal"
+                        value={row.casePrice ?? ''}
+                        onChange={(event) => {
+                          const val = event.target.value.replace(/[^0-9.]/g, '')
+                          if (val === '') {
+                            updateAuthorizedItemCasePrice(retailer.id, row.productId, null)
+                            return
+                          }
+                          const num = parseFloat(val)
+                          updateAuthorizedItemCasePrice(
+                            retailer.id,
+                            row.productId,
+                            isNaN(num) ? null : num,
+                          )
+                        }}
+                        placeholder="0.00"
+                        className="w-[64px] h-7 px-2 text-[12px] text-right tabular-nums shadow-border rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-[#0a72ef]/30 focus:shadow-none"
+                      />
+                    </div>
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-0">
@@ -145,6 +180,11 @@ export function AssortmentTable({ project, retailer }: AssortmentTableProps) {
                       </button>
                     </div>
                   </td>
+                  <td className="px-4 py-3 text-[13px] font-medium text-[#171717] text-right tabular-nums">
+                    {row.totalRevenue !== null
+                      ? `$${row.totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                      : '—'}
+                  </td>
                   <td className="px-6 py-3 text-[13px] font-medium text-[#171717] text-right tabular-nums">
                     {row.totalUnits ?? '—'}
                   </td>
@@ -157,12 +197,17 @@ export function AssortmentTable({ project, retailer }: AssortmentTableProps) {
               <tr className="border-t-2 border-[#e5e5e5] bg-[#fafafa]">
                 <td
                   className="px-6 py-3 text-[12px] font-semibold text-[#171717]"
-                  colSpan={4}
+                  colSpan={5}
                 >
                   Totals
                 </td>
                 <td className="px-4 py-3 text-[13px] font-semibold text-[#171717] text-right tabular-nums">
                   {totals.totalCases}
+                </td>
+                <td className="px-4 py-3 text-[13px] font-semibold text-[#171717] text-right tabular-nums">
+                  {totals.totalRevenue > 0
+                    ? `$${totals.totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                    : '—'}
                 </td>
                 <td className="px-6 py-3 text-[13px] font-semibold text-[#171717] text-right tabular-nums">
                   {totals.totalUnits}

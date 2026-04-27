@@ -1,10 +1,6 @@
-import {
-  MapPin,
-  Package,
-  ChevronRight,
-} from 'lucide-react'
-import type { Retailer, Brand } from '../../types'
-import { BRAND_COLORS } from '../../lib/mock-data'
+import { ArrowUpRight } from 'lucide-react'
+import type { Retailer } from '../../types'
+import { useDisplayStore } from '../../stores/display-store'
 
 const STATUS_STYLE = {
   active: { dot: 'bg-emerald-500', text: 'text-emerald-700' },
@@ -26,86 +22,87 @@ interface RetailerCardProps {
 }
 
 export function RetailerCard({ retailer, onClick }: RetailerCardProps) {
-  const { id, name, status, storeCount, headquartersCity, headquartersState, performance, authorizedItems } = retailer
+  const { id, name, status, authorizedItems } = retailer
   const statusStyle = STATUS_STYLE[status]
-  const authorizedCount = authorizedItems.filter((i) => i.status === 'authorized').length
+  const projects = useDisplayStore((state) => state.projects)
+  const retailerPallets = projects.filter((p) => p.retailerId === id)
+  const halfPallets = retailerPallets.filter((p) => p.palletType === 'half').length
+  const fullPallets = retailerPallets.filter((p) => p.palletType === 'full').length
+  const uniqueProductIds = new Set<string>()
+  for (const pallet of retailerPallets) {
+    for (const entry of pallet.assortment) {
+      if (entry.cases > 0) uniqueProductIds.add(entry.productId)
+    }
+  }
+  const itemCount = uniqueProductIds.size
 
-  const brandSet = new Set(
-    authorizedItems.filter((i) => i.status === 'authorized').map((i) => i.brand)
-  )
-  const brands = Array.from(brandSet).slice(0, 4) as Brand[]
+  const priceByProduct = new Map<string, number>()
+  for (const item of authorizedItems) {
+    if (typeof item.casePrice === 'number') {
+      priceByProduct.set(item.productId, item.casePrice)
+    }
+  }
+  let computedRevenue = 0
+  for (const pallet of retailerPallets) {
+    for (const entry of pallet.assortment) {
+      const price = priceByProduct.get(entry.productId)
+      if (typeof price === 'number' && entry.cases > 0) {
+        computedRevenue += price * entry.cases
+      }
+    }
+  }
 
   return (
     <div
       onClick={() => onClick(id)}
-      className="group bg-white rounded-lg shadow-card hover:shadow-elevated transition-all duration-200 cursor-pointer overflow-hidden"
+      className="group relative bg-white rounded-xl shadow-card hover:shadow-elevated transition-all duration-200 cursor-pointer overflow-hidden p-5"
     >
-      <div className="px-5 py-4">
-        {/* Top row: name + status */}
-        <div className="flex items-center justify-between mb-1">
-          <div className="flex items-center gap-2 min-w-0">
-            <h3 className="text-[15px] font-semibold text-[#171717] truncate">{name}</h3>
-          </div>
-          <div className="flex items-center gap-1.5 shrink-0">
+      {/* Top row: name + status pill + arrow */}
+      <div className="flex items-start justify-between gap-3 mb-5">
+        <div className="min-w-0">
+          <h3 className="text-[16px] font-semibold text-[#171717] truncate">{name}</h3>
+          <div className="flex items-center gap-1.5 mt-1">
             <span className={`w-[6px] h-[6px] rounded-full ${statusStyle.dot}`} />
-            <span className={`text-[10px] font-medium capitalize ${statusStyle.text}`}>{status}</span>
+            <span className={`text-[10px] font-medium capitalize ${statusStyle.text}`}>
+              {status}
+            </span>
           </div>
         </div>
-
-        {/* Location */}
-        <div className="flex items-center gap-1 text-[#999] mb-4">
-          <MapPin className="w-3 h-3" />
-          <span className="text-[11px]">{headquartersCity}, {headquartersState}</span>
-        </div>
-
-        {/* Metrics row */}
-        <div className="flex items-center gap-5 mb-4">
-          <div>
-            <p className="text-[10px] font-medium text-[#bbb] uppercase tracking-wider">Revenue</p>
-            <p className="text-[15px] font-semibold text-[#171717] tabular-nums mt-0.5">
-              {performance.totalRevenueYTD > 0 ? fmtCurrency(performance.totalRevenueYTD) : '--'}
-            </p>
-          </div>
-          <div className="w-px h-7 bg-[#f0f0f0]" />
-          <div>
-            <p className="text-[10px] font-medium text-[#bbb] uppercase tracking-wider">Stores</p>
-            <p className="text-[15px] font-semibold text-[#171717] tabular-nums mt-0.5">
-              {storeCount.toLocaleString()}
-            </p>
-          </div>
-          <div className="w-px h-7 bg-[#f0f0f0]" />
-          <div>
-            <p className="text-[10px] font-medium text-[#bbb] uppercase tracking-wider">SKUs</p>
-            <p className="text-[15px] font-semibold text-[#171717] tabular-nums mt-0.5">
-              {authorizedCount}
-            </p>
-          </div>
-        </div>
-
-        {/* Bottom row: brands + arrow */}
-        <div className="flex items-center justify-between pt-3" style={{ boxShadow: '0 -1px 0 0 rgba(0,0,0,0.04)' }}>
-          <div className="flex items-center gap-1">
-            {brands.map((brand) => (
-              <div
-                key={brand}
-                className="w-4 h-4 rounded-full"
-                style={{ backgroundColor: BRAND_COLORS[brand] }}
-                title={brand.charAt(0).toUpperCase() + brand.slice(1)}
-              />
-            ))}
-            {brandSet.size > 4 && (
-              <span className="text-[10px] text-[#bbb] ml-0.5">+{brandSet.size - 4}</span>
-            )}
-            {brands.length > 0 && (
-              <span className="flex items-center gap-1 ml-2">
-                <Package className="w-3 h-3 text-[#ccc]" />
-                <span className="text-[10px] text-[#bbb]">{authorizedCount}</span>
-              </span>
-            )}
-          </div>
-          <ChevronRight className="w-3.5 h-3.5 text-[#ccc] group-hover:text-[#0a72ef] transition-colors" />
+        <div className="shrink-0 w-7 h-7 rounded-full bg-[#fafafa] group-hover:bg-[#171717] flex items-center justify-center transition-colors">
+          <ArrowUpRight className="w-3.5 h-3.5 text-[#999] group-hover:text-white transition-colors" />
         </div>
       </div>
+
+      {/* Revenue — hero stat */}
+      <div className="mb-4">
+        <p className="text-[10px] font-medium text-[#999] uppercase tracking-wider">Revenue</p>
+        <p className="text-[24px] font-semibold text-[#171717] tabular-nums tracking-tight mt-0.5">
+          {fmtCurrency(computedRevenue)}
+        </p>
+      </div>
+
+      {/* Pallet breakdown */}
+      <div className="grid grid-cols-3 gap-2 rounded-lg bg-[#fafafa] p-3">
+        <div>
+          <p className="text-[9px] font-medium text-[#999] uppercase tracking-wider">Half</p>
+          <p className="text-[14px] font-semibold text-[#171717] tabular-nums mt-0.5">
+            {halfPallets}
+          </p>
+        </div>
+        <div>
+          <p className="text-[9px] font-medium text-[#999] uppercase tracking-wider">Full</p>
+          <p className="text-[14px] font-semibold text-[#171717] tabular-nums mt-0.5">
+            {fullPallets}
+          </p>
+        </div>
+        <div>
+          <p className="text-[9px] font-medium text-[#999] uppercase tracking-wider">Items</p>
+          <p className="text-[14px] font-semibold text-[#171717] tabular-nums mt-0.5">
+            {itemCount}
+          </p>
+        </div>
+      </div>
+
     </div>
   )
 }

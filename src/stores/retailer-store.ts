@@ -14,6 +14,11 @@ interface RetailerState {
     productId: string,
     status: AuthorizedItem['status'],
   ) => void
+  updateAuthorizedItemCasePrice: (
+    retailerId: string,
+    productId: string,
+    casePrice: number | null,
+  ) => void
   getRetailer: (id: string) => Retailer | undefined
 }
 
@@ -62,6 +67,24 @@ export const useRetailerStore = create<RetailerState>((set, get) => ({
               ...retailer,
               authorizedItems: retailer.authorizedItems.map((item) =>
                 item.productId === productId ? { ...item, status } : item,
+              ),
+            }
+          : retailer,
+      ),
+    })),
+  updateAuthorizedItemCasePrice: (retailerId, productId, casePrice) =>
+    set((state) => ({
+      retailers: state.retailers.map((retailer) =>
+        retailer.id === retailerId
+          ? {
+              ...retailer,
+              authorizedItems: retailer.authorizedItems.map((item) =>
+                item.productId === productId
+                  ? {
+                      ...item,
+                      casePrice: casePrice === null ? undefined : casePrice,
+                    }
+                  : item,
               ),
             }
           : retailer,

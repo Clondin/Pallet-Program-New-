@@ -688,7 +688,7 @@ export const mockRetailers: Retailer[] = [
   {
     id: 'ret-6',
     name: 'Whole Foods',
-    status: 'pending',
+    status: 'active',
     tier: 'premium',
     defaultTierCount: 3,
     maxDisplayHeight: 56,

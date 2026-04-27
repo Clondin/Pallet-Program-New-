@@ -9,8 +9,10 @@ export interface AssortmentRow {
   buyer: string
   brand: string
   unitsPerCase: number | null
+  casePrice: number | null
   cases: number
   totalUnits: number | null
+  totalRevenue: number | null
 }
 
 export function getUnitsPerCase(product: Product): number | null {
@@ -29,11 +31,25 @@ export function getUnitsPerCase(product: Product): number | null {
 export function computeAssortmentTotals(
   assortment: AssortmentEntry[],
   products: Product[],
-): { totalCases: number; totalUnits: number; totalSKUs: number } {
+  retailer?: Retailer,
+): {
+  totalCases: number
+  totalUnits: number
+  totalSKUs: number
+  totalRevenue: number
+} {
   const productMap = new Map(products.map((product) => [product.id, product]))
+  const priceMap = retailer
+    ? new Map(
+        retailer.authorizedItems
+          .filter((item) => typeof item.casePrice === 'number')
+          .map((item) => [item.productId, item.casePrice as number]),
+      )
+    : new Map<string, number>()
   let totalCases = 0
   let totalUnits = 0
   let totalSKUs = 0
+  let totalRevenue = 0
 
   for (const entry of assortment) {
     if (entry.cases <= 0) continue
@@ -48,9 +64,14 @@ export function computeAssortmentTotals(
     if (unitsPerCase) {
       totalUnits += entry.cases * unitsPerCase
     }
+
+    const price = priceMap.get(entry.productId)
+    if (typeof price === 'number') {
+      totalRevenue += entry.cases * price
+    }
   }
 
-  return { totalCases, totalUnits, totalSKUs }
+  return { totalCases, totalUnits, totalSKUs, totalRevenue }
 }
 
 export function buildAssortmentRows(
@@ -70,6 +91,7 @@ export function buildAssortmentRows(
       const unitsPerCase = product ? getUnitsPerCase(product) : null
       const cases = assortmentMap.get(item.productId) ?? 0
 
+      const casePrice = typeof item.casePrice === 'number' ? item.casePrice : null
       return {
         productId: item.productId,
         productName: item.productName,
@@ -79,8 +101,10 @@ export function buildAssortmentRows(
         buyer: product?.buyer ?? '',
         brand: item.brand,
         unitsPerCase,
+        casePrice,
         cases,
         totalUnits: unitsPerCase && cases > 0 ? unitsPerCase * cases : null,
+        totalRevenue: casePrice !== null && cases > 0 ? casePrice * cases : null,
       }
     })
     .sort(

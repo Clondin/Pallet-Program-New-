@@ -5,15 +5,12 @@ import {
   Boxes,
   Building2,
   ChevronRight,
-  Globe,
   Mail,
-  MapPin,
   Package,
   Phone,
   Plus,
   Search,
   Shield,
-  Star,
   Trash2,
   User,
   X,
@@ -595,12 +592,12 @@ export function RetailerDetailPage() {
     return (
       <div className="flex flex-col items-center justify-center h-[60vh] text-center">
         <Building2 className="w-10 h-10 text-[#ccc] mb-3" />
-        <h3 className="text-[15px] font-semibold text-[#333]">Retailer not found</h3>
+        <h3 className="text-[15px] font-semibold text-[#333]">Program not found</h3>
         <button
           onClick={() => navigate('/retailers')}
           className="mt-3 px-4 py-1.5 text-[13px] font-medium text-[#0a72ef] hover:bg-[#0a72ef]/5 rounded-md transition-colors"
         >
-          Back to Retailers
+          Back to Programs
         </button>
       </div>
     )
@@ -614,7 +611,7 @@ export function RetailerDetailPage() {
         className="flex items-center gap-1.5 text-[#999] hover:text-[#171717] text-[12px] font-medium mb-6 transition-colors"
       >
         <ArrowLeft className="w-3.5 h-3.5" />
-        Retailers
+        Programs
       </button>
 
       {/* Header */}
@@ -624,31 +621,12 @@ export function RetailerDetailPage() {
             <h1 className="text-[28px] font-semibold tracking-display text-[#171717]">
               {retailer.name}
             </h1>
-            {retailer.tier === 'enterprise' && (
-              <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
-            )}
-            <span
-              className="px-2 py-0.5 rounded-full text-[10px] font-medium"
-              style={{ color: tierCfg.color, backgroundColor: `${tierCfg.color}10` }}
-            >
-              {tierCfg.text}
-            </span>
             <StatusBadge status={retailer.status} />
           </div>
           <div className="flex items-center gap-4 mt-2 text-[12px] text-[#888]">
             <span className="flex items-center gap-1">
-              <MapPin className="w-3 h-3" />
-              {retailer.headquartersCity}, {retailer.headquartersState}
-            </span>
-            {retailer.website && (
-              <span className="flex items-center gap-1">
-                <Globe className="w-3 h-3" />
-                {retailer.website}
-              </span>
-            )}
-            <span className="flex items-center gap-1">
               <User className="w-3 h-3" />
-              {retailer.accountManager}
+              {retailer.accountManager || 'No sales rep assigned'}
             </span>
             <span className="flex items-center gap-1">
               <Package className="w-3 h-3" />
