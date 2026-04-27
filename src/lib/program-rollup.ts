@@ -7,9 +7,11 @@ export interface RollupRow {
   sku: string
   upc: string
   kaycoItemNumber: string
+  buyer: string
   brand: string
   unitsPerCase: number | null
   palletCases: Map<string, number>
+  retailerCases: Map<string, number>
   totalCases: number
   totalUnits: number | null
 }
@@ -34,9 +36,11 @@ export function buildRollupData(
           sku: product?.sku ?? '',
           upc: product?.upc ?? '',
           kaycoItemNumber: product?.kaycoItemNumber ?? '',
+          buyer: product?.buyer ?? '',
           brand: product?.brand ?? '',
           unitsPerCase: product ? getUnitsPerCase(product) : null,
           palletCases: new Map(),
+          retailerCases: new Map(),
           totalCases: 0,
           totalUnits: null,
         }
@@ -44,6 +48,10 @@ export function buildRollupData(
       }
 
       row.palletCases.set(pallet.id, entry.cases)
+      row.retailerCases.set(
+        pallet.retailerId,
+        (row.retailerCases.get(pallet.retailerId) ?? 0) + entry.cases,
+      )
       row.totalCases += entry.cases
 
       if (row.unitsPerCase) {

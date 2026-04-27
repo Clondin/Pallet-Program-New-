@@ -79,6 +79,7 @@ export function ProductDetailPage() {
     sku: product?.sku ?? '',
     upc: product?.upc ?? '',
     kaycoItemNumber: product?.kaycoItemNumber ?? '',
+    buyer: product?.buyer ?? '',
     brand: product?.brand ?? ('tuscanini' as Brand),
     category: product?.category ?? '',
     width: product?.width ?? 0,
@@ -117,6 +118,7 @@ export function ProductDetailPage() {
     setForm({
       name: product.name, sku: product.sku,
       upc: product.upc ?? '', kaycoItemNumber: product.kaycoItemNumber ?? '',
+      buyer: product.buyer ?? '',
       brand: product.brand,
       category: product.category, width: product.width, height: product.height,
       depth: product.depth, weight: product.weight,
@@ -152,6 +154,7 @@ export function ProductDetailPage() {
     setForm({
       name: product.name, sku: product.sku,
       upc: product.upc ?? '', kaycoItemNumber: product.kaycoItemNumber ?? '',
+      buyer: product.buyer ?? '',
       brand: product.brand,
       category: product.category, width: product.width, height: product.height,
       depth: product.depth, weight: product.weight,
@@ -166,6 +169,7 @@ export function ProductDetailPage() {
       name: form.name, sku: form.sku,
       upc: form.upc.trim() || undefined,
       kaycoItemNumber: form.kaycoItemNumber.trim() || undefined,
+      buyer: form.buyer.trim() || undefined,
       brand: form.brand,
       brandColor: BRAND_COLORS[form.brand], category: form.category,
       width: form.width, height: form.height, depth: form.depth,
@@ -367,6 +371,7 @@ export function ProductDetailPage() {
                   { label: 'SKU', key: 'sku', mono: true },
                   { label: 'UPC', key: 'upc', mono: true },
                   { label: 'Kayco Item #', key: 'kaycoItemNumber', mono: true },
+                  { label: 'Buyer', key: 'buyer', mono: false },
                 ].map((f) => (
                   <div key={f.key}>
                     <label className="block text-[10px] font-medium uppercase tracking-wider text-[#999] mb-2">{f.label}</label>

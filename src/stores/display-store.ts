@@ -66,6 +66,7 @@ interface DisplayState {
   updateName: (name: string) => void
   updateHoliday: (holiday: DisplayProject['holiday']) => void
   updateSeasonId: (seasonId: string | null) => void
+  updateBuildLocation: (location: DisplayProject['buildLocation']) => void
   updateAssortment: (productId: string, cases: number) => void
   setAssortment: (assortment: AssortmentEntry[]) => void
   updateShipByDate: (date: number | undefined) => void
@@ -175,6 +176,7 @@ export const useDisplayStore = create<DisplayState>((set, get) => ({
       holiday: config.season,
       season: config.season,
       seasonId: config.seasonId ?? null,
+      buildLocation: null,
       tierCount,
       palletType: config.palletType,
       lipColor: settings.defaultLipColor,
@@ -550,6 +552,19 @@ export const useDisplayStore = create<DisplayState>((set, get) => ({
     const nextProject = {
       ...state.currentProject,
       seasonId,
+      updatedAt: Date.now(),
+    }
+
+    set(commitProjectUpdate(state, nextProject))
+  },
+
+  updateBuildLocation: (location) => {
+    const state = get()
+    if (!state.currentProject) return
+
+    const nextProject = {
+      ...state.currentProject,
+      buildLocation: location,
       updatedAt: Date.now(),
     }
 

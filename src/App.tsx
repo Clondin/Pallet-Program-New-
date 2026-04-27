@@ -142,6 +142,7 @@ export default function App() {
         ...project,
         assortment: project.assortment ?? [],
         seasonId: project.seasonId ?? null,
+        buildLocation: project.buildLocation ?? null,
       }),
     )
     const activePalletId = localStorage.getItem(ACTIVE_PALLET_STORAGE_KEY)

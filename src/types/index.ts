@@ -187,6 +187,7 @@ export interface Product {
   sku: string
   upc?: string
   kaycoItemNumber?: string
+  buyer?: string
   brand: Brand
   brandColor: string
   category: string
@@ -293,6 +294,8 @@ export interface PalletWizardConfig {
   seasonId?: string | null
 }
 
+export type BuildLocation = 'hook' | 'goshen' | 'third-party'
+
 export interface DisplayProject {
   id: string
   name: string
@@ -300,6 +303,7 @@ export interface DisplayProject {
   holiday: Holiday
   season: Holiday
   seasonId: string | null
+  buildLocation: BuildLocation | null
   tierCount: number
   palletType: PalletType
   lipColor: string

@@ -55,6 +55,7 @@ export function PalletDetailPage() {
   const setPalletType = useDisplayStore((state) => state.setPalletType)
   const updateName = useDisplayStore((state) => state.updateName)
   const updateSeasonId = useDisplayStore((state) => state.updateSeasonId)
+  const updateBuildLocation = useDisplayStore((state) => state.updateBuildLocation)
   const updateShipByDate = useDisplayStore((state) => state.updateShipByDate)
   const retailer = useRetailerStore((state) =>
     retailerId ? state.getRetailer(retailerId) : undefined
@@ -188,6 +189,22 @@ export function PalletDetailPage() {
               <p className="text-[14px] font-semibold text-[#171717] mt-1">
                 {pallet.tierCount}
               </p>
+            </div>
+            <div className="rounded-lg bg-[#fafafa] px-4 py-4 col-span-2">
+              <p className="text-[10px] uppercase tracking-wider text-[#999] mb-2">Build location</p>
+              <select
+                value={pallet.buildLocation ?? ''}
+                onChange={(event) => {
+                  const value = event.target.value
+                  updateBuildLocation(value === '' ? null : (value as 'hook' | 'goshen' | 'third-party'))
+                }}
+                className="w-full text-[14px] font-semibold text-[#171717] bg-transparent border-none outline-none cursor-pointer focus:ring-2 focus:ring-[#0a72ef]/30 rounded-md -ml-1 pl-1"
+              >
+                <option value="">Unassigned</option>
+                <option value="hook">Hook</option>
+                <option value="goshen">Goshen</option>
+                <option value="third-party">3rd Party Location</option>
+              </select>
             </div>
           </div>
 
