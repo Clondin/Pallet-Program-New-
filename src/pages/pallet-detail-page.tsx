@@ -1,8 +1,7 @@
 import { useEffect } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, Boxes, CalendarDays, Package, PenLine, Store } from 'lucide-react'
+import { ArrowLeft, Boxes, CalendarDays, Package, PenLine, Store, Trash2 } from 'lucide-react'
 import { AssortmentTable } from '../components/Assortment/assortment-table'
-import { BrandingPreview } from '../components/Branding/branding-preview'
 import { useCatalogStore } from '../stores/catalog-store'
 import { useDisplayStore } from '../stores/display-store'
 import { useRetailerStore } from '../stores/retailer-store'
@@ -57,6 +56,7 @@ export function PalletDetailPage() {
   const updateSeasonId = useDisplayStore((state) => state.updateSeasonId)
   const updateBuildLocation = useDisplayStore((state) => state.updateBuildLocation)
   const updateLaborCost = useDisplayStore((state) => state.updateLaborCost)
+  const deleteProject = useDisplayStore((state) => state.deleteProject)
   const updateShipByDate = useDisplayStore((state) => state.updateShipByDate)
   const retailer = useRetailerStore((state) =>
     retailerId ? state.getRetailer(retailerId) : undefined
@@ -116,13 +116,29 @@ export function PalletDetailPage() {
           </div>
         </div>
 
-        <Link
-          to={`/retailers/${retailerId}/pallets/${pallet.id}/editor`}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-[#171717] text-white text-[13px] font-medium hover:bg-[#333] transition-colors"
-        >
-          <PenLine className="w-3.5 h-3.5" />
-          Open Editor
-        </Link>
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={() => {
+              if (
+                window.confirm(`Delete pallet "${pallet.name}"? This cannot be undone.`)
+              ) {
+                deleteProject(pallet.id)
+                navigate(`/retailers/${retailerId}`)
+              }
+            }}
+            className="inline-flex items-center gap-2 px-3 py-2 rounded-md text-[#c0392b] text-[13px] font-medium hover:bg-[#c0392b]/5 transition-colors"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            Delete
+          </button>
+          <Link
+            to={`/retailers/${retailerId}/pallets/${pallet.id}/editor`}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-[#171717] text-white text-[13px] font-medium hover:bg-[#333] transition-colors"
+          >
+            <PenLine className="w-3.5 h-3.5" />
+            Open Editor
+          </Link>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
@@ -136,11 +152,7 @@ export function PalletDetailPage() {
         />
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-[0.95fr_1.05fr] gap-6">
-        <div className="space-y-6">
-          <BrandingPreview branding={pallet.branding} lipColor={pallet.lipColor} />
-        </div>
-
+      <div className="grid grid-cols-1 gap-6">
         <div className="bg-white shadow-card rounded-xl p-6">
           <h3 className="text-[15px] font-semibold text-[#171717]">Pallet Summary</h3>
           <div className="grid grid-cols-2 gap-4 mt-5">

@@ -11,6 +11,7 @@ export const BRAND_COLORS: Record<Brand, string> = {
   liebers: '#C41E3A',
   haddar: '#1E3A8A',
   osem: '#059669',
+  other: '#64748B',
 }
 
 const kedemCase6Layout = { cols: 3, rows: 2, layers: 1 } as const
@@ -768,6 +769,7 @@ export const mockProject: DisplayProject = {
   seasonId: null,
   buildLocation: null,
   laborCost: null,
+  status: "draft",
   tierCount: 4,
   palletType: 'full',
   lipColor: '#1E3A8A',
@@ -871,6 +873,7 @@ export const mockProjects: DisplayProject[] = [
     seasonId: null,
   buildLocation: null,
   laborCost: null,
+  status: "draft",
     tierCount: 4,
     palletType: 'full',
     lipColor: '#0F766E',
@@ -916,6 +919,7 @@ export const mockProjects: DisplayProject[] = [
     seasonId: null,
   buildLocation: null,
   laborCost: null,
+  status: "draft",
     tierCount: 4,
     palletType: 'half',
     lipColor: '#9A3412',

@@ -1,8 +1,15 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Save, X } from 'lucide-react'
 import type { Brand, Holiday } from '../../types'
 import { BRAND_COLORS } from '../../lib/mock-data'
 import { useCatalogStore } from '../../stores/catalog-store'
+import {
+  buildInventoryInfoIndex,
+  findInventoryInfo,
+  mapInventoryBrandToProductBrand,
+  type InventoryInfoItem,
+} from '../../lib/inventory-info-import'
+import { loadInventoryInfo } from '../../lib/inventory-info-loader'
 
 const BRANDS: Brand[] = ['tuscanini', 'kedem', 'gefen', 'liebers', 'haddar', 'osem']
 const HOLIDAYS: Holiday[] = ['rosh-hashanah', 'pesach', 'sukkos', 'none']
@@ -20,33 +27,93 @@ interface AddProductFormProps {
 
 export function AddProductForm({ onClose }: AddProductFormProps) {
   const { addProduct } = useCatalogStore()
+  const [inventoryIndex, setInventoryIndex] = useState<Map<string, InventoryInfoItem> | null>(null)
+  const [inventoryNotice, setInventoryNotice] = useState<string | null>(null)
 
   const [form, setForm] = useState({
     name: '',
     sku: '',
+    kaycoItemNumber: '',
+    upc: '',
+    brandCode: '',
+    buyer: '',
     brand: 'tuscanini' as Brand,
-    category: '',
     width: 0,
     height: 0,
     depth: 0,
     weight: 0,
+    unitsPerCase: 0,
+    caseCost: 0,
     holiday: 'none' as string,
   })
 
+  useEffect(() => {
+    loadInventoryInfo().then((items) => {
+      setInventoryIndex(buildInventoryInfoIndex(items))
+    })
+  }, [])
+
+  const applyInventoryInfo = () => {
+    if (!inventoryIndex) return
+
+    const info =
+      findInventoryInfo(inventoryIndex, form.kaycoItemNumber) ??
+      findInventoryInfo(inventoryIndex, form.sku)
+
+    if (!info) {
+      setInventoryNotice(null)
+      return
+    }
+
+    setForm((current) => ({
+      ...current,
+      name: current.name || info.description || current.name,
+      sku: current.sku || info.itemNumber,
+      kaycoItemNumber: info.itemNumber,
+      upc: current.upc || info.upc || '',
+      brandCode: info.brandCode || current.brandCode,
+      buyer: current.buyer || info.buyer || '',
+      brand: mapInventoryBrandToProductBrand(info.brandCode) ?? current.brand,
+      width: info.width ?? current.width,
+      height: info.height ?? current.height,
+      depth: info.depth ?? current.depth,
+      weight: info.weight ?? current.weight,
+      unitsPerCase: info.casePack ?? current.unitsPerCase,
+      caseCost: info.caseCost ?? current.caseCost,
+    }))
+    setInventoryNotice(`Pulled item ${info.itemNumber} from inventory info.`)
+  }
+
   const handleSubmit = () => {
-    if (!form.name || !form.sku) return
+    const info =
+      inventoryIndex &&
+      (findInventoryInfo(inventoryIndex, form.kaycoItemNumber) ??
+        findInventoryInfo(inventoryIndex, form.sku))
+    const name = form.name || info?.description || ''
+    const sku = form.sku || info?.itemNumber || form.kaycoItemNumber
+    const kaycoItemNumber = form.kaycoItemNumber || info?.itemNumber || ''
+    const brandCode = form.brandCode || info?.brandCode || ''
+    const brand = mapInventoryBrandToProductBrand(brandCode) ?? form.brand
+
+    if (!name || !sku) return
     const tags: Holiday[] = form.holiday === 'none' ? [] : [form.holiday as Holiday]
     addProduct({
       id: `prod-${Date.now()}`,
-      name: form.name,
-      sku: form.sku,
-      brand: form.brand,
-      brandColor: BRAND_COLORS[form.brand],
-      category: form.category,
-      width: form.width,
-      height: form.height,
-      depth: form.depth,
-      weight: form.weight,
+      name,
+      sku,
+      upc: form.upc.trim() || info?.upc || undefined,
+      kaycoItemNumber: kaycoItemNumber.trim() || undefined,
+      brandCode: brandCode.trim() || undefined,
+      buyer: form.buyer.trim() || info?.buyer || undefined,
+      brand,
+      brandColor: BRAND_COLORS[brand],
+      category: '',
+      width: info?.width ?? form.width,
+      height: info?.height ?? form.height,
+      depth: info?.depth ?? form.depth,
+      weight: info?.weight ?? form.weight,
+      unitsPerCase: info?.casePack ?? (form.unitsPerCase || undefined),
+      caseCost: info?.caseCost ?? (form.caseCost || undefined),
       holidayTags: tags,
     })
     onClose()
@@ -54,7 +121,7 @@ export function AddProductForm({ onClose }: AddProductFormProps) {
 
   return (
     <tr className="bg-[#0a72ef]/[0.02]" style={{ boxShadow: '0 1px 0 0 rgba(10,114,239,0.1)' }}>
-      <td colSpan={7} className="px-5 py-5">
+      <td colSpan={11} className="px-5 py-5">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-[13px] font-semibold text-[#171717]">New Product</h3>
           <button onClick={onClose} className="p-1 rounded-md hover:bg-[#f5f5f5] text-[#999]">
@@ -71,7 +138,15 @@ export function AddProductForm({ onClose }: AddProductFormProps) {
           <div>
             <label className="text-[10px] font-medium uppercase tracking-wider text-[#999] mb-1 block">SKU</label>
             <input type="text" value={form.sku} onChange={(e) => setForm({ ...form, sku: e.target.value })}
+              onBlur={applyInventoryInfo}
               placeholder="e.g. TUS-EVOO-750"
+              className="w-full px-3 py-2 text-[13px] font-mono shadow-border rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-[#0a72ef]/30 focus:shadow-none placeholder:text-[#ccc]" />
+          </div>
+          <div>
+            <label className="text-[10px] font-medium uppercase tracking-wider text-[#999] mb-1 block">Kayco Item #</label>
+            <input type="text" value={form.kaycoItemNumber} onChange={(e) => setForm({ ...form, kaycoItemNumber: e.target.value })}
+              onBlur={applyInventoryInfo}
+              placeholder="e.g. 100100"
               className="w-full px-3 py-2 text-[13px] font-mono shadow-border rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-[#0a72ef]/30 focus:shadow-none placeholder:text-[#ccc]" />
           </div>
           <div>
@@ -82,10 +157,26 @@ export function AddProductForm({ onClose }: AddProductFormProps) {
             </select>
           </div>
           <div>
-            <label className="text-[10px] font-medium uppercase tracking-wider text-[#999] mb-1 block">Category</label>
-            <input type="text" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}
-              placeholder="e.g. Oils"
-              className="w-full px-3 py-2 text-[13px] shadow-border rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-[#0a72ef]/30 focus:shadow-none placeholder:text-[#ccc]" />
+            <label className="text-[10px] font-medium uppercase tracking-wider text-[#999] mb-1 block">Brand Code</label>
+            <input type="text" value={form.brandCode} onChange={(e) => setForm({ ...form, brandCode: e.target.value })}
+              className="w-full px-3 py-2 text-[13px] font-mono shadow-border rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-[#0a72ef]/30 focus:shadow-none" />
+          </div>
+          <div>
+            <label className="text-[10px] font-medium uppercase tracking-wider text-[#999] mb-1 block">UPC</label>
+            <input type="text" value={form.upc} onChange={(e) => setForm({ ...form, upc: e.target.value })}
+              className="w-full px-3 py-2 text-[13px] font-mono shadow-border rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-[#0a72ef]/30 focus:shadow-none" />
+          </div>
+          <div>
+            <label className="text-[10px] font-medium uppercase tracking-wider text-[#999] mb-1 block">Case Pack</label>
+            <input type="number" step="1" value={form.unitsPerCase || ''}
+              onChange={(e) => setForm({ ...form, unitsPerCase: parseFloat(e.target.value) || 0 })}
+              className="w-full px-3 py-2 text-[13px] shadow-border rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-[#0a72ef]/30 focus:shadow-none tabular-nums" />
+          </div>
+          <div>
+            <label className="text-[10px] font-medium uppercase tracking-wider text-[#999] mb-1 block">Case Cost ($)</label>
+            <input type="number" step="0.01" value={form.caseCost || ''}
+              onChange={(e) => setForm({ ...form, caseCost: parseFloat(e.target.value) || 0 })}
+              className="w-full px-3 py-2 text-[13px] shadow-border rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-[#0a72ef]/30 focus:shadow-none tabular-nums" />
           </div>
           {dimensionFields.map((field) => (
             <div key={field}>
@@ -112,7 +203,7 @@ export function AddProductForm({ onClose }: AddProductFormProps) {
           </div>
           <div className="col-span-4 flex gap-2 pt-2">
             <div className="w-full text-[11px] text-[#777] mb-1">
-              Adding a product creates the single SKU plus auto-generated 6-pack, 12-pack, and 24-pack case variants.
+              {inventoryNotice ?? 'Adding a product creates the single SKU plus auto-generated 6-pack, 12-pack, and 24-pack case variants.'}
             </div>
           </div>
           <div className="col-span-4 flex gap-2">

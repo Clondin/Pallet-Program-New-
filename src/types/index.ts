@@ -169,7 +169,14 @@ export interface TierConfig {
   slotGridSize: number;
 }
 
-export type Brand = 'tuscanini' | 'kedem' | 'gefen' | 'liebers' | 'haddar' | 'osem'
+export type Brand =
+  | 'tuscanini'
+  | 'kedem'
+  | 'gefen'
+  | 'liebers'
+  | 'haddar'
+  | 'osem'
+  | 'other'
 
 export type Holiday = 'rosh-hashanah' | 'pesach' | 'sukkos' | 'none'
 
@@ -190,6 +197,7 @@ export interface Product {
   buyer?: string
   caseCost?: number
   brand: Brand
+  brandCode?: string
   brandColor: string
   category: string
   width: number
@@ -298,6 +306,10 @@ export interface PalletWizardConfig {
 
 export type BuildLocation = 'hook' | 'goshen' | 'third-party'
 
+export type Role = 'salesman' | 'buyer' | 'builder' | 'manager'
+
+export type PalletStatus = 'draft' | 'ready' | 'in_build' | 'built'
+
 export interface DisplayProject {
   id: string
   name: string
@@ -307,6 +319,7 @@ export interface DisplayProject {
   seasonId: string | null
   buildLocation: BuildLocation | null
   laborCost: number | null
+  status: PalletStatus
   tierCount: number
   palletType: PalletType
   lipColor: string

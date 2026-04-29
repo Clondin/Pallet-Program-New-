@@ -1,4 +1,4 @@
-import { useReducer, useCallback, useMemo, useState, Suspense } from 'react'
+import { useReducer, useCallback, useState, Suspense } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { Canvas } from '@react-three/fiber'
 import { X, Sparkles } from 'lucide-react'
@@ -9,7 +9,7 @@ import {
   wizardReducer,
 } from './wizardTypes'
 import { PalletTypeStep } from './steps/PalletTypeStep'
-import { PalletWizardPreview } from './preview/PalletWizardPreview'
+import { PalletDisplayScene } from '../PalletDisplay/PalletDisplayScene'
 
 interface PalletWizardProps {
   open: boolean
@@ -94,11 +94,6 @@ export function PalletWizard({
     onComplete(config)
   }, [state, onComplete])
 
-  const previewTiers = useMemo(
-    () => state.tierHeights.map((h, i) => ({ id: i + 1, trayHeight: h })),
-    [state.tierHeights],
-  )
-
   if (!open) return null
 
   return (
@@ -149,27 +144,33 @@ export function PalletWizard({
           {/* Right: 3D Preview */}
           <div className="flex-[45] min-w-0" style={{ background: '#1A1A2E' }}>
             <Canvas
-              camera={{ position: [60, 40, 60], fov: 45 }}
+              camera={{ position: [90, 60, 90], fov: 42 }}
               dpr={[1, 1.5]}
               gl={{ antialias: true, powerPreference: "high-performance" }}
               style={{ width: '100%', height: '100%' }}
             >
               <Suspense fallback={null}>
-                <PalletWizardPreview
+                <PalletDisplayScene
                   palletType={state.palletType}
-                  baseWidth={state.baseWidth}
-                  baseDepth={state.baseDepth}
-                  baseHeight={state.baseHeight}
-                  tiers={previewTiers}
-                  walls={state.walls}
-                  shelfDepth={state.shelfDepth}
+                  palletDimensions={{
+                    width: state.baseWidth,
+                    depth: state.baseDepth,
+                    height: state.baseHeight,
+                  }}
+                  maxDisplayHeight={state.maxHeight}
+                  tierCount={state.tierCount}
                   lipColor={state.lipColor}
-                  lipText={state.lipText}
-                  headerEnabled={state.headerEnabled}
-                  headerText={state.headerText}
-                  headerColor={state.headerColor}
-                  panelColor={state.panelColor}
-                  maxHeight={state.maxHeight}
+                  branding={{
+                    lipText: state.lipText,
+                    lipTextColor: state.lipTextColor,
+                    headerText: state.headerEnabled ? state.headerText : undefined,
+                    headerBackgroundColor: state.headerColor,
+                  }}
+                  placedProducts={[]}
+                  showSlotGrid={false}
+                  showHeader={state.headerEnabled}
+                  autoRotate
+                  environment="retail"
                 />
               </Suspense>
             </Canvas>

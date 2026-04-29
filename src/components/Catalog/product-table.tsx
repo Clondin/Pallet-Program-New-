@@ -28,11 +28,22 @@ export function ProductTable({ products, showAddForm, onCloseAddForm }: ProductT
       <table className="w-full">
         <thead>
           <tr style={{ boxShadow: '0 1px 0 0 rgba(0,0,0,0.06)' }}>
-            {['Product', 'Brand', 'Category', 'Dimensions', 'Weight', 'Holiday', 'Actions'].map((h, i) => (
+            {[
+              'Product',
+              'Item #',
+              'UPC',
+              'Brand',
+              'Buyer',
+              'Pack',
+              'Case $',
+              'Dimensions',
+              'Weight',
+              'Actions',
+            ].map((h, i, arr) => (
               <th
                 key={h}
                 className={`px-5 py-2.5 text-[10px] font-medium uppercase tracking-wider text-[#999] ${
-                  i === 6 ? 'text-right' : 'text-left'
+                  i === arr.length - 1 ? 'text-right' : 'text-left'
                 }`}
               >
                 {h}
@@ -47,7 +58,7 @@ export function ProductTable({ products, showAddForm, onCloseAddForm }: ProductT
           ))}
           {pageProducts.length === 0 && !showAddForm && (
             <tr>
-              <td colSpan={7} className="px-5 py-16 text-center text-[13px] text-[#999]">
+              <td colSpan={11} className="px-5 py-16 text-center text-[13px] text-[#999]">
                 No products found matching your filters.
               </td>
             </tr>

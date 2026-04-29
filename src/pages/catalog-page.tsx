@@ -1,50 +1,36 @@
-import { useState, useEffect } from 'react'
-import { Search, Plus, Upload } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { Search, Plus, Upload, X } from 'lucide-react'
 import { useCatalogStore } from '../stores/catalog-store'
-import { BRAND_COLORS, mockProducts } from '../lib/mock-data'
 import { ProductTable } from '../components/Catalog/product-table'
-import type { Brand } from '../types'
 
-const BRANDS: { key: Brand; label: string }[] = [
-  { key: 'tuscanini', label: 'Tuscanini' },
-  { key: 'kedem', label: 'Kedem' },
-  { key: 'gefen', label: 'Gefen' },
-  { key: 'liebers', label: "Lieber's" },
-  { key: 'haddar', label: 'Haddar' },
-  { key: 'osem', label: 'Osem' },
-]
-
-type Tab = 'all' | 'holiday' | 'untagged'
-
-const tabLabels: Record<Tab, string> = {
-  all: 'All Products',
-  holiday: 'Holiday Tagged',
-  untagged: 'Untagged',
+function getBrandLabel(product: { brandCode?: string; brand: string }) {
+  return product.brandCode ?? product.brand
 }
 
 export function CatalogPage() {
   const {
     products,
     searchQuery,
-    brandFilter,
-    setProducts,
     setSearchQuery,
-    setBrandFilter,
     filteredProducts,
   } = useCatalogStore()
 
-  const [activeTab, setActiveTab] = useState<Tab>('all')
   const [showAddForm, setShowAddForm] = useState(false)
+  const [brandFilter, setBrandFilter] = useState<string>('')
 
-  useEffect(() => {
-    if (products.length === 0) {
-      setProducts(mockProducts)
+  const brandOptions = useMemo(() => {
+    const counts = new Map<string, number>()
+    for (const product of products) {
+      const label = getBrandLabel(product)
+      counts.set(label, (counts.get(label) ?? 0) + 1)
     }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+    return Array.from(counts.entries())
+      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+      .map(([label, count]) => ({ label, count }))
+  }, [products])
 
   const filtered = filteredProducts().filter((product) => {
-    if (activeTab === 'holiday') return product.holidayTags.length > 0
-    if (activeTab === 'untagged') return product.holidayTags.length === 0
+    if (brandFilter && getBrandLabel(product) !== brandFilter) return false
     return true
   })
   const productCount = filtered.length
@@ -77,25 +63,8 @@ export function CatalogPage() {
       </div>
 
       {/* Filter bar */}
-      <div className="flex items-center justify-between gap-4 mb-6">
+      <div className="flex items-center gap-4 mb-6">
         <div className="flex items-center gap-3">
-          {/* Tab segmented control */}
-          <div className="flex items-center shadow-ring rounded-md overflow-hidden">
-            {(['all', 'holiday', 'untagged'] as Tab[]).map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`px-3.5 py-[7px] text-[12px] font-medium transition-colors ${
-                  activeTab === tab
-                    ? 'bg-[#171717] text-white'
-                    : 'bg-white text-[#666] hover:bg-[#fafafa]'
-                }`}
-              >
-                {tabLabels[tab]}
-              </button>
-            ))}
-          </div>
-
           {/* Search */}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#999]" />
@@ -107,24 +76,33 @@ export function CatalogPage() {
               className="pl-9 pr-4 py-2 text-[13px] w-72 shadow-border rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-[#0a72ef]/30 focus:shadow-none placeholder:text-[#aaa]"
             />
           </div>
-        </div>
 
-        {/* Brand filter pills */}
-        <div className="flex items-center gap-1.5">
-          {BRANDS.map(({ key, label }) => (
+          {/* Brand filter */}
+          <select
+            value={brandFilter}
+            onChange={(e) => setBrandFilter(e.target.value)}
+            className="px-3 py-[7px] text-[12px] font-medium text-[#555] shadow-border rounded-md bg-white focus:outline-none cursor-pointer"
+          >
+            <option value="">All brands</option>
+            {brandOptions.map(({ label, count }) => (
+              <option key={label} value={label}>
+                {label} ({count})
+              </option>
+            ))}
+          </select>
+
+          {(searchQuery || brandFilter) && (
             <button
-              key={key}
-              onClick={() => setBrandFilter(brandFilter === key ? null : key)}
-              className={`px-2.5 py-1 text-[10px] font-medium rounded transition-all ${
-                brandFilter === key
-                  ? 'text-white shadow-sm'
-                  : 'text-white/80 opacity-50 hover:opacity-80'
-              }`}
-              style={{ backgroundColor: BRAND_COLORS[key] }}
+              onClick={() => {
+                setSearchQuery('')
+                setBrandFilter('')
+              }}
+              className="inline-flex items-center gap-1.5 px-3 py-[7px] text-[12px] font-medium text-[#666] hover:text-[#171717] hover:bg-[#fafafa] rounded-md transition-colors"
             >
-              {label}
+              <X className="w-3 h-3" />
+              Clear filters
             </button>
-          ))}
+          )}
         </div>
       </div>
 

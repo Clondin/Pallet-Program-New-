@@ -44,6 +44,7 @@ interface DisplayState {
 
   setProjects: (projects: DisplayProject[]) => void
   createProject: (name: string, config: PalletWizardConfig, tierCount?: number) => DisplayProject
+  deleteProject: (id: string) => void
   getActiveRetailer: () => Retailer | undefined
   getProject: (id: string) => DisplayProject | undefined
   getProjectsForRetailer: (retailerId: string) => DisplayProject[]
@@ -68,6 +69,7 @@ interface DisplayState {
   updateSeasonId: (seasonId: string | null) => void
   updateBuildLocation: (location: DisplayProject['buildLocation']) => void
   updateLaborCost: (cost: number | null) => void
+  updateStatus: (status: DisplayProject['status']) => void
   updateAssortment: (productId: string, cases: number) => void
   setAssortment: (assortment: AssortmentEntry[]) => void
   updateShipByDate: (date: number | undefined) => void
@@ -179,6 +181,7 @@ export const useDisplayStore = create<DisplayState>((set, get) => ({
       seasonId: config.seasonId ?? null,
       buildLocation: null,
       laborCost: 75,
+      status: 'draft',
       tierCount,
       palletType: config.palletType,
       lipColor: settings.defaultLipColor,
@@ -208,6 +211,20 @@ export const useDisplayStore = create<DisplayState>((set, get) => ({
     }))
 
     return project
+  },
+
+  deleteProject: (id) => {
+    set((state) => {
+      const projects = state.projects.filter((project) => project.id !== id)
+      const currentProject =
+        state.currentProject?.id === id ? (projects[0] ?? null) : state.currentProject
+      return {
+        projects,
+        currentProject,
+        history: currentProject ? [structuredClone(currentProject)] : [],
+        historyIndex: currentProject ? 0 : -1,
+      }
+    })
   },
 
   getActiveRetailer: () => {
@@ -580,6 +597,19 @@ export const useDisplayStore = create<DisplayState>((set, get) => ({
     const nextProject = {
       ...state.currentProject,
       laborCost: cost,
+      updatedAt: Date.now(),
+    }
+
+    set(commitProjectUpdate(state, nextProject))
+  },
+
+  updateStatus: (status) => {
+    const state = get()
+    if (!state.currentProject) return
+
+    const nextProject = {
+      ...state.currentProject,
+      status,
       updatedAt: Date.now(),
     }
 

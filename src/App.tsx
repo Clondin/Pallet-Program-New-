@@ -11,14 +11,16 @@ import { PalletDetailPage } from './pages/pallet-detail-page'
 import { ProgramRollupPage } from './pages/program-rollup-page'
 import { SeasonsPage } from './pages/seasons-page'
 import { BuildersPage } from './pages/builders-page'
-import { SettingsPage } from './pages/settings-page'
+import { HomePage } from './pages/home-page'
 import { ScenePage } from './pages/scene-page'
 import { useDisplayStore } from './stores/display-store'
 import { useCatalogStore } from './stores/catalog-store'
 import { useRetailerStore } from './stores/retailer-store'
 import { useSeasonStore } from './stores/season-store'
 import { useAppSettingsStore } from './stores/app-settings-store'
-import { mockProducts, mockRetailers, mockProjects } from './lib/mock-data'
+import { mockRetailers } from './lib/mock-data'
+import { loadInventoryInfo } from './lib/inventory-info-loader'
+import { mergeInventoryInfoIntoProducts } from './lib/inventory-info-import'
 
 const PROJECT_STORAGE_KEY = 'palletforge-project'
 const PALLETS_STORAGE_KEY = 'palletforge-pallets'
@@ -118,7 +120,7 @@ export default function App() {
   useEffect(() => {
     const catalogProducts = mergeCatalogProducts(
       loadPersistedState(CATALOG_STORAGE_KEY),
-      mockProducts
+      []
     )
     const retailers = mergeRetailers(
       loadPersistedState(RETAILER_STORAGE_KEY),
@@ -128,6 +130,19 @@ export default function App() {
     useCatalogStore
       .getState()
       .setProducts(catalogProducts)
+
+    loadInventoryInfo().then((inventoryInfo) => {
+      if (inventoryInfo.length === 0) return
+      const catalogState = useCatalogStore.getState()
+      const result = mergeInventoryInfoIntoProducts(
+        catalogState.products,
+        inventoryInfo,
+      )
+      if (result.products.length > 0) {
+        catalogState.setProducts(result.products)
+      }
+    })
+
     useRetailerStore
       .getState()
       .setRetailers(retailers)
@@ -142,15 +157,18 @@ export default function App() {
 
     const persistedProjects = loadPersistedState<DisplayProject[]>(PALLETS_STORAGE_KEY)
     const legacyProject = loadPersistedState<DisplayProject>(PROJECT_STORAGE_KEY)
-    const projects = (persistedProjects ?? (legacyProject ? [legacyProject] : mockProjects)).map(
-      (project) => ({
+    const MOCK_PALLET_IDS = new Set(['proj-1', 'proj-2', 'proj-3'])
+    const rawProjects = persistedProjects ?? (legacyProject ? [legacyProject] : [])
+    const projects = rawProjects
+      .filter((project) => !MOCK_PALLET_IDS.has(project.id))
+      .map((project) => ({
         ...project,
         assortment: project.assortment ?? [],
         seasonId: project.seasonId ?? null,
         buildLocation: project.buildLocation ?? null,
         laborCost: project.laborCost ?? 75,
-      }),
-    )
+        status: project.status ?? 'draft',
+      }))
     const activePalletId = localStorage.getItem(ACTIVE_PALLET_STORAGE_KEY)
     const activeProject =
       projects.find((project) => project.id === activePalletId) ??
@@ -222,15 +240,10 @@ export default function App() {
           <Route path="/seasons" element={<SeasonsPage />} />
           <Route path="/builders" element={<BuildersPage />} />
           <Route path="/scene" element={<ScenePage />} />
-          <Route path="/settings" element={<SettingsPage />} />
-          <Route path="/" element={<HomeRedirect />} />
-          <Route path="*" element={<HomeRedirect />} />
+          <Route path="/" element={<HomePage />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>
     </BrowserRouter>
   )
-}
-
-function HomeRedirect() {
-  return <Navigate to="/retailers" replace />
 }

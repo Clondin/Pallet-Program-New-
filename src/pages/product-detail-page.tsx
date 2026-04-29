@@ -3,7 +3,6 @@ import { useNavigate, useParams } from 'react-router-dom'
 import {
   ArrowLeft,
   ArrowUpRight,
-  Boxes,
   Building2,
   CalendarDays,
   Package,
@@ -58,10 +57,6 @@ function getStackingGuidance(product: Product) {
   return 'Standard case. Flexible placement across most shelf tiers.'
 }
 
-function getCaseVolume(product: Product) {
-  return product.width * product.height * product.depth
-}
-
 export function ProductDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -105,14 +100,63 @@ export function ProductDetailPage() {
 
   const relatedProducts = useMemo(() => {
     if (!product) return []
-    return products
-      .filter((c) => c.id !== product.id)
-      .filter((c) => c.brand === product.brand || c.category === product.category)
-      .slice(0, 4)
+
+    const SIZE_RE = /\d+(?:\.\d+)?\s*(?:oz|ml|l|lb|lbs|g|kg|gal|qt|pt|ct|pk|pack|count)\b/gi
+
+    const extractSizes = (text: string) => {
+      const matches = text.toLowerCase().match(SIZE_RE) ?? []
+      return new Set(matches.map((m) => m.replace(/\s+/g, '')))
+    }
+
+    const tokenize = (text: string) =>
+      text
+        .toLowerCase()
+        .replace(SIZE_RE, ' ')
+        .split(/[^a-z0-9]+/)
+        .filter((token) => token.length >= 2 && !/^\d+$/.test(token))
+
+    const sourceSizes = extractSizes(product.name)
+    const sourceTokens = new Set(tokenize(product.name))
+
+    const candidates = products.filter((c) => {
+      if (c.id === product.id) return false
+      if (c.brand !== product.brand) return false
+      if (sourceSizes.size > 0) {
+        const candidateSizes = extractSizes(c.name)
+        if (candidateSizes.size === 0) return false
+        let sizeMatches = false
+        for (const size of sourceSizes) {
+          if (candidateSizes.has(size)) {
+            sizeMatches = true
+            break
+          }
+        }
+        if (!sizeMatches) return false
+      }
+      return true
+    })
+
+    const scored = candidates.map((c) => {
+      const tokens = tokenize(c.name)
+      let shared = 0
+      for (const token of tokens) {
+        if (sourceTokens.has(token)) shared += 1
+      }
+      const sameCategory = c.category === product.category ? 1 : 0
+      return { product: c, shared, sameCategory }
+    })
+
+    return scored
+      .sort(
+        (a, b) =>
+          b.shared - a.shared ||
+          b.sameCategory - a.sameCategory ||
+          a.product.name.localeCompare(b.product.name),
+      )
+      .slice(0, 20)
+      .map((entry) => entry.product)
   }, [product, products])
 
-  const caseVolume = product ? getCaseVolume(product) : 0
-  const density = product && caseVolume > 0 ? product.weight / caseVolume : 0
 
   useEffect(() => {
     if (!product) return
@@ -240,7 +284,6 @@ export function ProductDetailPage() {
                   <Tag className="w-3 h-3" />{product.sku}
                 </span>
               )}
-              <span className="inline-flex items-center gap-1.5"><Boxes className="w-3 h-3" />{product.category}</span>
             </div>
           </div>
 
@@ -301,8 +344,6 @@ export function ProductDetailPage() {
                 <div className="space-y-3">
                   {[
                     { label: 'Retailers', value: String(retailerCoverage.length) },
-                    { label: 'Case Volume', value: `${caseVolume.toFixed(1)} in³` },
-                    { label: 'Density', value: `${density.toFixed(3)} lb/in³` },
                   ].map((r) => (
                     <div key={r.label} className="flex items-center justify-between gap-3">
                       <span className="text-[#888] text-[13px]">{r.label}</span>
@@ -324,11 +365,10 @@ export function ProductDetailPage() {
             {/* Placement Guidance */}
             <div className="bg-white shadow-card rounded-lg p-6">
               <h3 className="text-[15px] font-semibold text-[#171717] tracking-tight-sm mb-4">Placement Guidance</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {[
                   { label: 'Shelf Guidance', text: getStackingGuidance(product) },
                   { label: 'Seasonal Positioning', text: getSeasonality(product) },
-                  { label: 'Packaging Footprint', text: `Occupies ${caseVolume.toFixed(1)} cubic inches with a density of ${density.toFixed(3)} lb/in³.` },
                 ].map((g) => (
                   <div key={g.label} className="bg-[#fafafa] rounded-md px-4 py-4">
                     <p className="text-[10px] font-medium uppercase tracking-wider text-[#999] mb-1.5">{g.label}</p>
@@ -393,12 +433,6 @@ export function ProductDetailPage() {
                     {BRANDS.map((b) => <option key={b} value={b} className="capitalize">{b}</option>)}
                   </select>
                 </div>
-                <div>
-                  <label className="block text-[10px] font-medium uppercase tracking-wider text-[#999] mb-2">Category</label>
-                  <input type="text" disabled={!isEditing} value={form.category}
-                    onChange={(e) => setForm({ ...form, category: e.target.value })} className={inputClass} />
-                </div>
-
                 {dimensionFields.map((field) => (
                   <div key={field}>
                     <label className="block text-[10px] font-medium uppercase tracking-wider text-[#999] mb-2">
@@ -498,7 +532,7 @@ export function ProductDetailPage() {
                             >
                               {r.brand}
                             </span>
-                            <span className="text-[12px] text-[#888]">{r.category}</span>
+                            <span className="text-[12px] text-[#888]">{r.brandCode ?? r.brand}</span>
                           </div>
                         </div>
                         <span className="text-[12px] text-[#bbb] tabular-nums whitespace-nowrap">{r.width}" × {r.height}" × {r.depth}"</span>

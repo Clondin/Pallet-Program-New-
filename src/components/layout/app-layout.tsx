@@ -18,7 +18,7 @@ export function AppLayout() {
   return (
     <div className="flex min-h-screen bg-[#fafafa] text-[#171717]">
       <Sidebar />
-      <main className="flex-1 ml-[200px] relative min-h-screen flex flex-col">
+      <main className="flex-1 ml-[220px] relative min-h-screen flex flex-col">
         {isEditor && <TopToolbar />}
         <div className={`flex-1 ${isEditor ? 'pt-16' : ''}`}>
           <Outlet />
