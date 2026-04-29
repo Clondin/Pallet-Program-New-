@@ -1,16 +1,19 @@
 import { Link } from 'react-router-dom'
 import {
+  ArrowLeftRight,
   ArrowRight,
   Building2,
   CalendarRange,
   HardHat,
   Package,
   TrendingUp,
+  Users,
 } from 'lucide-react'
 import { useDisplayStore } from '../../stores/display-store'
 import { useRetailerStore } from '../../stores/retailer-store'
 import { useSeasonStore } from '../../stores/season-store'
 import { StatusPill, STATUS_LABELS } from '../../components/Status/status-pill'
+import { PendingRequestsPanel } from '../../components/PendingRequests/pending-requests-panel'
 import type { PalletStatus } from '../../types'
 
 const STAT_TILES: { status: PalletStatus; label: string }[] = [
@@ -71,6 +74,10 @@ export function ManagerHome() {
         ))}
       </div>
 
+      <div className="mb-10">
+        <PendingRequestsPanel />
+      </div>
+
       {/* Quick links */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <QuickLink
@@ -102,6 +109,18 @@ export function ManagerHome() {
           icon={TrendingUp}
           title="Demand"
           subtitle="Aggregates & swings"
+        />
+        <QuickLink
+          to="/transfers"
+          icon={ArrowLeftRight}
+          title="Transfers"
+          subtitle="Inventory & movements"
+        />
+        <QuickLink
+          to="/assignments"
+          icon={Users}
+          title="Assignments"
+          subtitle="Salesmen ↔ retailers"
         />
       </div>
     </div>

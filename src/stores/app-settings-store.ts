@@ -37,6 +37,9 @@ export interface AppSettings {
 
   // Data
   autoSaveProject: boolean
+
+  // Builder
+  defaultLaborCost: number
 }
 
 const DEFAULT_SETTINGS: AppSettings = {
@@ -64,6 +67,9 @@ const DEFAULT_SETTINGS: AppSettings = {
 
   // Data
   autoSaveProject: true,
+
+  // Builder
+  defaultLaborCost: 75,
 }
 
 function clampGridColumns(value: number) {

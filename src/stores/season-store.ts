@@ -6,6 +6,7 @@ interface SeasonState {
   setSeasons: (seasons: Season[]) => void
   createSeason: (name: string) => Season
   renameSeason: (id: string, name: string) => void
+  updateHolidayDate: (id: string, holidayDate: number | undefined) => void
   archiveSeason: (id: string) => void
   unarchiveSeason: (id: string) => void
   deleteSeason: (id: string) => void
@@ -38,6 +39,13 @@ export const useSeasonStore = create<SeasonState>((set, get) => ({
       ),
     }))
   },
+
+  updateHolidayDate: (id, holidayDate) =>
+    set((state) => ({
+      seasons: state.seasons.map((season) =>
+        season.id === id ? { ...season, holidayDate } : season,
+      ),
+    })),
 
   archiveSeason: (id) =>
     set((state) => ({

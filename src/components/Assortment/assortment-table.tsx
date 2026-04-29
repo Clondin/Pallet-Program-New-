@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Minus, Package, Plus } from 'lucide-react'
+import { RequestItemModal } from './request-item-modal'
 import { useCatalogStore } from '../../stores/catalog-store'
 import { useDisplayStore } from '../../stores/display-store'
 import { useRetailerStore } from '../../stores/retailer-store'
@@ -22,6 +23,7 @@ export function AssortmentTable({ project, retailer }: AssortmentTableProps) {
   const updateAuthorizedItemCasePrice = useRetailerStore(
     (state) => state.updateAuthorizedItemCasePrice,
   )
+  const [showRequestModal, setShowRequestModal] = useState(false)
 
   // Auto-populate pallet when assortment changes
   const prevAssortmentRef = useRef(JSON.stringify(project.assortment))
@@ -63,13 +65,25 @@ export function AssortmentTable({ project, retailer }: AssortmentTableProps) {
             {totals.totalSKUs} SKUs · {totals.totalCases} cases · {totals.totalUnits} units
           </p>
         </div>
-        <input
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-          placeholder="Search products..."
-          className="w-full sm:w-[220px] px-3 py-1.5 text-[12px] shadow-border rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-[#0a72ef]/30 focus:shadow-none"
-        />
+        <div className="flex items-center gap-2">
+          <input
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Search products..."
+            className="w-full sm:w-[220px] px-3 py-1.5 text-[12px] shadow-border rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-[#0a72ef]/30 focus:shadow-none"
+          />
+          <button
+            onClick={() => setShowRequestModal(true)}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md shadow-border text-[12px] font-medium text-[#555] hover:bg-[#fafafa] transition-colors whitespace-nowrap"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            Request item
+          </button>
+        </div>
       </div>
+      {showRequestModal && (
+        <RequestItemModal retailer={retailer} onClose={() => setShowRequestModal(false)} />
+      )}
 
       <div className="overflow-x-auto">
         <table className="w-full">

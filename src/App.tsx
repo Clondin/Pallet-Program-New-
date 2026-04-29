@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useEffect } from 'react'
-import { DisplayProject, Product, Retailer, Season } from './types'
+import { DisplayProject, InventoryLocation, InventorySnapshot, Product, Retailer, Salesperson, Season } from './types'
 import { AppLayout } from './components/layout/app-layout'
 import { EditorPage } from './pages/editor-page'
 import { CatalogPage } from './pages/catalog-page'
@@ -10,13 +10,18 @@ import { RetailerDetailPage } from './pages/retailer-detail-page'
 import { PalletDetailPage } from './pages/pallet-detail-page'
 import { ProgramRollupPage } from './pages/program-rollup-page'
 import { SeasonsPage } from './pages/seasons-page'
-import { BuildersPage } from './pages/builders-page'
+import { BuildQueuePage } from './pages/build-queue-page'
 import { HomePage } from './pages/home-page'
+import { DemandPage } from './pages/demand-page'
+import { AssignmentsPage } from './pages/assignments-page'
+import { TransfersPage } from './pages/transfers-page'
 import { ScenePage } from './pages/scene-page'
 import { useDisplayStore } from './stores/display-store'
 import { useCatalogStore } from './stores/catalog-store'
 import { useRetailerStore } from './stores/retailer-store'
 import { useSeasonStore } from './stores/season-store'
+import { useSalespersonStore } from './stores/salesperson-store'
+import { useInventoryStore } from './stores/inventory-store'
 import { useAppSettingsStore } from './stores/app-settings-store'
 import { mockRetailers } from './lib/mock-data'
 import { loadInventoryInfo } from './lib/inventory-info-loader'
@@ -28,6 +33,8 @@ const ACTIVE_PALLET_STORAGE_KEY = 'palletforge-active-pallet-id'
 const CATALOG_STORAGE_KEY = 'palletforge-products'
 const RETAILER_STORAGE_KEY = 'palletforge-retailers'
 const SEASONS_STORAGE_KEY = 'palletforge-seasons'
+const SALESPEOPLE_STORAGE_KEY = 'palletforge-salespeople'
+const INVENTORY_STORAGE_KEY = 'palletforge-inventory'
 
 function loadPersistedState<T>(key: string): T | null {
   try {
@@ -155,6 +162,15 @@ export default function App() {
       })),
     )
 
+    const persistedSalespeople =
+      loadPersistedState<Salesperson[]>(SALESPEOPLE_STORAGE_KEY) ?? []
+    useSalespersonStore.getState().setSalespeople(persistedSalespeople)
+
+    const persistedInventory = loadPersistedState<
+      Record<InventoryLocation, InventorySnapshot | null>
+    >(INVENTORY_STORAGE_KEY) ?? { hook: null, goshen: null }
+    useInventoryStore.getState().hydrate(persistedInventory)
+
     const persistedProjects = loadPersistedState<DisplayProject[]>(PALLETS_STORAGE_KEY)
     const legacyProject = loadPersistedState<DisplayProject>(PROJECT_STORAGE_KEY)
     const MOCK_PALLET_IDS = new Set(['proj-1', 'proj-2', 'proj-3'])
@@ -192,10 +208,20 @@ export default function App() {
       localStorage.setItem(SEASONS_STORAGE_KEY, JSON.stringify(state.seasons))
     })
 
+    const unsubscribeSalespeople = useSalespersonStore.subscribe((state) => {
+      localStorage.setItem(SALESPEOPLE_STORAGE_KEY, JSON.stringify(state.salespeople))
+    })
+
+    const unsubscribeInventory = useInventoryStore.subscribe((state) => {
+      localStorage.setItem(INVENTORY_STORAGE_KEY, JSON.stringify(state.snapshots))
+    })
+
     return () => {
       unsubscribeCatalog()
       unsubscribeRetailers()
       unsubscribeSeasons()
+      unsubscribeSalespeople()
+      unsubscribeInventory()
     }
   }, [])
 
@@ -238,7 +264,10 @@ export default function App() {
             element={<ProgramRollupPage />}
           />
           <Route path="/seasons" element={<SeasonsPage />} />
-          <Route path="/builders" element={<BuildersPage />} />
+          <Route path="/builders" element={<BuildQueuePage />} />
+          <Route path="/demand" element={<DemandPage />} />
+          <Route path="/assignments" element={<AssignmentsPage />} />
+          <Route path="/transfers" element={<TransfersPage />} />
           <Route path="/scene" element={<ScenePage />} />
           <Route path="/" element={<HomePage />} />
           <Route path="*" element={<Navigate to="/" replace />} />

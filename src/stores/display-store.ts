@@ -13,6 +13,7 @@ import {
   PalletType,
   PalletWizardConfig,
   Retailer,
+  Role,
 } from '../types'
 import { getAppSettingsSnapshot } from './app-settings-store'
 import { nextOrientation } from '../lib/orientation-presets'
@@ -70,6 +71,12 @@ interface DisplayState {
   updateBuildLocation: (location: DisplayProject['buildLocation']) => void
   updateLaborCost: (cost: number | null) => void
   updateStatus: (status: DisplayProject['status']) => void
+  appendBuildLog: (palletId: string, entry: { date: string; built: number; note?: string }) => void
+  removeBuildLogEntry: (palletId: string, index: number) => void
+  setBuildLocationFor: (palletId: string, location: DisplayProject['buildLocation']) => void
+  duplicateProject: (sourceId: string, overrides: { name: string; seasonId: string | null }) => DisplayProject | null
+  addComment: (palletId: string, comment: { authorRole: Role; authorName?: string; text: string }) => void
+  removeComment: (palletId: string, commentId: string) => void
   updateAssortment: (productId: string, cases: number) => void
   setAssortment: (assortment: AssortmentEntry[]) => void
   updateShipByDate: (date: number | undefined) => void
@@ -614,6 +621,124 @@ export const useDisplayStore = create<DisplayState>((set, get) => ({
     }
 
     set(commitProjectUpdate(state, nextProject))
+  },
+
+  appendBuildLog: (palletId, entry) => {
+    set((state) => {
+      const projects = state.projects.map((project) => {
+        if (project.id !== palletId) return project
+        const buildLog = [...(project.buildLog ?? []), entry]
+        return { ...project, buildLog, updatedAt: Date.now() }
+      })
+      const currentProject =
+        state.currentProject?.id === palletId
+          ? projects.find((p) => p.id === palletId) ?? state.currentProject
+          : state.currentProject
+      return { projects, currentProject }
+    })
+  },
+
+  removeBuildLogEntry: (palletId, index) => {
+    set((state) => {
+      const projects = state.projects.map((project) => {
+        if (project.id !== palletId) return project
+        const buildLog = (project.buildLog ?? []).filter((_, i) => i !== index)
+        return { ...project, buildLog, updatedAt: Date.now() }
+      })
+      const currentProject =
+        state.currentProject?.id === palletId
+          ? projects.find((p) => p.id === palletId) ?? state.currentProject
+          : state.currentProject
+      return { projects, currentProject }
+    })
+  },
+
+  setBuildLocationFor: (palletId, location) => {
+    set((state) => {
+      const projects = state.projects.map((project) =>
+        project.id === palletId
+          ? { ...project, buildLocation: location, updatedAt: Date.now() }
+          : project,
+      )
+      const currentProject =
+        state.currentProject?.id === palletId
+          ? projects.find((p) => p.id === palletId) ?? state.currentProject
+          : state.currentProject
+      return { projects, currentProject }
+    })
+  },
+
+  duplicateProject: (sourceId, overrides) => {
+    const state = get()
+    const source = state.projects.find((p) => p.id === sourceId)
+    if (!source) return null
+    const now = Date.now()
+    const clone: DisplayProject = {
+      ...structuredClone(source),
+      id: crypto.randomUUID(),
+      name: overrides.name,
+      seasonId: overrides.seasonId,
+      status: 'draft',
+      buildLog: [],
+      buildLocation: null,
+      comments: [],
+      createdAt: now,
+      updatedAt: now,
+      placements: source.placements.map((placement) => ({
+        ...placement,
+        id: crypto.randomUUID(),
+      })),
+    }
+    set((current) => ({
+      projects: [...current.projects, clone],
+    }))
+    return clone
+  },
+
+  addComment: (palletId, comment) => {
+    set((state) => {
+      const projects = state.projects.map((project) => {
+        if (project.id !== palletId) return project
+        const next = {
+          ...project,
+          comments: [
+            ...(project.comments ?? []),
+            {
+              id: crypto.randomUUID(),
+              authorRole: comment.authorRole,
+              authorName: comment.authorName,
+              text: comment.text,
+              createdAt: Date.now(),
+            },
+          ],
+          updatedAt: Date.now(),
+        }
+        return next
+      })
+      const currentProject =
+        state.currentProject?.id === palletId
+          ? projects.find((p) => p.id === palletId) ?? state.currentProject
+          : state.currentProject
+      return { projects, currentProject }
+    })
+  },
+
+  removeComment: (palletId, commentId) => {
+    set((state) => {
+      const projects = state.projects.map((project) => {
+        if (project.id !== palletId) return project
+        return {
+          ...project,
+          comments: (project.comments ?? []).filter((c) => c.id !== commentId),
+          updatedAt: Date.now(),
+        }
+      })
+      const currentProject =
+        state.currentProject?.id === palletId
+          ? projects.find((p) => p.id === palletId) ?? state.currentProject
+          : state.currentProject
+      return { projects, currentProject }
+    })
   },
 
   updateAssortment: (productId, cases) => {

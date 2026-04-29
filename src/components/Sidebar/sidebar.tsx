@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router-dom'
 import {
+  ArrowLeftRight,
   Building2,
   CalendarRange,
   CheckCircle2,
@@ -9,6 +10,7 @@ import {
   Package,
   PenLine,
   TrendingUp,
+  Users,
 } from 'lucide-react'
 import { useDisplayStore } from '../../stores/display-store'
 import { useRetailerStore } from '../../stores/retailer-store'
@@ -31,6 +33,8 @@ const navItems: NavItem[] = [
   { to: '/seasons', label: 'Seasons', icon: CalendarRange },
   { to: '/builders', label: 'Build Queue', icon: HardHat },
   { to: '/demand', label: 'Demand', icon: TrendingUp, roles: ['buyer', 'manager'] },
+  { to: '/transfers', label: 'Transfers', icon: ArrowLeftRight, roles: ['manager'] },
+  { to: '/assignments', label: 'Assignments', icon: Users, roles: ['manager'] },
 ]
 
 export function Sidebar() {

@@ -308,7 +308,37 @@ export type BuildLocation = 'hook' | 'goshen' | 'third-party'
 
 export type Role = 'salesman' | 'buyer' | 'builder' | 'manager'
 
+export interface Salesperson {
+  id: string
+  name: string
+  retailerIds: string[]
+  createdAt: number
+}
+
 export type PalletStatus = 'draft' | 'ready' | 'in_build' | 'built'
+
+export interface BuildLogEntry {
+  date: string  // YYYY-MM-DD
+  built: number
+  note?: string
+}
+
+export interface PalletComment {
+  id: string
+  authorRole: Role
+  authorName?: string
+  text: string
+  createdAt: number
+}
+
+export type InventoryLocation = 'hook' | 'goshen'
+
+export interface InventorySnapshot {
+  location: InventoryLocation
+  uploadedAt: number
+  // map keyed by Kayco item number (preferred) or productId fallback
+  lines: { kaycoItemNumber: string; cases: number }[]
+}
 
 export interface DisplayProject {
   id: string
@@ -320,6 +350,8 @@ export interface DisplayProject {
   buildLocation: BuildLocation | null
   laborCost: number | null
   status: PalletStatus
+  buildLog?: BuildLogEntry[]
+  comments?: PalletComment[]
   tierCount: number
   palletType: PalletType
   lipColor: string
@@ -336,6 +368,7 @@ export interface Season {
   name: string
   archived: boolean
   createdAt: number
+  holidayDate?: number
 }
 
 export interface SlotGridItem {

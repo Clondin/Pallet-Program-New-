@@ -2,11 +2,13 @@ import { useMemo, useState } from 'react'
 import { Archive, ArchiveRestore, CalendarRange, Pencil, Plus, Trash2 } from 'lucide-react'
 import { useSeasonStore } from '../stores/season-store'
 import { useDisplayStore } from '../stores/display-store'
+import { computeConfirmByDate, formatDate } from '../lib/deadline'
 
 export function SeasonsPage() {
   const seasons = useSeasonStore((state) => state.seasons)
   const createSeason = useSeasonStore((state) => state.createSeason)
   const renameSeason = useSeasonStore((state) => state.renameSeason)
+  const updateHolidayDate = useSeasonStore((state) => state.updateHolidayDate)
   const archiveSeason = useSeasonStore((state) => state.archiveSeason)
   const unarchiveSeason = useSeasonStore((state) => state.unarchiveSeason)
   const deleteSeason = useSeasonStore((state) => state.deleteSeason)
@@ -156,9 +158,43 @@ export function SeasonsPage() {
                       )}
                     </p>
                   )}
-                  <p className="text-[11px] text-[#888] mt-1">
-                    {palletCount} pallet{palletCount === 1 ? '' : 's'}
-                  </p>
+                  <div className="flex flex-wrap items-center gap-3 mt-2">
+                    <span className="text-[11px] text-[#888]">
+                      {palletCount} pallet{palletCount === 1 ? '' : 's'}
+                    </span>
+                    <label className="flex items-center gap-2 text-[11px] text-[#888]">
+                      <span>Holiday date:</span>
+                      <input
+                        type="date"
+                        value={
+                          season.holidayDate
+                            ? new Date(season.holidayDate).toISOString().slice(0, 10)
+                            : ''
+                        }
+                        onChange={(event) => {
+                          const value = event.target.value
+                          if (!value) {
+                            updateHolidayDate(season.id, undefined)
+                            return
+                          }
+                          const [y, m, d] = value.split('-').map(Number)
+                          updateHolidayDate(
+                            season.id,
+                            new Date(y, m - 1, d, 12).getTime(),
+                          )
+                        }}
+                        className="px-2 py-1 text-[11px] shadow-border rounded-md focus:outline-none focus:ring-2 focus:ring-[#0a72ef]/30 focus:shadow-none"
+                      />
+                    </label>
+                    {season.holidayDate && (
+                      <span className="text-[11px] text-[#666]">
+                        Confirm by{' '}
+                        <span className="font-medium text-[#171717]">
+                          {formatDate(computeConfirmByDate(season.holidayDate))}
+                        </span>
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 <div className="flex items-center gap-1 shrink-0">
