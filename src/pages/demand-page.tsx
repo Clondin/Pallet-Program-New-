@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowDown, ArrowUp, Download, TrendingUp } from 'lucide-react'
 import { useDisplayStore } from '../stores/display-store'
-import { useSeasonStore } from '../stores/season-store'
+import { compareSeasonsByHolidayDate, useSeasonStore } from '../stores/season-store'
 import { useCatalogStore } from '../stores/catalog-store'
 import { buildRollupData, type RollupRow } from '../lib/program-rollup'
 import { buildCsv, downloadCsv } from '../lib/csv'
@@ -151,7 +151,8 @@ export function DemandPage() {
 
   const selectableSeasons = seasons
     .filter((s) => !s.archived)
-    .sort((a, b) => a.name.localeCompare(b.name))
+    .slice()
+    .sort(compareSeasonsByHolidayDate)
 
   return (
     <div className="px-10 py-10 max-w-[1500px]">
@@ -205,7 +206,8 @@ export function DemandPage() {
             <option value="">No comparison</option>
             {seasons
               .filter((entry) => entry.id !== seasonId)
-              .sort((a, b) => a.name.localeCompare(b.name))
+              .slice()
+              .sort(compareSeasonsByHolidayDate)
               .map((season) => (
                 <option key={season.id} value={season.id}>
                   {season.name}

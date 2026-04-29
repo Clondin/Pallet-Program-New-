@@ -39,7 +39,8 @@ export interface AppSettings {
   autoSaveProject: boolean
 
   // Builder
-  defaultLaborCost: number
+  defaultLaborCostFull: number
+  defaultLaborCostHalf: number
 }
 
 const DEFAULT_SETTINGS: AppSettings = {
@@ -69,7 +70,8 @@ const DEFAULT_SETTINGS: AppSettings = {
   autoSaveProject: true,
 
   // Builder
-  defaultLaborCost: 75,
+  defaultLaborCostFull: 75,
+  defaultLaborCostHalf: 50,
 }
 
 function clampGridColumns(value: number) {
@@ -81,8 +83,11 @@ function clampTierCount(value: number) {
 }
 
 function sanitizeSettings(
-  partial?: Partial<AppSettings> | null
+  partial?: (Partial<AppSettings> & { defaultLaborCost?: number }) | null,
 ): AppSettings {
+  // Migrate old single `defaultLaborCost` to the new pair if present.
+  const legacyLabor =
+    typeof partial?.defaultLaborCost === 'number' ? partial.defaultLaborCost : null
   return {
     ...DEFAULT_SETTINGS,
     ...partial,
@@ -92,6 +97,13 @@ function sanitizeSettings(
     defaultTierCount: clampTierCount(
       partial?.defaultTierCount ?? DEFAULT_SETTINGS.defaultTierCount
     ),
+    defaultLaborCostFull:
+      partial?.defaultLaborCostFull ??
+      legacyLabor ??
+      DEFAULT_SETTINGS.defaultLaborCostFull,
+    defaultLaborCostHalf:
+      partial?.defaultLaborCostHalf ??
+      (legacyLabor != null ? Math.round(legacyLabor * (50 / 75)) : DEFAULT_SETTINGS.defaultLaborCostHalf),
   }
 }
 

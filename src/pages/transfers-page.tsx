@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from 'react'
 import { ArrowLeftRight, ArrowRight, CheckCircle2, Trash2, Upload } from 'lucide-react'
 import { useDisplayStore } from '../stores/display-store'
-import { useSeasonStore } from '../stores/season-store'
+import { compareSeasonsByHolidayDate, useSeasonStore } from '../stores/season-store'
 import { useCatalogStore } from '../stores/catalog-store'
 import { useInventoryStore } from '../stores/inventory-store'
 import { buildRollupData } from '../lib/program-rollup'
@@ -230,7 +230,8 @@ export function TransfersPage() {
 
   const selectableSeasons = seasons
     .filter((s) => !s.archived)
-    .sort((a, b) => a.name.localeCompare(b.name))
+    .slice()
+    .sort(compareSeasonsByHolidayDate)
 
   return (
     <div className="px-10 py-10 max-w-[1500px]">

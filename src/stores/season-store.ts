@@ -1,6 +1,15 @@
 import { create } from 'zustand'
 import type { Season } from '../types'
 
+export function compareSeasonsByHolidayDate(a: Season, b: Season): number {
+  const aDate = a.holidayDate
+  const bDate = b.holidayDate
+  if (aDate != null && bDate != null) return aDate - bDate
+  if (aDate != null) return -1
+  if (bDate != null) return 1
+  return a.name.localeCompare(b.name)
+}
+
 interface SeasonState {
   seasons: Season[]
   setSeasons: (seasons: Season[]) => void

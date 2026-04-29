@@ -5,8 +5,10 @@ import { useDisplayStore } from '../../stores/display-store'
 import { useRetailerStore } from '../../stores/retailer-store'
 import { useSeasonStore } from '../../stores/season-store'
 import { useSalespersonStore } from '../../stores/salesperson-store'
+import { useRoleStore } from '../../stores/role-store'
 import { StatusPill } from '../../components/Status/status-pill'
 import { DeadlineChip } from '../../components/Deadline/deadline-chip'
+import { PalletCreationWizard } from '../../components/PalletCreationWizard'
 import { computeConfirmByDate } from '../../lib/deadline'
 import type { PalletStatus } from '../../types'
 
@@ -17,9 +19,10 @@ export function SalesmanHome() {
   const retailers = useRetailerStore((state) => state.retailers)
   const seasons = useSeasonStore((state) => state.seasons)
   const salespeople = useSalespersonStore((state) => state.salespeople)
+  const activeSalespersonId = useRoleStore((state) => state.activeSalespersonId)
 
-  const [activeSalespersonId, setActiveSalespersonId] = useState<string>('')
   const [pinnedRetailerIds, setPinnedRetailerIds] = useState<Set<string>>(new Set())
+  const [wizardOpen, setWizardOpen] = useState(false)
 
   const retailerById = useMemo(
     () => new Map(retailers.map((r) => [r.id, r])),
@@ -92,40 +95,26 @@ export function SalesmanHome() {
             Drafts in progress, pallets ready for the warehouse, and what's already built.
           </p>
         </div>
-        <Link
-          to="/retailers"
+        <button
+          onClick={() => setWizardOpen(true)}
           className="inline-flex items-center gap-2 px-4 py-2.5 rounded-md bg-[#171717] text-white text-[13px] font-medium hover:bg-[#333] transition-colors shrink-0"
         >
           <Plus className="w-3.5 h-3.5" />
           New Pallet
-        </Link>
+        </button>
       </div>
 
-      {/* Salesperson + retailer filters */}
-      {salespeople.length > 0 && (
-        <div className="bg-white shadow-card rounded-xl p-4 mb-5 flex items-center gap-3 flex-wrap">
-          <span className="text-[11px] uppercase tracking-wider text-[#999]">I am</span>
-          <select
-            value={activeSalespersonId}
-            onChange={(event) => {
-              setActiveSalespersonId(event.target.value)
-              setPinnedRetailerIds(new Set())
-            }}
-            className="px-3 py-1.5 text-[12px] font-medium shadow-border rounded-md bg-white focus:outline-none cursor-pointer"
-          >
-            <option value="">Anyone (all retailers)</option>
-            {salespeople.map((sp) => (
-              <option key={sp.id} value={sp.id}>
-                {sp.name}
-              </option>
-            ))}
-          </select>
-          {activeSalesperson && (
-            <span className="text-[11px] text-[#888]">
-              {activeSalesperson.retailerIds.length} retailer
-              {activeSalesperson.retailerIds.length === 1 ? '' : 's'} assigned
-            </span>
-          )}
+      {salespeople.length > 0 && activeSalesperson && (
+        <div className="text-[12px] text-[#888] mb-5">
+          Showing pallets for{' '}
+          <span className="font-medium text-[#171717]">{activeSalesperson.name}</span> ·{' '}
+          {activeSalesperson.retailerIds.length} retailer
+          {activeSalesperson.retailerIds.length === 1 ? '' : 's'} assigned
+        </div>
+      )}
+      {salespeople.length > 0 && !activeSalesperson && (
+        <div className="text-[12px] text-amber-700 bg-amber-50 px-3 py-2 rounded-md mb-5">
+          Pick your name in the sidebar to see only the retailers you're assigned to.
         </div>
       )}
 
@@ -173,13 +162,13 @@ export function SalesmanHome() {
               ? 'No pallets for the selected retailers. Pick a program to start one.'
               : 'Pick a program and start your first pallet for the season.'}
           </p>
-          <Link
-            to="/retailers"
+          <button
+            onClick={() => setWizardOpen(true)}
             className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-[#171717] text-white text-[13px] font-medium hover:bg-[#333] transition-colors mt-5"
           >
-            Browse programs
-            <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
+            <Plus className="w-3.5 h-3.5" />
+            New Pallet
+          </button>
         </div>
       ) : (
         <div className="space-y-8">
@@ -243,6 +232,14 @@ export function SalesmanHome() {
           })}
         </div>
       )}
+
+      <PalletCreationWizard
+        open={wizardOpen}
+        onClose={() => setWizardOpen(false)}
+        allowedRetailerIds={
+          activeSalesperson ? activeSalesperson.retailerIds : undefined
+        }
+      />
     </div>
   )
 }

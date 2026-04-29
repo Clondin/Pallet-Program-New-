@@ -10,7 +10,7 @@ import type { PalletStatus } from '../types'
 import { useCatalogStore } from '../stores/catalog-store'
 import { useDisplayStore } from '../stores/display-store'
 import { useRetailerStore } from '../stores/retailer-store'
-import { useSeasonStore } from '../stores/season-store'
+import { compareSeasonsByHolidayDate, useSeasonStore } from '../stores/season-store'
 
 function formatDateInputValue(timestamp?: number) {
   if (!timestamp) return ''
@@ -254,7 +254,8 @@ export function PalletDetailPage() {
                 <option value="">Unassigned</option>
                 {seasons
                   .filter((season) => !season.archived || season.id === pallet.seasonId)
-                  .sort((a, b) => a.name.localeCompare(b.name))
+                  .slice()
+                  .sort(compareSeasonsByHolidayDate)
                   .map((season) => (
                     <option key={season.id} value={season.id}>
                       {season.name}

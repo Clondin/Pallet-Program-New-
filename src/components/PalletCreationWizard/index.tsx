@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'motion/react'
 import { ArrowLeft, ArrowRight, CalendarRange, Check, Plus, X } from 'lucide-react'
 import { useDisplayStore } from '../../stores/display-store'
 import { useRetailerStore } from '../../stores/retailer-store'
-import { useSeasonStore } from '../../stores/season-store'
+import { compareSeasonsByHolidayDate, useSeasonStore } from '../../stores/season-store'
 import { useAppSettingsStore } from '../../stores/app-settings-store'
 import type { Holiday, PalletType, RetailerTier } from '../../types'
 
@@ -83,21 +83,155 @@ function SelectionCard({
   )
 }
 
+type PalletOption = {
+  value: PalletType
+  label: string
+  size: string
+  blockClass: string
+}
+
+const PALLET_OPTIONS: PalletOption[] = [
+  { value: 'half', label: 'Half Pallet', size: '24" x 20"', blockClass: 'w-7 h-16' },
+  { value: 'full', label: 'Full Pallet', size: '48" x 40"', blockClass: 'w-14 h-16' },
+]
+
+function PalletTypeCarousel({
+  value,
+  onChange,
+}: {
+  value: PalletType
+  onChange: (next: PalletType) => void
+}) {
+  const activeIndex = PALLET_OPTIONS.findIndex((option) => option.value === value)
+
+  const goPrev = () => {
+    const next = (activeIndex - 1 + PALLET_OPTIONS.length) % PALLET_OPTIONS.length
+    onChange(PALLET_OPTIONS[next].value)
+  }
+  const goNext = () => {
+    const next = (activeIndex + 1) % PALLET_OPTIONS.length
+    onChange(PALLET_OPTIONS[next].value)
+  }
+
+  return (
+    <div className="flex flex-col items-center justify-center pt-2">
+      <div
+        className="relative h-[300px] w-full flex items-center justify-center"
+        style={{ perspective: '1000px' }}
+      >
+        <div
+          className="relative w-full h-full flex items-center justify-center"
+          style={{ transformStyle: 'preserve-3d' }}
+        >
+          {PALLET_OPTIONS.map((option, index) => {
+            const offset = index - activeIndex
+            const isActive = offset === 0
+            const x = offset * 180
+            const rotY = offset * -38
+            const scale = isActive ? 1 : 0.78
+            const opacity = isActive ? 1 : 0.45
+            const z = isActive ? 2 : 1
+
+            return (
+              <motion.button
+                key={option.value}
+                type="button"
+                onClick={() => onChange(option.value)}
+                animate={{
+                  x,
+                  rotateY: rotY,
+                  scale,
+                  opacity,
+                }}
+                transition={{ type: 'spring', stiffness: 220, damping: 26 }}
+                style={{
+                  zIndex: z,
+                  transformStyle: 'preserve-3d',
+                  transformOrigin: 'center',
+                }}
+                className={`absolute w-[220px] rounded-2xl border p-7 text-center transition-colors ${
+                  isActive
+                    ? 'border-white/40 bg-white/[0.08] ring-1 ring-white/20 shadow-2xl'
+                    : 'border-white/[0.08] bg-white/[0.03] hover:border-white/20 hover:bg-white/[0.06] cursor-pointer'
+                }`}
+              >
+                {isActive && (
+                  <div className="absolute top-3 right-3 w-5 h-5 rounded-full bg-white flex items-center justify-center">
+                    <Check size={12} className="text-[#111]" />
+                  </div>
+                )}
+                <div className="flex flex-col items-center gap-5 py-3">
+                  <div className="w-20 h-24 rounded-md border-2 border-dashed border-white/30 flex items-center justify-center">
+                    <div className={`${option.blockClass} bg-white/20 rounded-sm`} />
+                  </div>
+                  <div>
+                    <p className="text-[15px] font-medium text-white">{option.label}</p>
+                    <p className="text-[12px] text-[#666] mt-1">{option.size}</p>
+                  </div>
+                </div>
+              </motion.button>
+            )
+          })}
+        </div>
+      </div>
+
+      <div className="flex items-center justify-center gap-3 mt-2">
+        <button
+          type="button"
+          onClick={goPrev}
+          className="w-9 h-9 rounded-full bg-white/[0.06] border border-white/[0.08] hover:bg-white/[0.12] hover:border-white/30 text-white/70 hover:text-white flex items-center justify-center transition-colors"
+          aria-label="Previous pallet type"
+        >
+          <ArrowLeft size={14} />
+        </button>
+        <div className="flex items-center gap-1.5">
+          {PALLET_OPTIONS.map((option, index) => (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => onChange(option.value)}
+              aria-label={option.label}
+              className={`h-1.5 rounded-full transition-all ${
+                index === activeIndex ? 'w-6 bg-white' : 'w-1.5 bg-white/30 hover:bg-white/50'
+              }`}
+            />
+          ))}
+        </div>
+        <button
+          type="button"
+          onClick={goNext}
+          className="w-9 h-9 rounded-full bg-white/[0.06] border border-white/[0.08] hover:bg-white/[0.12] hover:border-white/30 text-white/70 hover:text-white flex items-center justify-center transition-colors"
+          aria-label="Next pallet type"
+        >
+          <ArrowRight size={14} />
+        </button>
+      </div>
+    </div>
+  )
+}
+
 interface PalletCreationWizardProps {
   open: boolean
   onClose: () => void
   retailerId?: string
+  allowedRetailerIds?: string[]
 }
 
 export function PalletCreationWizard({
   open,
   onClose,
   retailerId: pinnedRetailerId,
+  allowedRetailerIds,
 }: PalletCreationWizardProps) {
   const navigate = useNavigate()
   const lastUsedConfig = useDisplayStore((state) => state.lastUsedConfig)
   const createProject = useDisplayStore((state) => state.createProject)
-  const retailers = useRetailerStore((state) => state.retailers)
+  const allRetailers = useRetailerStore((state) => state.retailers)
+  const retailers = useMemo(() => {
+    if (!allowedRetailerIds) return allRetailers
+    const allowed = new Set(allowedRetailerIds)
+    return allRetailers.filter((retailer) => allowed.has(retailer.id))
+  }, [allRetailers, allowedRetailerIds])
   const seasons = useSeasonStore((state) => state.seasons)
   const createSeason = useSeasonStore((state) => state.createSeason)
   const appSettings = useAppSettingsStore((s) => s.settings)
@@ -118,8 +252,16 @@ export function PalletCreationWizard({
   const [season, setSeason] = useState<Holiday>(
     lastUsedConfig?.season ?? appSettings.defaultHoliday
   )
+  const isRetailerAllowed = useCallback(
+    (id: string | undefined | null) => {
+      if (!id) return false
+      if (!allowedRetailerIds) return true
+      return allowedRetailerIds.includes(id)
+    },
+    [allowedRetailerIds],
+  )
   const [retailerId, setRetailerId] = useState<string>(
-    pinnedRetailerId ?? lastUsedConfig?.retailerId ?? ''
+    pinnedRetailerId ?? (isRetailerAllowed(lastUsedConfig?.retailerId) ? lastUsedConfig?.retailerId ?? '' : '')
   )
   const [seasonId, setSeasonId] = useState<string | null>(
     lastUsedConfig?.seasonId ?? null
@@ -141,14 +283,15 @@ export function PalletCreationWizard({
   useEffect(() => {
     if (!open) return
 
-    const nextRetailerId = pinnedRetailerId ?? lastUsedConfig?.retailerId ?? ''
+    const seeded = pinnedRetailerId ?? lastUsedConfig?.retailerId ?? ''
+    const nextRetailerId = isRetailerAllowed(seeded) ? seeded : ''
     setStep(0)
     setDirection(1)
     setPalletType(lastUsedConfig?.palletType ?? appSettings.defaultPalletType)
     setSeason(lastUsedConfig?.season ?? appSettings.defaultHoliday)
     setRetailerId(nextRetailerId)
     setSeasonId(lastUsedConfig?.seasonId ?? null)
-  }, [open, lastUsedConfig, pinnedRetailerId])
+  }, [open, lastUsedConfig, pinnedRetailerId, isRetailerAllowed, appSettings.defaultPalletType, appSettings.defaultHoliday])
 
   useEffect(() => {
     if (!open) return
@@ -233,37 +376,8 @@ export function PalletCreationWizard({
                 animate="center"
                 exit="exit"
                 transition={{ duration: 0.25, ease: 'easeInOut' }}
-                className="grid grid-cols-2 gap-4"
               >
-                <SelectionCard
-                  selected={palletType === 'half'}
-                  onClick={() => setPalletType('half')}
-                >
-                  <div className="flex flex-col items-center text-center gap-4 py-4">
-                    <div className="w-16 h-20 rounded-md border-2 border-dashed border-white/30 flex items-center justify-center">
-                      <div className="w-6 h-14 bg-white/20 rounded-sm" />
-                    </div>
-                    <div>
-                      <p className="text-[15px] font-medium text-white">Half Pallet</p>
-                      <p className="text-[12px] text-[#666] mt-1">24&quot; x 20&quot;</p>
-                    </div>
-                  </div>
-                </SelectionCard>
-
-                <SelectionCard
-                  selected={palletType === 'full'}
-                  onClick={() => setPalletType('full')}
-                >
-                  <div className="flex flex-col items-center text-center gap-4 py-4">
-                    <div className="w-16 h-20 rounded-md border-2 border-dashed border-white/30 flex items-center justify-center">
-                      <div className="w-12 h-14 bg-white/20 rounded-sm" />
-                    </div>
-                    <div>
-                      <p className="text-[15px] font-medium text-white">Full Pallet</p>
-                      <p className="text-[12px] text-[#666] mt-1">48&quot; x 40&quot;</p>
-                    </div>
-                  </div>
-                </SelectionCard>
+                <PalletTypeCarousel value={palletType} onChange={setPalletType} />
               </motion.div>
             )}
 
@@ -297,7 +411,8 @@ export function PalletCreationWizard({
 
                 {seasons
                   .filter((entry) => !entry.archived)
-                  .sort((a, b) => a.name.localeCompare(b.name))
+                  .slice()
+                  .sort(compareSeasonsByHolidayDate)
                   .map((entry) => (
                     <SelectionCard
                       key={entry.id}
@@ -345,7 +460,11 @@ export function PalletCreationWizard({
                 transition={{ duration: 0.25, ease: 'easeInOut' }}
                 className="space-y-3"
               >
-                {retailers.map((retailer) => (
+                {retailers
+                  .filter((retailer) =>
+                    !allowedRetailerIds || allowedRetailerIds.includes(retailer.id),
+                  )
+                  .map((retailer) => (
                   <SelectionCard
                     key={retailer.id}
                     selected={retailer.id === retailerId}

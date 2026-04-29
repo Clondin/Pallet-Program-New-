@@ -187,7 +187,10 @@ export const useDisplayStore = create<DisplayState>((set, get) => ({
       season: config.season,
       seasonId: config.seasonId ?? null,
       buildLocation: null,
-      laborCost: 75,
+      laborCost:
+        config.palletType === 'half'
+          ? settings.defaultLaborCostHalf
+          : settings.defaultLaborCostFull,
       status: 'draft',
       tierCount,
       palletType: config.palletType,

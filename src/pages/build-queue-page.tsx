@@ -9,7 +9,7 @@ import {
   Plus,
 } from 'lucide-react'
 import { useDisplayStore } from '../stores/display-store'
-import { useSeasonStore } from '../stores/season-store'
+import { compareSeasonsByHolidayDate, useSeasonStore } from '../stores/season-store'
 import { useCatalogStore } from '../stores/catalog-store'
 import { useRetailerStore } from '../stores/retailer-store'
 import { useAppSettingsStore } from '../stores/app-settings-store'
@@ -99,7 +99,8 @@ export function BuildQueuePage() {
 
   const selectableSeasons = seasons
     .filter((s) => !s.archived)
-    .sort((a, b) => a.name.localeCompare(b.name))
+    .slice()
+    .sort(compareSeasonsByHolidayDate)
 
   const handleExportPullList = () => {
     const seasonLabel = seasons.find((s) => s.id === seasonId)?.name ?? 'Season'
@@ -135,23 +136,28 @@ export function BuildQueuePage() {
             Pallets ready or in progress, grouped by location. Log daily build counts.
           </p>
         </div>
-        <div className="bg-white shadow-card rounded-xl px-4 py-3 flex items-center gap-3">
+        <div className="bg-white shadow-card rounded-xl px-4 py-3 flex items-center gap-4">
           <span className="text-[10px] uppercase tracking-wider text-[#999]">Default labor</span>
-          <div className="flex items-center gap-1">
-            <span className="text-[14px] text-[#999]">$</span>
-            <input
-              type="text"
-              inputMode="decimal"
-              value={settings.defaultLaborCost}
-              onChange={(event) => {
-                const raw = event.target.value.replace(/[^0-9.]/g, '')
-                const num = parseFloat(raw)
-                if (!isNaN(num)) updateSettings({ defaultLaborCost: num })
-              }}
-              className="w-[60px] text-[14px] font-semibold text-[#171717] tabular-nums shadow-border rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-[#0a72ef]/30 focus:shadow-none"
-            />
-            <span className="text-[11px] text-[#999]">/ pallet</span>
-          </div>
+          {(['Full', 'Half'] as const).map((kind) => {
+            const key = kind === 'Full' ? 'defaultLaborCostFull' : 'defaultLaborCostHalf'
+            return (
+              <div key={kind} className="flex items-center gap-1">
+                <span className="text-[10px] uppercase tracking-wider text-[#999]">{kind}</span>
+                <span className="text-[14px] text-[#999]">$</span>
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  value={settings[key]}
+                  onChange={(event) => {
+                    const raw = event.target.value.replace(/[^0-9.]/g, '')
+                    const num = parseFloat(raw)
+                    if (!isNaN(num)) updateSettings({ [key]: num })
+                  }}
+                  className="w-[56px] text-[14px] font-semibold text-[#171717] tabular-nums shadow-border rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-[#0a72ef]/30 focus:shadow-none"
+                />
+              </div>
+            )
+          })}
         </div>
       </div>
 

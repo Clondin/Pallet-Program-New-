@@ -15,6 +15,8 @@ import {
 import { useDisplayStore } from '../../stores/display-store'
 import { useRetailerStore } from '../../stores/retailer-store'
 import { ROLE_LABELS, useRoleStore } from '../../stores/role-store'
+import { useSalespersonStore } from '../../stores/salesperson-store'
+import { isRouteAllowedForRole } from '../../lib/role-routes'
 import type { Role } from '../../types'
 
 const ROLE_OPTIONS: Role[] = ['salesman', 'buyer', 'builder', 'manager']
@@ -23,7 +25,6 @@ interface NavItem {
   to: string
   label: string
   icon: typeof Building2
-  roles?: Role[]
 }
 
 const navItems: NavItem[] = [
@@ -32,14 +33,17 @@ const navItems: NavItem[] = [
   { to: '/catalog', label: 'Catalog', icon: Package },
   { to: '/seasons', label: 'Seasons', icon: CalendarRange },
   { to: '/builders', label: 'Build Queue', icon: HardHat },
-  { to: '/demand', label: 'Demand', icon: TrendingUp, roles: ['buyer', 'manager'] },
-  { to: '/transfers', label: 'Transfers', icon: ArrowLeftRight, roles: ['manager'] },
-  { to: '/assignments', label: 'Assignments', icon: Users, roles: ['manager'] },
+  { to: '/demand', label: 'Demand', icon: TrendingUp },
+  { to: '/transfers', label: 'Transfers', icon: ArrowLeftRight },
+  { to: '/assignments', label: 'Assignments', icon: Users },
 ]
 
 export function Sidebar() {
   const role = useRoleStore((state) => state.role)
   const setRole = useRoleStore((state) => state.setRole)
+  const activeSalespersonId = useRoleStore((state) => state.activeSalespersonId)
+  const setActiveSalespersonId = useRoleStore((state) => state.setActiveSalespersonId)
+  const salespeople = useSalespersonStore((state) => state.salespeople)
   const currentProject = useDisplayStore((state) => state.currentProject)
   const currentRetailer = useRetailerStore((state) =>
     currentProject ? state.getRetailer(currentProject.retailerId) : undefined
@@ -54,9 +58,7 @@ export function Sidebar() {
       ? `/retailers/${currentProject.retailerId}/pallets/${currentProject.id}/editor`
       : null
 
-  const visibleNavItems = navItems.filter(
-    (item) => !item.roles || item.roles.includes(role),
-  )
+  const visibleNavItems = navItems.filter((item) => isRouteAllowedForRole(item.to, role))
 
   return (
     <aside className="w-[220px] h-screen fixed left-0 top-0 bg-[#0e0e0e] flex flex-col py-6 px-3 z-50">
@@ -91,6 +93,35 @@ export function Sidebar() {
             </option>
           ))}
         </select>
+
+        {role === 'salesman' && salespeople.length > 0 && (
+          <>
+            <div className="mt-3 text-[9px] font-medium uppercase tracking-wider text-[#666]">
+              I am
+            </div>
+            <select
+              value={activeSalespersonId ?? ''}
+              onChange={(event) => setActiveSalespersonId(event.target.value || null)}
+              className="mt-1 w-full bg-transparent text-[12px] font-medium text-white border-none outline-none cursor-pointer focus:ring-2 focus:ring-white/20 rounded -ml-1 pl-1 appearance-none"
+              style={{
+                backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke-width='1.5' stroke='%23999'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19.5 8.25l-7.5 7.5-7.5-7.5' /%3E%3C/svg%3E")`,
+                backgroundRepeat: 'no-repeat',
+                backgroundPosition: 'right 0.25rem center',
+                backgroundSize: '1rem',
+                paddingRight: '1.25rem',
+              }}
+            >
+              <option value="" className="bg-[#1a1a1a]">
+                Anyone
+              </option>
+              {salespeople.map((sp) => (
+                <option key={sp.id} value={sp.id} className="bg-[#1a1a1a]">
+                  {sp.name}
+                </option>
+              ))}
+            </select>
+          </>
+        )}
       </div>
 
       {currentProject && currentPalletHref && currentEditorHref && (

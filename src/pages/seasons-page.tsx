@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Archive, ArchiveRestore, CalendarRange, Pencil, Plus, Trash2 } from 'lucide-react'
-import { useSeasonStore } from '../stores/season-store'
+import { compareSeasonsByHolidayDate, useSeasonStore } from '../stores/season-store'
 import { useDisplayStore } from '../stores/display-store'
 import { computeConfirmByDate, formatDate } from '../lib/deadline'
 
@@ -30,7 +30,7 @@ export function SeasonsPage() {
 
   const visibleSeasons = useMemo(() => {
     const filtered = seasons.filter((season) => (showArchived ? true : !season.archived))
-    return filtered.slice().sort((a, b) => a.name.localeCompare(b.name))
+    return filtered.slice().sort(compareSeasonsByHolidayDate)
   }, [seasons, showArchived])
 
   const handleCreate = () => {

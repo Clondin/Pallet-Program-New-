@@ -8,6 +8,8 @@ import {
 } from 'lucide-react'
 import { useRetailerStore } from '../stores/retailer-store'
 import { useDisplayStore } from '../stores/display-store'
+import { useRoleStore } from '../stores/role-store'
+import { useSalespersonStore } from '../stores/salesperson-store'
 import { RetailerCard } from '../components/Retailers/retailer-card'
 import { RetailerForm } from '../components/Retailers/retailer-form'
 import type { Retailer, RetailerStatus } from '../types'
@@ -23,6 +25,13 @@ type SortKey = 'pallets' | 'name' | 'revenue' | 'stores' | 'items'
 export function RetailersPage() {
   const { retailers, addRetailer, updateRetailer, deleteRetailer } = useRetailerStore()
   const projects = useDisplayStore((state) => state.projects)
+  const role = useRoleStore((state) => state.role)
+  const activeSalespersonId = useRoleStore((state) => state.activeSalespersonId)
+  const salespeople = useSalespersonStore((state) => state.salespeople)
+  const activeSalesperson =
+    role === 'salesman' && activeSalespersonId
+      ? salespeople.find((sp) => sp.id === activeSalespersonId)
+      : null
   const navigate = useNavigate()
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [editingRetailerId, setEditingRetailerId] = useState<string | null>(null)
@@ -36,6 +45,11 @@ export function RetailersPage() {
 
   const filteredRetailers = useMemo(() => {
     let result = [...retailers]
+
+    if (activeSalesperson) {
+      const allowed = new Set(activeSalesperson.retailerIds)
+      result = result.filter((r) => allowed.has(r.id))
+    }
 
     if (searchQuery) {
       const q = searchQuery.toLowerCase()
@@ -73,7 +87,7 @@ export function RetailersPage() {
       }
     })
     return result
-  }, [retailers, projects, searchQuery, statusFilter, sortBy])
+  }, [retailers, projects, searchQuery, statusFilter, sortBy, activeSalesperson])
 
   function handleAdd() {
     setEditingRetailerId(null)

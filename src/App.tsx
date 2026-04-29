@@ -182,7 +182,8 @@ export default function App() {
         assortment: project.assortment ?? [],
         seasonId: project.seasonId ?? null,
         buildLocation: project.buildLocation ?? null,
-        laborCost: project.laborCost ?? 75,
+        laborCost:
+          project.laborCost ?? (project.palletType === 'half' ? 50 : 75),
         status: project.status ?? 'draft',
       }))
     const activePalletId = localStorage.getItem(ACTIVE_PALLET_STORAGE_KEY)
