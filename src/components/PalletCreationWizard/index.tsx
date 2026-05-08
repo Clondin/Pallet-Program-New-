@@ -1,7 +1,9 @@
-import { useState, useCallback, useMemo, useEffect } from 'react'
+import { useState, useCallback, useMemo, useEffect, Suspense } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'motion/react'
-import { ArrowLeft, ArrowRight, CalendarRange, Check, Plus, X } from 'lucide-react'
+import { Canvas } from '@react-three/fiber'
+import { ArrowLeft, ArrowRight, CalendarRange, Check, X } from 'lucide-react'
+import { PalletDisplayScene } from '../PalletDisplay/PalletDisplayScene'
 import { useDisplayStore } from '../../stores/display-store'
 import { useRetailerStore } from '../../stores/retailer-store'
 import { compareSeasonsByHolidayDate, useSeasonStore } from '../../stores/season-store'
@@ -87,12 +89,11 @@ type PalletOption = {
   value: PalletType
   label: string
   size: string
-  blockClass: string
 }
 
 const PALLET_OPTIONS: PalletOption[] = [
-  { value: 'half', label: 'Half Pallet', size: '24" x 20"', blockClass: 'w-7 h-16' },
-  { value: 'full', label: 'Full Pallet', size: '48" x 40"', blockClass: 'w-14 h-16' },
+  { value: 'half', label: 'Half Pallet', size: '24" x 20"' },
+  { value: 'full', label: 'Full Pallet', size: '48" x 40"' },
 ]
 
 function PalletTypeCarousel({
@@ -103,6 +104,7 @@ function PalletTypeCarousel({
   onChange: (next: PalletType) => void
 }) {
   const activeIndex = PALLET_OPTIONS.findIndex((option) => option.value === value)
+  const activeOption = PALLET_OPTIONS[activeIndex]
 
   const goPrev = () => {
     const next = (activeIndex - 1 + PALLET_OPTIONS.length) % PALLET_OPTIONS.length
@@ -114,97 +116,94 @@ function PalletTypeCarousel({
   }
 
   return (
-    <div className="flex flex-col items-center justify-center pt-2">
-      <div
-        className="relative h-[300px] w-full flex items-center justify-center"
-        style={{ perspective: '1000px' }}
-      >
-        <div
-          className="relative w-full h-full flex items-center justify-center"
-          style={{ transformStyle: 'preserve-3d' }}
+    <div className="flex flex-col items-center">
+      <div className="relative mx-auto w-full h-[340px] rounded-xl overflow-hidden bg-gradient-to-b from-[#1d1d1d] to-[#0f0f0f] border border-white/[0.06]">
+        <Canvas
+          camera={{ position: [85, 60, 85], fov: 38 }}
+          dpr={[1, 1.5]}
+          gl={{ antialias: true, powerPreference: 'high-performance' }}
         >
-          {PALLET_OPTIONS.map((option, index) => {
-            const offset = index - activeIndex
-            const isActive = offset === 0
-            const x = offset * 180
-            const rotY = offset * -38
-            const scale = isActive ? 1 : 0.78
-            const opacity = isActive ? 1 : 0.45
-            const z = isActive ? 2 : 1
+          <Suspense fallback={null}>
+            <PalletDisplayScene
+              key={value}
+              palletType={value}
+              palletDimensions={{ width: 48, depth: 40, height: 6 }}
+              tierCount={4}
+              maxDisplayHeight={60}
+              lipColor="#3B7DD8"
+              branding={{
+                lipText: '',
+                lipTextColor: '#FFFFFF',
+                headerText: 'Rosh Hashanah',
+                headerTextColor: '#FFFFFF',
+                headerBackgroundColor: '#3B7DD8',
+              }}
+              placedProducts={[]}
+              showSlotGrid={false}
+              showHeader
+              autoRotate
+              environment="retail"
+            />
+          </Suspense>
+        </Canvas>
 
-            return (
-              <motion.button
-                key={option.value}
-                type="button"
-                onClick={() => onChange(option.value)}
-                animate={{
-                  x,
-                  rotateY: rotY,
-                  scale,
-                  opacity,
-                }}
-                transition={{ type: 'spring', stiffness: 220, damping: 26 }}
-                style={{
-                  zIndex: z,
-                  transformStyle: 'preserve-3d',
-                  transformOrigin: 'center',
-                }}
-                className={`absolute w-[220px] rounded-2xl border p-7 text-center transition-colors ${
-                  isActive
-                    ? 'border-white/40 bg-white/[0.08] ring-1 ring-white/20 shadow-2xl'
-                    : 'border-white/[0.08] bg-white/[0.03] hover:border-white/20 hover:bg-white/[0.06] cursor-pointer'
-                }`}
-              >
-                {isActive && (
-                  <div className="absolute top-3 right-3 w-5 h-5 rounded-full bg-white flex items-center justify-center">
-                    <Check size={12} className="text-[#111]" />
-                  </div>
-                )}
-                <div className="flex flex-col items-center gap-5 py-3">
-                  <div className="w-20 h-24 rounded-md border-2 border-dashed border-white/30 flex items-center justify-center">
-                    <div className={`${option.blockClass} bg-white/20 rounded-sm`} />
-                  </div>
-                  <div>
-                    <p className="text-[15px] font-medium text-white">{option.label}</p>
-                    <p className="text-[12px] text-[#666] mt-1">{option.size}</p>
-                  </div>
-                </div>
-              </motion.button>
-            )
-          })}
-        </div>
-      </div>
-
-      <div className="flex items-center justify-center gap-3 mt-2">
         <button
           type="button"
           onClick={goPrev}
-          className="w-9 h-9 rounded-full bg-white/[0.06] border border-white/[0.08] hover:bg-white/[0.12] hover:border-white/30 text-white/70 hover:text-white flex items-center justify-center transition-colors"
-          aria-label="Previous pallet type"
+          className="group absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-full bg-black/50 backdrop-blur-md border border-white/[0.15] hover:bg-black/70 hover:border-white/40 text-white/90 transition-colors"
+          aria-label={`Switch to ${PALLET_OPTIONS[(activeIndex - 1 + PALLET_OPTIONS.length) % PALLET_OPTIONS.length].label}`}
         >
           <ArrowLeft size={14} />
+          <span className="text-[11px] font-medium uppercase tracking-wide">
+            {PALLET_OPTIONS[(activeIndex - 1 + PALLET_OPTIONS.length) % PALLET_OPTIONS.length].label.replace(' Pallet', '')}
+          </span>
         </button>
-        <div className="flex items-center gap-1.5">
-          {PALLET_OPTIONS.map((option, index) => (
-            <button
-              key={option.value}
-              type="button"
-              onClick={() => onChange(option.value)}
-              aria-label={option.label}
-              className={`h-1.5 rounded-full transition-all ${
-                index === activeIndex ? 'w-6 bg-white' : 'w-1.5 bg-white/30 hover:bg-white/50'
-              }`}
-            />
-          ))}
-        </div>
         <button
           type="button"
           onClick={goNext}
-          className="w-9 h-9 rounded-full bg-white/[0.06] border border-white/[0.08] hover:bg-white/[0.12] hover:border-white/30 text-white/70 hover:text-white flex items-center justify-center transition-colors"
-          aria-label="Next pallet type"
+          className="group absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2 pr-2 pl-3 py-1.5 rounded-full bg-black/50 backdrop-blur-md border border-white/[0.15] hover:bg-black/70 hover:border-white/40 text-white/90 transition-colors"
+          aria-label={`Switch to ${PALLET_OPTIONS[(activeIndex + 1) % PALLET_OPTIONS.length].label}`}
         >
+          <span className="text-[11px] font-medium uppercase tracking-wide">
+            {PALLET_OPTIONS[(activeIndex + 1) % PALLET_OPTIONS.length].label.replace(' Pallet', '')}
+          </span>
           <ArrowRight size={14} />
         </button>
+      </div>
+
+      <div className="flex flex-col items-center mt-8 gap-3">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeOption.value}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.2 }}
+            className="text-center"
+          >
+            <p className="text-[15px] font-medium text-white">{activeOption.label}</p>
+            <p className="text-[12px] text-[#666] mt-0.5">{activeOption.size}</p>
+          </motion.div>
+        </AnimatePresence>
+        <div className="inline-flex p-1 rounded-full bg-white/[0.04] border border-white/[0.08]">
+          {PALLET_OPTIONS.map((option) => {
+            const isActive = option.value === value
+            return (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => onChange(option.value)}
+                className={`px-4 py-1.5 rounded-full text-[12px] font-medium transition-colors ${
+                  isActive
+                    ? 'bg-white text-[#111]'
+                    : 'text-white/60 hover:text-white'
+                }`}
+              >
+                {option.label}
+              </button>
+            )
+          })}
+        </div>
       </div>
     </div>
   )
@@ -233,7 +232,6 @@ export function PalletCreationWizard({
     return allRetailers.filter((retailer) => allowed.has(retailer.id))
   }, [allRetailers, allowedRetailerIds])
   const seasons = useSeasonStore((state) => state.seasons)
-  const createSeason = useSeasonStore((state) => state.createSeason)
   const appSettings = useAppSettingsStore((s) => s.settings)
 
   const retailerSelectionRequired = !pinnedRetailerId
@@ -291,7 +289,9 @@ export function PalletCreationWizard({
     setSeason(lastUsedConfig?.season ?? appSettings.defaultHoliday)
     setRetailerId(nextRetailerId)
     setSeasonId(lastUsedConfig?.seasonId ?? null)
-  }, [open, lastUsedConfig, pinnedRetailerId, isRetailerAllowed, appSettings.defaultPalletType, appSettings.defaultHoliday])
+    // Reset only on open transition; other deps would jump the user back to step 0 mid-flow.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open])
 
   useEffect(() => {
     if (!open) return
@@ -302,11 +302,11 @@ export function PalletCreationWizard({
     const nameStepIndex = steps.length - 1
 
     if (step === 0) return !!palletType
-    if (step === seasonStepIndex) return true
+    if (step === seasonStepIndex) return seasonId !== null
     if (step === retailerStepIndex) return !!retailerId
     if (step === nameStepIndex) return name.trim().length > 0
     return false
-  }, [step, palletType, retailerId, name, seasonStepIndex, retailerStepIndex, steps.length])
+  }, [step, palletType, seasonId, retailerId, name, seasonStepIndex, retailerStepIndex, steps.length])
 
   const goNext = useCallback(() => {
     if (step < steps.length - 1) {
@@ -365,7 +365,7 @@ export function PalletCreationWizard({
 
         <StepIndicator current={step} total={steps.length} />
 
-        <div className="relative overflow-hidden min-h-[320px]">
+        <div className="relative overflow-hidden min-h-[480px]">
           <AnimatePresence mode="wait" custom={direction}>
             {step === 0 && (
               <motion.div
@@ -390,25 +390,8 @@ export function PalletCreationWizard({
                 animate="center"
                 exit="exit"
                 transition={{ duration: 0.25, ease: 'easeInOut' }}
-                className="space-y-3 max-h-[340px] overflow-y-auto pr-1"
+                className="space-y-3 max-h-[420px] overflow-y-auto pr-1"
               >
-                <SelectionCard
-                  selected={seasonId === null}
-                  onClick={() => setSeasonId(null)}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-md bg-white/[0.06] flex items-center justify-center">
-                      <CalendarRange size={16} className="text-white/40" />
-                    </div>
-                    <div>
-                      <p className="text-[14px] font-medium text-white">No season</p>
-                      <p className="text-[11px] text-[#777] mt-0.5">
-                        Tag this pallet with a season later.
-                      </p>
-                    </div>
-                  </div>
-                </SelectionCard>
-
                 {seasons
                   .filter((entry) => !entry.archived)
                   .slice()
@@ -429,23 +412,6 @@ export function PalletCreationWizard({
                       </div>
                     </SelectionCard>
                   ))}
-
-                <button
-                  onClick={() => {
-                    const name = window.prompt('Name for the new season:')
-                    if (!name || !name.trim()) return
-                    const created = createSeason(name)
-                    setSeasonId(created.id)
-                  }}
-                  className="w-full rounded-xl border border-dashed border-white/[0.12] hover:border-white/30 hover:bg-white/[0.04] p-4 text-left transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-md bg-white/[0.06] flex items-center justify-center">
-                      <Plus size={16} className="text-white/60" />
-                    </div>
-                    <p className="text-[14px] font-medium text-white/80">Create new season…</p>
-                  </div>
-                </button>
               </motion.div>
             )}
 
@@ -458,7 +424,7 @@ export function PalletCreationWizard({
                 animate="center"
                 exit="exit"
                 transition={{ duration: 0.25, ease: 'easeInOut' }}
-                className="space-y-3"
+                className="space-y-2 max-h-[420px] overflow-y-auto pr-1"
               >
                 {retailers
                   .filter((retailer) =>
@@ -469,23 +435,9 @@ export function PalletCreationWizard({
                     key={retailer.id}
                     selected={retailer.id === retailerId}
                     onClick={() => setRetailerId(retailer.id)}
+                    className="!p-4"
                   >
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <p className="text-[15px] font-medium text-white">{retailer.name}</p>
-                        <p className="text-[12px] text-[#777] mt-1">
-                          {retailer.headquartersCity}, {retailer.headquartersState}
-                        </p>
-                        <p className="text-[12px] text-[#666] mt-1">
-                          {retailer.storeCount.toLocaleString()} stores
-                        </p>
-                      </div>
-                      <span
-                        className={`px-2 py-1 rounded-md border text-[11px] font-medium ${tierColors[retailer.tier]}`}
-                      >
-                        {retailer.tier}
-                      </span>
-                    </div>
+                    <p className="text-[14px] font-medium text-white">{retailer.name}</p>
                   </SelectionCard>
                 ))}
               </motion.div>
