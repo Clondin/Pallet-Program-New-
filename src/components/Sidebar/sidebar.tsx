@@ -1,4 +1,4 @@
-import { NavLink } from 'react-router-dom'
+import { NavLink, useNavigate } from 'react-router-dom'
 import {
   ArrowLeftRight,
   Building2,
@@ -39,6 +39,7 @@ const navItems: NavItem[] = [
 ]
 
 export function Sidebar() {
+  const navigate = useNavigate()
   const role = useRoleStore((state) => state.role)
   const setRole = useRoleStore((state) => state.setRole)
   const activeSalespersonId = useRoleStore((state) => state.activeSalespersonId)
@@ -49,16 +50,23 @@ export function Sidebar() {
     currentProject ? state.getRetailer(currentProject.retailerId) : undefined
   )
 
+  const rolePrefix = `/${role}`
+
   const currentPalletHref =
     currentProject
-      ? `/retailers/${currentProject.retailerId}/pallets/${currentProject.id}`
+      ? `${rolePrefix}/retailers/${currentProject.retailerId}/pallets/${currentProject.id}`
       : null
   const currentEditorHref =
     currentProject
-      ? `/retailers/${currentProject.retailerId}/pallets/${currentProject.id}/editor`
+      ? `${rolePrefix}/retailers/${currentProject.retailerId}/pallets/${currentProject.id}/editor`
       : null
 
   const visibleNavItems = navItems.filter((item) => isRouteAllowedForRole(item.to, role))
+
+  const handleRoleChange = (next: Role) => {
+    setRole(next)
+    navigate(`/${next}`)
+  }
 
   return (
     <aside className="w-[220px] h-screen fixed left-0 top-0 bg-[#0e0e0e] flex flex-col py-6 px-3 z-50">
@@ -77,7 +85,7 @@ export function Sidebar() {
         </div>
         <select
           value={role}
-          onChange={(event) => setRole(event.target.value as Role)}
+          onChange={(event) => handleRoleChange(event.target.value as Role)}
           className="mt-2 w-full bg-transparent text-[13px] font-semibold text-white border-none outline-none cursor-pointer focus:ring-2 focus:ring-white/20 rounded -ml-1 pl-1 appearance-none"
           style={{
             backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke-width='1.5' stroke='%23999'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19.5 8.25l-7.5 7.5-7.5-7.5' /%3E%3C/svg%3E")`,
@@ -158,23 +166,26 @@ export function Sidebar() {
       )}
 
       <nav className="flex-1 space-y-0.5 px-1">
-        {visibleNavItems.map(({ to, label, icon: Icon }) => (
-          <NavLink
-            key={to}
-            to={to}
-            end={to === '/'}
-            className={({ isActive }) =>
-              `flex items-center gap-3 px-3 py-2 rounded-md transition-colors duration-150 ${
-                isActive
-                  ? 'text-white bg-white/[0.08]'
-                  : 'text-[#777] hover:text-[#ccc] hover:bg-white/[0.04]'
-              }`
-            }
-          >
-            <Icon size={16} />
-            <span className="text-[13px] font-medium">{label}</span>
-          </NavLink>
-        ))}
+        {visibleNavItems.map(({ to, label, icon: Icon }) => {
+          const fullTo = to === '/' ? rolePrefix : `${rolePrefix}${to}`
+          return (
+            <NavLink
+              key={to}
+              to={fullTo}
+              end={to === '/'}
+              className={({ isActive }) =>
+                `flex items-center gap-3 px-3 py-2 rounded-md transition-colors duration-150 ${
+                  isActive
+                    ? 'text-white bg-white/[0.08]'
+                    : 'text-[#777] hover:text-[#ccc] hover:bg-white/[0.04]'
+                }`
+              }
+            >
+              <Icon size={16} />
+              <span className="text-[13px] font-medium">{label}</span>
+            </NavLink>
+          )
+        })}
       </nav>
 
       <div

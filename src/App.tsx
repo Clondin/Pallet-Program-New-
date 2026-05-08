@@ -1,7 +1,9 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useEffect } from 'react'
 import { DisplayProject, InventoryLocation, InventorySnapshot, Product, Retailer, Salesperson, Season } from './types'
-import { AppLayout } from './components/layout/app-layout'
+import { RoleAppLayout } from './components/layout/role-app-layout'
+import { LegacyFlatRedirect } from './components/layout/legacy-flat-redirect'
+import { RoleLauncher } from './pages/role-launcher'
 import { EditorPage } from './pages/editor-page'
 import { CatalogPage } from './pages/catalog-page'
 import { ProductDetailPage } from './pages/product-detail-page'
@@ -247,32 +249,46 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route element={<AppLayout />}>
-          <Route path="/catalog" element={<CatalogPage />} />
-          <Route path="/catalog/:id" element={<ProductDetailPage />} />
-          <Route path="/retailers" element={<RetailersPage />} />
-          <Route path="/retailers/:id" element={<RetailerDetailPage />} />
+        <Route path="/" element={<RoleLauncher />} />
+
+        <Route path="/:role" element={<RoleAppLayout />}>
+          <Route index element={<HomePage />} />
+          <Route path="catalog" element={<CatalogPage />} />
+          <Route path="catalog/:id" element={<ProductDetailPage />} />
+          <Route path="retailers" element={<RetailersPage />} />
+          <Route path="retailers/:id" element={<RetailerDetailPage />} />
           <Route
-            path="/retailers/:retailerId/pallets/:palletId"
+            path="retailers/:retailerId/pallets/:palletId"
             element={<PalletDetailPage />}
           />
           <Route
-            path="/retailers/:retailerId/pallets/:palletId/editor"
+            path="retailers/:retailerId/pallets/:palletId/editor"
             element={<EditorPage />}
           />
           <Route
-            path="/retailers/:retailerId/program/:season"
+            path="retailers/:retailerId/program/:season"
             element={<ProgramRollupPage />}
           />
-          <Route path="/seasons" element={<SeasonsPage />} />
-          <Route path="/builders" element={<BuildQueuePage />} />
-          <Route path="/demand" element={<DemandPage />} />
-          <Route path="/assignments" element={<AssignmentsPage />} />
-          <Route path="/transfers" element={<TransfersPage />} />
-          <Route path="/scene" element={<ScenePage />} />
-          <Route path="/" element={<HomePage />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="seasons" element={<SeasonsPage />} />
+          <Route path="builders" element={<BuildQueuePage />} />
+          <Route path="demand" element={<DemandPage />} />
+          <Route path="assignments" element={<AssignmentsPage />} />
+          <Route path="transfers" element={<TransfersPage />} />
+          <Route path="scene" element={<ScenePage />} />
+          <Route path="*" element={<Navigate to="." replace />} />
         </Route>
+
+        {/* Legacy flat URLs bounce to the current role's prefix. */}
+        <Route path="/catalog/*" element={<LegacyFlatRedirect />} />
+        <Route path="/retailers/*" element={<LegacyFlatRedirect />} />
+        <Route path="/seasons" element={<LegacyFlatRedirect />} />
+        <Route path="/builders" element={<LegacyFlatRedirect />} />
+        <Route path="/demand" element={<LegacyFlatRedirect />} />
+        <Route path="/assignments" element={<LegacyFlatRedirect />} />
+        <Route path="/transfers" element={<LegacyFlatRedirect />} />
+        <Route path="/scene" element={<LegacyFlatRedirect />} />
+
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
   )

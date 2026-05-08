@@ -1,0 +1,67 @@
+import { useNavigate } from 'react-router-dom'
+import { Briefcase, HardHat, ShoppingCart, Compass } from 'lucide-react'
+import { useRoleStore, ROLE_LABELS, ROLE_DESCRIPTIONS } from '../stores/role-store'
+import type { Role } from '../types'
+
+const TILE_ORDER: Role[] = ['salesman', 'builder', 'buyer', 'manager']
+
+const TILE_ICON: Record<Role, typeof Briefcase> = {
+  salesman: Briefcase,
+  builder: HardHat,
+  buyer: ShoppingCart,
+  manager: Compass,
+}
+
+export function RoleLauncher() {
+  const navigate = useNavigate()
+  const setRole = useRoleStore((state) => state.setRole)
+
+  const choose = (role: Role) => {
+    setRole(role)
+    navigate(`/${role}`)
+  }
+
+  return (
+    <div className="min-h-screen bg-[#0e0e0e] text-white flex flex-col">
+      <header className="px-12 pt-12">
+        <h1 className="text-[28px] font-semibold tracking-display">PalletForge</h1>
+        <p className="text-[13px] text-[#888] mt-2 max-w-xl">
+          Pallet program planning for Kayco. Pick how you're using the app today —
+          you can switch any time.
+        </p>
+      </header>
+
+      <main className="flex-1 px-12 py-12 grid grid-cols-1 md:grid-cols-2 gap-6 max-w-[1100px] w-full mx-auto">
+        {TILE_ORDER.map((role) => {
+          const Icon = TILE_ICON[role]
+          return (
+            <button
+              key={role}
+              onClick={() => choose(role)}
+              className="group relative text-left rounded-2xl bg-white/[0.03] border border-white/[0.08] hover:bg-white/[0.06] hover:border-white/30 p-8 transition-all"
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-11 h-11 rounded-xl bg-white/[0.06] border border-white/[0.08] flex items-center justify-center">
+                  <Icon size={20} className="text-white/70 group-hover:text-white transition-colors" />
+                </div>
+                <p className="text-[10px] uppercase tracking-wider text-[#666]">Open as</p>
+              </div>
+              <p className="text-[24px] font-semibold tracking-tight">{ROLE_LABELS[role]}</p>
+              <p className="text-[13px] text-[#888] mt-2 leading-relaxed">
+                {ROLE_DESCRIPTIONS[role]}
+              </p>
+              <p className="absolute right-7 bottom-7 text-[12px] text-[#555] group-hover:text-white transition-colors">
+                Enter →
+              </p>
+            </button>
+          )
+        })}
+      </main>
+
+      <footer className="px-12 pb-8 text-[11px] text-[#555]">
+        Each role has its own workspace. The Manager workspace can see everything
+        the other three do.
+      </footer>
+    </div>
+  )
+}
