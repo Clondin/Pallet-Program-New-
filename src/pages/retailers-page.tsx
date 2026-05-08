@@ -127,6 +127,7 @@ export function RetailersPage() {
   }
 
   const isSalesman = role === 'salesman'
+  const isManager = role === 'manager'
   const headerLabel = isSalesman ? 'My retailers' : 'Programs'
   const headerCount = isSalesman
     ? `${filteredRetailers.length} retailer${filteredRetailers.length === 1 ? '' : 's'} assigned`
@@ -142,7 +143,7 @@ export function RetailersPage() {
           </h2>
           <p className="text-[13px] text-[#888] mt-1">{headerCount}</p>
         </div>
-        {!isSalesman && (
+        {isManager && (
           <button
             onClick={handleAdd}
             className="flex items-center gap-2 px-4 py-2 text-[13px] font-medium text-white bg-[#171717] hover:bg-[#333] rounded-md transition-colors"

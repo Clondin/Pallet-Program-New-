@@ -5,6 +5,7 @@ import type { Product } from '../../types'
 import { BRAND_COLORS } from '../../lib/mock-data'
 import { formatWeight } from '../../lib/number-format'
 import { useCatalogStore } from '../../stores/catalog-store'
+import { useRoleHref } from '../../lib/role-href'
 
 interface ProductRowProps {
   product: Product
@@ -12,6 +13,7 @@ interface ProductRowProps {
 
 export function ProductRow({ product }: ProductRowProps) {
   const navigate = useNavigate()
+  const roleHref = useRoleHref()
   const deleteProduct = useCatalogStore((s) => s.deleteProduct)
   const [showMenu, setShowMenu] = useState(false)
 
@@ -22,7 +24,7 @@ export function ProductRow({ product }: ProductRowProps) {
     <tr
       className="group cursor-pointer transition-colors hover:bg-[#fafafa]"
       style={{ boxShadow: '0 1px 0 0 rgba(0,0,0,0.03)' }}
-      onClick={() => navigate(`/catalog/${product.id}`)}
+      onClick={() => navigate(roleHref(`/catalog/${product.id}`))}
     >
       <td className="px-5 py-3">
         <div className="flex items-center gap-3">

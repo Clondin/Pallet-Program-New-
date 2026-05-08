@@ -4,6 +4,7 @@ import { Sidebar } from '../Sidebar/sidebar'
 import { TopToolbar } from '../Toolbar/top-toolbar'
 import { SalesmanLayout } from './salesman-layout'
 import { BuilderLayout } from './builder-layout'
+import { BuyerLayout } from './buyer-layout'
 import { useDisplayStore } from '../../stores/display-store'
 import { useRoleStore } from '../../stores/role-store'
 import { isRouteAllowedForRole } from '../../lib/role-routes'
@@ -46,7 +47,7 @@ function DefaultShell({ children }: RoleShellProps) {
 const ROLE_SHELLS: Record<Role, (props: RoleShellProps) => ReactNode> = {
   salesman: ({ children }) => <SalesmanLayout>{children}</SalesmanLayout>,
   builder: ({ children }) => <BuilderLayout>{children}</BuilderLayout>,
-  buyer: DefaultShell,
+  buyer: ({ children }) => <BuyerLayout>{children}</BuyerLayout>,
   manager: DefaultShell,
 }
 

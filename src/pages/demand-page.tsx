@@ -4,6 +4,7 @@ import { ArrowDown, ArrowUp, Download, TrendingUp } from 'lucide-react'
 import { useDisplayStore } from '../stores/display-store'
 import { compareSeasonsByHolidayDate, useSeasonStore } from '../stores/season-store'
 import { useCatalogStore } from '../stores/catalog-store'
+import { useRoleHref } from '../lib/role-href'
 import { buildRollupData, type RollupRow } from '../lib/program-rollup'
 import { buildCsv, downloadCsv } from '../lib/csv'
 
@@ -13,6 +14,7 @@ export function DemandPage() {
   const seasons = useSeasonStore((state) => state.seasons)
   const projects = useDisplayStore((state) => state.projects)
   const products = useCatalogStore((state) => state.products)
+  const roleHref = useRoleHref()
 
   const [seasonId, setSeasonId] = useState<string>('')
   const [comparisonSeasonId, setComparisonSeasonId] = useState<string>('')
@@ -187,7 +189,7 @@ export function DemandPage() {
           {selectableSeasons.length === 0 && (
             <p className="text-[12px] text-[#888] mt-2">
               No seasons yet.{' '}
-              <Link to="/seasons" className="text-[#0a72ef] hover:underline">
+              <Link to={roleHref('/seasons')} className="text-[#0a72ef] hover:underline">
                 Create one →
               </Link>
             </p>
