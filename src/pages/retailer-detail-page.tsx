@@ -610,7 +610,7 @@ export function RetailerDetailPage() {
     <div className="px-10 py-10 max-w-[1400px]">
       {/* Breadcrumb */}
       <button
-        onClick={() => navigate('/retailers')}
+        onClick={() => navigate(roleHref('/retailers'))}
         className="flex items-center gap-1.5 text-[#999] hover:text-[#171717] text-[12px] font-medium mb-6 transition-colors"
       >
         <ArrowLeft className="w-3.5 h-3.5" />

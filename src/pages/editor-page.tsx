@@ -4,10 +4,12 @@ import { useDisplayStore } from '../stores/display-store'
 import { ThreeDViewer } from '../components/Editor/three-d-viewer'
 import { GridEditor } from '../components/Editor/grid-editor'
 import { ProductPickerModal } from '../components/Editor/product-picker-modal'
+import { useRoleHref } from '../lib/role-href'
 import { Package } from 'lucide-react'
 
 export function EditorPage() {
   const { palletId, retailerId } = useParams()
+  const roleHref = useRoleHref()
   const viewMode = useDisplayStore((state) => state.viewMode)
   const currentProject = useDisplayStore((state) => state.currentProject)
   const selectProject = useDisplayStore((state) => state.selectProject)
@@ -28,7 +30,7 @@ export function EditorPage() {
             Open a retailer and create a pallet to start building.
           </p>
           <Link
-            to="/retailers"
+            to={roleHref('/retailers')}
             className="inline-flex mt-4 px-4 py-2 rounded-md bg-white text-[#111] text-[12px] font-medium hover:bg-[#eee] transition-colors"
           >
             Go to Retailers
@@ -44,7 +46,7 @@ export function EditorPage() {
         {retailerId && palletId && (
           <div className="absolute left-4 top-5 z-30">
             <Link
-              to={`/retailers/${retailerId}/pallets/${palletId}`}
+              to={roleHref(`/retailers/${retailerId}/pallets/${palletId}`)}
               className="inline-flex items-center px-3 py-1.5 rounded-md bg-white/90 backdrop-blur text-[12px] font-medium text-[#555] hover:text-[#171717] transition-colors shadow-sm"
             >
               Back to pallet

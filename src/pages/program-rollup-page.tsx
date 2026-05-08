@@ -6,6 +6,7 @@ import { buildRollupData } from '../lib/program-rollup'
 import { useCatalogStore } from '../stores/catalog-store'
 import { useDisplayStore } from '../stores/display-store'
 import { useRetailerStore } from '../stores/retailer-store'
+import { useRoleHref } from '../lib/role-href'
 import type { Holiday } from '../types'
 
 const HOLIDAY_LABELS: Record<Holiday, string> = {
@@ -18,6 +19,7 @@ const HOLIDAY_LABELS: Record<Holiday, string> = {
 export function ProgramRollupPage() {
   const { retailerId, season } = useParams()
   const navigate = useNavigate()
+  const roleHref = useRoleHref()
   const retailer = useRetailerStore((state) =>
     retailerId ? state.getRetailer(retailerId) : undefined,
   )
@@ -52,7 +54,7 @@ export function ProgramRollupPage() {
   return (
     <div className="px-10 py-10 max-w-[1400px]">
       <button
-        onClick={() => navigate(`/retailers/${retailerId}`)}
+        onClick={() => navigate(roleHref(`/retailers/${retailerId}`))}
         className="flex items-center gap-1.5 text-[#777] hover:text-[#171717] text-[12px] font-medium mb-5 transition-colors"
       >
         <ArrowLeft className="w-3.5 h-3.5" />
