@@ -71,6 +71,7 @@ interface DisplayState {
   updateBuildLocation: (location: DisplayProject['buildLocation']) => void
   updateLaborCost: (cost: number | null) => void
   updateStatus: (status: DisplayProject['status']) => void
+  updateStatusFor: (palletId: string, status: DisplayProject['status']) => void
   appendBuildLog: (palletId: string, entry: { date: string; built: number; note?: string }) => void
   removeBuildLogEntry: (palletId: string, index: number) => void
   setBuildLocationFor: (palletId: string, location: DisplayProject['buildLocation']) => void
@@ -619,6 +620,20 @@ export const useDisplayStore = create<DisplayState>((set, get) => ({
 
     const nextProject = {
       ...state.currentProject,
+      status,
+      updatedAt: Date.now(),
+    }
+
+    set(commitProjectUpdate(state, nextProject))
+  },
+
+  updateStatusFor: (palletId, status) => {
+    const state = get()
+    const target = state.projects.find((p) => p.id === palletId)
+    if (!target) return
+
+    const nextProject = {
+      ...target,
       status,
       updatedAt: Date.now(),
     }

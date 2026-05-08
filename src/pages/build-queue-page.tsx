@@ -13,6 +13,7 @@ import { compareSeasonsByHolidayDate, useSeasonStore } from '../stores/season-st
 import { useCatalogStore } from '../stores/catalog-store'
 import { useRetailerStore } from '../stores/retailer-store'
 import { useAppSettingsStore } from '../stores/app-settings-store'
+import { useRoleHref } from '../lib/role-href'
 import { StatusPill } from '../components/Status/status-pill'
 import { DeadlineChip } from '../components/Deadline/deadline-chip'
 import { computeConfirmByDate } from '../lib/deadline'
@@ -48,6 +49,7 @@ export function BuildQueuePage() {
   const retailers = useRetailerStore((state) => state.retailers)
   const settings = useAppSettingsStore((state) => state.settings)
   const updateSettings = useAppSettingsStore((state) => state.updateSettings)
+  const roleHref = useRoleHref()
 
   const [seasonId, setSeasonId] = useState<string>('')
   const [pullListLocation, setPullListLocation] = useState<BuildLocation | 'all'>('all')
@@ -221,7 +223,7 @@ export function BuildQueuePage() {
                           >
                             <div className="flex items-start justify-between gap-2 mb-2">
                               <Link
-                                to={`/retailers/${pallet.retailerId}/pallets/${pallet.id}`}
+                                to={roleHref(`/retailers/${pallet.retailerId}/pallets/${pallet.id}`)}
                                 className="text-[12px] font-semibold text-[#171717] hover:text-[#0a72ef] line-clamp-2 flex-1"
                               >
                                 {pallet.name}
