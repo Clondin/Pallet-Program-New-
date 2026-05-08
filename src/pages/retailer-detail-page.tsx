@@ -18,6 +18,7 @@ import {
 import { useCatalogStore } from '../stores/catalog-store'
 import { useRetailerStore } from '../stores/retailer-store'
 import { useDisplayStore } from '../stores/display-store'
+import { useRoleHref } from '../lib/role-href'
 import { PalletWizard } from '../components/Wizard/PalletWizard'
 import type { WizardPalletConfig } from '../components/Wizard/wizardTypes'
 import { BRAND_COLORS } from '../lib/mock-data'
@@ -95,10 +96,11 @@ function StatusBadge({ status }: { status: string }) {
 
 function PalletCard({ pallet, retailerId }: { pallet: DisplayProject; retailerId: string }) {
   const navigate = useNavigate()
+  const roleHref = useRoleHref()
 
   return (
     <div
-      onClick={() => navigate(`/retailers/${retailerId}/pallets/${pallet.id}`)}
+      onClick={() => navigate(roleHref(`/retailers/${retailerId}/pallets/${pallet.id}`))}
       className="group bg-white shadow-card rounded-lg p-4 hover:shadow-elevated transition-all cursor-pointer"
     >
       <div className="flex items-start justify-between">
@@ -556,6 +558,7 @@ function ComplianceTab({ retailer }: { retailer: Retailer }) {
 export function RetailerDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const roleHref = useRoleHref()
   const retailer = useRetailerStore((state) => state.getRetailer(id ?? ''))
   const projects = useDisplayStore((state) => state.projects)
   const pallets = useMemo(
@@ -581,7 +584,7 @@ export function RetailerDetailPage() {
       config.display.tierCount,
     )
     setWizardOpen(false)
-    navigate(`/retailers/${id}/pallets/${project.id}`)
+    navigate(roleHref(`/retailers/${id}/pallets/${project.id}`))
   }
 
   const tierCfg = TIER_LABEL[retailer?.tier ?? 'standard']
@@ -594,7 +597,7 @@ export function RetailerDetailPage() {
         <Building2 className="w-10 h-10 text-[#ccc] mb-3" />
         <h3 className="text-[15px] font-semibold text-[#333]">Program not found</h3>
         <button
-          onClick={() => navigate('/retailers')}
+          onClick={() => navigate(roleHref('/retailers'))}
           className="mt-3 px-4 py-1.5 text-[13px] font-medium text-[#0a72ef] hover:bg-[#0a72ef]/5 rounded-md transition-colors"
         >
           Back to Programs
@@ -688,7 +691,7 @@ export function RetailerDetailPage() {
                   {seasonOptions.map((season) => (
                     <Link
                       key={season}
-                      to={`/retailers/${id}/program/${season}`}
+                      to={roleHref(`/retailers/${id}/program/${season}`)}
                       className="text-[12px] font-medium text-[#0a72ef] hover:underline"
                     >
                       {formatHoliday(season)}

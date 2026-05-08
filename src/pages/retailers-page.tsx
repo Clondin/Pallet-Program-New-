@@ -123,28 +123,34 @@ export function RetailersPage() {
   }
 
   function handleCardClick(id: string) {
-    navigate(`/retailers/${id}`)
+    navigate(`/${role}/retailers/${id}`)
   }
 
+  const isSalesman = role === 'salesman'
+  const headerLabel = isSalesman ? 'My retailers' : 'Programs'
+  const headerCount = isSalesman
+    ? `${filteredRetailers.length} retailer${filteredRetailers.length === 1 ? '' : 's'} assigned`
+    : `${retailers.length} ${retailers.length === 1 ? 'program' : 'programs'}`
+
   return (
-    <div className="px-10 py-10 max-w-[1600px]">
+    <div className={`${isSalesman ? 'px-8 py-10 max-w-[1280px] mx-auto' : 'px-10 py-10 max-w-[1600px]'}`}>
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
           <h2 className="text-[28px] font-semibold tracking-display text-[#171717]">
-            Programs
+            {headerLabel}
           </h2>
-          <p className="text-[13px] text-[#888] mt-1">
-            {retailers.length} {retailers.length === 1 ? 'program' : 'programs'}
-          </p>
+          <p className="text-[13px] text-[#888] mt-1">{headerCount}</p>
         </div>
-        <button
-          onClick={handleAdd}
-          className="flex items-center gap-2 px-4 py-2 text-[13px] font-medium text-white bg-[#171717] hover:bg-[#333] rounded-md transition-colors"
-        >
-          <Plus className="w-3.5 h-3.5" />
-          Add Program
-        </button>
+        {!isSalesman && (
+          <button
+            onClick={handleAdd}
+            className="flex items-center gap-2 px-4 py-2 text-[13px] font-medium text-white bg-[#171717] hover:bg-[#333] rounded-md transition-colors"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            Add Program
+          </button>
+        )}
       </div>
 
       {/* Filters */}

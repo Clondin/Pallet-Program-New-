@@ -1,5 +1,6 @@
 import { useState, useCallback, useMemo, useEffect, Suspense } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useRoleHref } from '../../lib/role-href'
 import { motion, AnimatePresence } from 'motion/react'
 import { Canvas } from '@react-three/fiber'
 import { ArrowLeft, ArrowRight, CalendarRange, Check, X } from 'lucide-react'
@@ -223,6 +224,7 @@ export function PalletCreationWizard({
   allowedRetailerIds,
 }: PalletCreationWizardProps) {
   const navigate = useNavigate()
+  const roleHref = useRoleHref()
   const lastUsedConfig = useDisplayStore((state) => state.lastUsedConfig)
   const createProject = useDisplayStore((state) => state.createProject)
   const allRetailers = useRetailerStore((state) => state.retailers)
@@ -333,8 +335,8 @@ export function PalletCreationWizard({
     )
 
     onClose()
-    navigate(`/retailers/${retailerId}/pallets/${project.id}`)
-  }, [retailerId, name, retailers, palletType, season, seasonId, createProject, navigate, onClose])
+    navigate(roleHref(`/retailers/${retailerId}/pallets/${project.id}`))
+  }, [retailerId, name, retailers, palletType, season, seasonId, createProject, navigate, roleHref, onClose])
 
   const slideVariants = {
     enter: (dir: number) => ({ x: dir > 0 ? 80 : -80, opacity: 0 }),

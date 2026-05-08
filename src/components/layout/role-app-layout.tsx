@@ -2,6 +2,7 @@ import { useEffect, type ReactNode } from 'react'
 import { Navigate, Outlet, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { Sidebar } from '../Sidebar/sidebar'
 import { TopToolbar } from '../Toolbar/top-toolbar'
+import { SalesmanLayout } from './salesman-layout'
 import { useDisplayStore } from '../../stores/display-store'
 import { useRoleStore } from '../../stores/role-store'
 import { isRouteAllowedForRole } from '../../lib/role-routes'
@@ -42,7 +43,7 @@ function DefaultShell({ children }: RoleShellProps) {
 }
 
 const ROLE_SHELLS: Record<Role, (props: RoleShellProps) => ReactNode> = {
-  salesman: DefaultShell,
+  salesman: ({ children }) => <SalesmanLayout>{children}</SalesmanLayout>,
   builder: DefaultShell,
   buyer: DefaultShell,
   manager: DefaultShell,

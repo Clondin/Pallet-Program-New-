@@ -11,6 +11,7 @@ import { useCatalogStore } from '../stores/catalog-store'
 import { useDisplayStore } from '../stores/display-store'
 import { useRetailerStore } from '../stores/retailer-store'
 import { compareSeasonsByHolidayDate, useSeasonStore } from '../stores/season-store'
+import { useRoleHref } from '../lib/role-href'
 
 function formatDateInputValue(timestamp?: number) {
   if (!timestamp) return ''
@@ -51,6 +52,7 @@ function Stat({
 export function PalletDetailPage() {
   const { retailerId, palletId } = useParams()
   const navigate = useNavigate()
+  const roleHref = useRoleHref()
   const pallet = useDisplayStore((state) =>
     palletId ? state.getProject(palletId) : undefined
   )
@@ -84,7 +86,7 @@ export function PalletDetailPage() {
         <Boxes className="w-10 h-10 text-[#ccc] mb-3" />
         <h3 className="text-[15px] font-semibold text-[#333]">Pallet not found</h3>
         <button
-          onClick={() => navigate('/retailers')}
+          onClick={() => navigate(roleHref('/retailers'))}
           className="mt-3 px-4 py-1.5 text-[13px] font-medium text-[#0a72ef] hover:bg-[#0a72ef]/5 rounded-md transition-colors"
         >
           Back to Retailers
@@ -96,7 +98,7 @@ export function PalletDetailPage() {
   return (
     <div className="px-10 py-10 max-w-[1300px]">
       <button
-        onClick={() => navigate(`/retailers/${retailerId}`)}
+        onClick={() => navigate(roleHref(`/retailers/${retailerId}`))}
         className="flex items-center gap-1.5 text-[#777] hover:text-[#171717] text-[12px] font-medium mb-5 transition-colors"
       >
         <ArrowLeft className="w-3.5 h-3.5" />
@@ -162,7 +164,7 @@ export function PalletDetailPage() {
                 seasonId: nextSeasonId,
               })
               if (clone) {
-                navigate(`/retailers/${clone.retailerId}/pallets/${clone.id}`)
+                navigate(roleHref(`/retailers/${clone.retailerId}/pallets/${clone.id}`))
               }
             }}
             className="inline-flex items-center gap-2 px-3 py-2 rounded-md text-[#555] text-[13px] font-medium hover:bg-[#fafafa] transition-colors"
@@ -176,7 +178,7 @@ export function PalletDetailPage() {
                 window.confirm(`Delete pallet "${pallet.name}"? This cannot be undone.`)
               ) {
                 deleteProject(pallet.id)
-                navigate(`/retailers/${retailerId}`)
+                navigate(roleHref(`/retailers/${retailerId}`))
               }
             }}
             className="inline-flex items-center gap-2 px-3 py-2 rounded-md text-[#c0392b] text-[13px] font-medium hover:bg-[#c0392b]/5 transition-colors"
@@ -185,7 +187,7 @@ export function PalletDetailPage() {
             Delete
           </button>
           <Link
-            to={`/retailers/${retailerId}/pallets/${pallet.id}/editor`}
+            to={roleHref(`/retailers/${retailerId}/pallets/${pallet.id}/editor`)}
             className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-[#171717] text-white text-[13px] font-medium hover:bg-[#333] transition-colors"
           >
             <PenLine className="w-3.5 h-3.5" />
