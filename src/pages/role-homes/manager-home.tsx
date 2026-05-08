@@ -2,10 +2,13 @@ import { Link } from 'react-router-dom'
 import {
   ArrowLeftRight,
   ArrowRight,
+  Briefcase,
   Building2,
   CalendarRange,
+  Eye,
   HardHat,
   Package,
+  ShoppingCart,
   TrendingUp,
   Users,
 } from 'lucide-react'
@@ -78,50 +81,66 @@ export function ManagerHome() {
         <PendingRequestsPanel />
       </div>
 
+      {/* View as another role */}
+      <div className="mb-10">
+        <p className="text-[11px] uppercase tracking-wider text-[#999] mb-3 flex items-center gap-1.5">
+          <Eye className="w-3 h-3" />
+          See what each role sees
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <ViewAsTile to="/salesman" icon={Briefcase} title="Salesman view" subtitle="Pick a salesperson, see their pallets" />
+          <ViewAsTile to="/builder" icon={HardHat} title="Builder view" subtitle="What's ready, in build, sorted by deadline" />
+          <ViewAsTile to="/buyer" icon={ShoppingCart} title="Buyer view" subtitle="Demand swings vs prior season" />
+        </div>
+      </div>
+
       {/* Quick links */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <QuickLink
-          to="/retailers"
-          icon={Building2}
-          title="Programs"
-          subtitle={`${activeRetailers} active`}
-        />
-        <QuickLink
-          to="/catalog"
-          icon={Package}
-          title="Catalog"
-          subtitle="Master items"
-        />
-        <QuickLink
-          to="/seasons"
-          icon={CalendarRange}
-          title="Seasons"
-          subtitle={`${activeSeasons} active`}
-        />
-        <QuickLink
-          to="/builders"
-          icon={HardHat}
-          title="Build Queue"
-          subtitle="By location"
-        />
-        <QuickLink
-          to="/demand"
-          icon={TrendingUp}
-          title="Demand"
-          subtitle="Aggregates & swings"
-        />
-        <QuickLink
-          to="/transfers"
-          icon={ArrowLeftRight}
-          title="Transfers"
-          subtitle="Inventory & movements"
-        />
-        <QuickLink
-          to="/assignments"
-          icon={Users}
-          title="Assignments"
-          subtitle="Salesmen ↔ retailers"
-        />
+      <div>
+        <p className="text-[11px] uppercase tracking-wider text-[#999] mb-3">Setup &amp; operations</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <QuickLink
+            to="/manager/retailers"
+            icon={Building2}
+            title="Programs"
+            subtitle={`${activeRetailers} active`}
+          />
+          <QuickLink
+            to="/manager/catalog"
+            icon={Package}
+            title="Catalog"
+            subtitle="Master items"
+          />
+          <QuickLink
+            to="/manager/seasons"
+            icon={CalendarRange}
+            title="Seasons"
+            subtitle={`${activeSeasons} active`}
+          />
+          <QuickLink
+            to="/manager/builders"
+            icon={HardHat}
+            title="Build Queue"
+            subtitle="By location (kanban)"
+          />
+          <QuickLink
+            to="/manager/demand"
+            icon={TrendingUp}
+            title="Demand"
+            subtitle="Aggregates & swings"
+          />
+          <QuickLink
+            to="/manager/transfers"
+            icon={ArrowLeftRight}
+            title="Transfers"
+            subtitle="Inventory & movements"
+          />
+          <QuickLink
+            to="/manager/assignments"
+            icon={Users}
+            title="Assignments"
+            subtitle="Salesmen ↔ retailers"
+          />
+        </div>
       </div>
     </div>
   )
@@ -151,6 +170,34 @@ function QuickLink({
       </div>
       <p className="text-[15px] font-semibold text-[#171717] mt-4">{title}</p>
       <p className="text-[12px] text-[#888] mt-0.5">{subtitle}</p>
+    </Link>
+  )
+}
+
+function ViewAsTile({
+  to,
+  icon: Icon,
+  title,
+  subtitle,
+}: {
+  to: string
+  icon: typeof Briefcase
+  title: string
+  subtitle: string
+}) {
+  return (
+    <Link
+      to={to}
+      className="group bg-[#171717] text-white rounded-xl px-5 py-5 hover:bg-[#222] transition-colors"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="w-10 h-10 rounded-lg bg-white/[0.08] flex items-center justify-center">
+          <Icon className="w-4 h-4 text-white/70" />
+        </div>
+        <ArrowRight className="w-4 h-4 text-white/40 group-hover:text-white group-hover:translate-x-0.5 transition-all" />
+      </div>
+      <p className="text-[15px] font-semibold mt-4">{title}</p>
+      <p className="text-[12px] text-white/60 mt-0.5">{subtitle}</p>
     </Link>
   )
 }
