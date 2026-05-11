@@ -10,6 +10,7 @@ import type { PalletStatus } from '../types'
 import { useCatalogStore } from '../stores/catalog-store'
 import { useDisplayStore } from '../stores/display-store'
 import { useRetailerStore } from '../stores/retailer-store'
+import { useRoleStore } from '../stores/role-store'
 import { compareSeasonsByHolidayDate, useSeasonStore } from '../stores/season-store'
 import { useRoleHref } from '../lib/role-href'
 import { useConfirm } from '../components/ConfirmDialog'
@@ -54,6 +55,8 @@ export function PalletDetailPage() {
   const { retailerId, palletId } = useParams()
   const navigate = useNavigate()
   const roleHref = useRoleHref()
+  const role = useRoleStore((state) => state.role)
+  const isSalesman = role === 'salesman'
   const { confirm, dialog: confirmDialog } = useConfirm()
   const pallet = useDisplayStore((state) =>
     palletId ? state.getProject(palletId) : undefined
@@ -201,10 +204,12 @@ export function PalletDetailPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+      <div className={`grid grid-cols-1 ${isSalesman ? 'md:grid-cols-3' : 'md:grid-cols-4'} gap-4 mb-8`}>
         <Stat icon={Store} label="Retailer" value={retailer.name} />
         <Stat icon={Package} label="Products" value={String(pallet.placements.length)} />
-        <Stat icon={Boxes} label="Tiers" value={String(pallet.tierCount)} />
+        {!isSalesman && (
+          <Stat icon={Boxes} label="Tiers" value={String(pallet.tierCount)} />
+        )}
         <Stat
           icon={CalendarDays}
           label="Updated"
@@ -272,50 +277,54 @@ export function PalletDetailPage() {
                 <option value="__new__">+ Create new season…</option>
               </select>
             </div>
-            <div className="rounded-lg bg-[#fafafa] px-4 py-4">
-              <p className="text-[10px] uppercase tracking-wider text-[#999]">Tiers</p>
-              <p className="text-[14px] font-semibold text-[#171717] mt-1">
-                {pallet.tierCount}
-              </p>
-            </div>
-            <div className="rounded-lg bg-[#fafafa] px-4 py-4">
-              <p className="text-[10px] uppercase tracking-wider text-[#999] mb-2">Build location</p>
-              <select
-                value={pallet.buildLocation ?? ''}
-                onChange={(event) => {
-                  const value = event.target.value
-                  updateBuildLocation(value === '' ? null : (value as 'hook' | 'goshen' | 'third-party'))
-                }}
-                className="w-full text-[14px] font-semibold text-[#171717] bg-transparent border-none outline-none cursor-pointer focus:ring-2 focus:ring-[#0a72ef]/30 rounded-md -ml-1 pl-1"
-              >
-                <option value="">Unassigned</option>
-                <option value="hook">Hook</option>
-                <option value="goshen">Goshen</option>
-                <option value="third-party">3rd Party Location</option>
-              </select>
-            </div>
-            <div className="rounded-lg bg-[#fafafa] px-4 py-4">
-              <p className="text-[10px] uppercase tracking-wider text-[#999] mb-2">Labor cost</p>
-              <div className="flex items-center gap-1">
-                <span className="text-[14px] font-semibold text-[#999]">$</span>
-                <input
-                  type="text"
-                  inputMode="decimal"
-                  value={pallet.laborCost ?? ''}
-                  onChange={(event) => {
-                    const val = event.target.value.replace(/[^0-9.]/g, '')
-                    if (val === '') {
-                      updateLaborCost(null)
-                      return
-                    }
-                    const num = parseFloat(val)
-                    updateLaborCost(isNaN(num) ? null : num)
-                  }}
-                  placeholder="75"
-                  className="flex-1 text-[14px] font-semibold text-[#171717] bg-transparent border-none outline-none focus:ring-2 focus:ring-[#0a72ef]/30 rounded-md -ml-1 pl-1"
-                />
-              </div>
-            </div>
+            {!isSalesman && (
+              <>
+                <div className="rounded-lg bg-[#fafafa] px-4 py-4">
+                  <p className="text-[10px] uppercase tracking-wider text-[#999]">Tiers</p>
+                  <p className="text-[14px] font-semibold text-[#171717] mt-1">
+                    {pallet.tierCount}
+                  </p>
+                </div>
+                <div className="rounded-lg bg-[#fafafa] px-4 py-4">
+                  <p className="text-[10px] uppercase tracking-wider text-[#999] mb-2">Build location</p>
+                  <select
+                    value={pallet.buildLocation ?? ''}
+                    onChange={(event) => {
+                      const value = event.target.value
+                      updateBuildLocation(value === '' ? null : (value as 'hook' | 'goshen' | 'third-party'))
+                    }}
+                    className="w-full text-[14px] font-semibold text-[#171717] bg-transparent border-none outline-none cursor-pointer focus:ring-2 focus:ring-[#0a72ef]/30 rounded-md -ml-1 pl-1"
+                  >
+                    <option value="">Unassigned</option>
+                    <option value="hook">Hook</option>
+                    <option value="goshen">Goshen</option>
+                    <option value="third-party">3rd Party Location</option>
+                  </select>
+                </div>
+                <div className="rounded-lg bg-[#fafafa] px-4 py-4">
+                  <p className="text-[10px] uppercase tracking-wider text-[#999] mb-2">Labor cost</p>
+                  <div className="flex items-center gap-1">
+                    <span className="text-[14px] font-semibold text-[#999]">$</span>
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      value={pallet.laborCost ?? ''}
+                      onChange={(event) => {
+                        const val = event.target.value.replace(/[^0-9.]/g, '')
+                        if (val === '') {
+                          updateLaborCost(null)
+                          return
+                        }
+                        const num = parseFloat(val)
+                        updateLaborCost(isNaN(num) ? null : num)
+                      }}
+                      placeholder="75"
+                      className="flex-1 text-[14px] font-semibold text-[#171717] bg-transparent border-none outline-none focus:ring-2 focus:ring-[#0a72ef]/30 rounded-md -ml-1 pl-1"
+                    />
+                  </div>
+                </div>
+              </>
+            )}
           </div>
 
           <div className="mt-6 pt-6" style={{ boxShadow: '0 -1px 0 0 rgba(0,0,0,0.06)' }}>
