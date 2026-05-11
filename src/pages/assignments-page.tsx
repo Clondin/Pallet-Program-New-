@@ -176,10 +176,10 @@ export function AssignmentsPage() {
                           className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-medium transition-colors ${
                             assigned
                               ? isInactive
-                                ? 'bg-[#888] text-white line-through'
+                                ? 'bg-[#888] text-white'
                                 : 'bg-[#171717] text-white'
                               : isInactive
-                                ? 'bg-[#fafafa] text-[#bbb] line-through hover:bg-[#f0f0f0]'
+                                ? 'bg-[#fafafa] text-[#bbb] hover:bg-[#f0f0f0]'
                                 : 'bg-[#fafafa] text-[#666] hover:bg-[#f0f0f0]'
                           }`}
                         >
