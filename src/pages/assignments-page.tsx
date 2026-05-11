@@ -1,7 +1,9 @@
 import { useState } from 'react'
-import { Pencil, Plus, Trash2, UserPlus, Users } from 'lucide-react'
+import { Building2, Pencil, Plus, Trash2, UserPlus, Users } from 'lucide-react'
 import { useSalespersonStore } from '../stores/salesperson-store'
 import { useRetailerStore } from '../stores/retailer-store'
+import { RetailerForm } from '../components/Retailers/retailer-form'
+import type { Retailer } from '../types'
 
 export function AssignmentsPage() {
   const salespeople = useSalespersonStore((state) => state.salespeople)
@@ -10,10 +12,17 @@ export function AssignmentsPage() {
   const deleteSalesperson = useSalespersonStore((state) => state.deleteSalesperson)
   const toggleRetailer = useSalespersonStore((state) => state.toggleRetailer)
   const retailers = useRetailerStore((state) => state.retailers)
+  const addRetailer = useRetailerStore((state) => state.addRetailer)
 
   const [draftName, setDraftName] = useState('')
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingName, setEditingName] = useState('')
+  const [isRetailerFormOpen, setIsRetailerFormOpen] = useState(false)
+
+  const handleRetailerSave = (data: Omit<Retailer, 'id'> & { id?: string }) => {
+    addRetailer({ ...data, id: `ret-${Date.now()}` } as Retailer)
+    setIsRetailerFormOpen(false)
+  }
 
   const handleCreate = () => {
     const name = draftName.trim()
@@ -40,26 +49,44 @@ export function AssignmentsPage() {
         </p>
       </div>
 
-      <div className="bg-white shadow-card rounded-xl p-5 mb-6">
-        <p className="text-[12px] font-medium text-[#555] mb-2">Add salesman</p>
-        <div className="flex gap-2">
-          <input
-            value={draftName}
-            onChange={(event) => setDraftName(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter') handleCreate()
-            }}
-            placeholder="Salesman name"
-            className="flex-1 px-3 py-2 text-[13px] shadow-border rounded-md focus:outline-none focus:ring-2 focus:ring-[#0a72ef]/30 focus:shadow-none"
-          />
-          <button
-            onClick={handleCreate}
-            disabled={draftName.trim().length === 0}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-[#171717] text-white text-[13px] font-medium hover:bg-[#333] transition-colors disabled:opacity-40"
-          >
-            <UserPlus className="w-3.5 h-3.5" />
-            Add
-          </button>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <div className="bg-white shadow-card rounded-xl p-5">
+          <p className="text-[12px] font-medium text-[#555] mb-2">Add salesman</p>
+          <div className="flex gap-2">
+            <input
+              value={draftName}
+              onChange={(event) => setDraftName(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') handleCreate()
+              }}
+              placeholder="Salesman name"
+              className="flex-1 px-3 py-2 text-[13px] shadow-border rounded-md focus:outline-none focus:ring-2 focus:ring-[#0a72ef]/30 focus:shadow-none"
+            />
+            <button
+              onClick={handleCreate}
+              disabled={draftName.trim().length === 0}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-[#171717] text-white text-[13px] font-medium hover:bg-[#333] transition-colors disabled:opacity-40"
+            >
+              <UserPlus className="w-3.5 h-3.5" />
+              Add
+            </button>
+          </div>
+        </div>
+
+        <div className="bg-white shadow-card rounded-xl p-5">
+          <p className="text-[12px] font-medium text-[#555] mb-2">Add program</p>
+          <div className="flex gap-2">
+            <p className="flex-1 px-3 py-2 text-[13px] text-[#888]">
+              {retailers.length} program{retailers.length === 1 ? '' : 's'} in the system
+            </p>
+            <button
+              onClick={() => setIsRetailerFormOpen(true)}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-[#171717] text-white text-[13px] font-medium hover:bg-[#333] transition-colors"
+            >
+              <Building2 className="w-3.5 h-3.5" />
+              Add
+            </button>
+          </div>
         </div>
       </div>
 
@@ -155,6 +182,14 @@ export function AssignmentsPage() {
             )
           })}
         </div>
+      )}
+
+      {isRetailerFormOpen && (
+        <RetailerForm
+          retailer={null}
+          onSave={handleRetailerSave}
+          onCancel={() => setIsRetailerFormOpen(false)}
+        />
       )}
     </div>
   )

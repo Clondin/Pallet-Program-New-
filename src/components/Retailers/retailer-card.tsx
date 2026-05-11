@@ -1,4 +1,4 @@
-import { ArrowUpRight } from 'lucide-react'
+import { ArrowUpRight, Pencil, Trash2 } from 'lucide-react'
 import type { Retailer } from '../../types'
 import { useDisplayStore } from '../../stores/display-store'
 import { useCatalogStore } from '../../stores/catalog-store'
@@ -22,7 +22,7 @@ interface RetailerCardProps {
   onDelete: (id: string) => void
 }
 
-export function RetailerCard({ retailer, onClick }: RetailerCardProps) {
+export function RetailerCard({ retailer, onClick, onEdit, onDelete }: RetailerCardProps) {
   const { id, name, status, authorizedItems } = retailer
   const statusStyle = STATUS_STYLE[status]
   const projects = useDisplayStore((state) => state.projects)
@@ -86,8 +86,30 @@ export function RetailerCard({ retailer, onClick }: RetailerCardProps) {
             </span>
           </div>
         </div>
-        <div className="shrink-0 w-7 h-7 rounded-full bg-[#fafafa] group-hover:bg-[#171717] flex items-center justify-center transition-colors">
-          <ArrowUpRight className="w-3.5 h-3.5 text-[#999] group-hover:text-white transition-colors" />
+        <div className="flex items-center gap-1 shrink-0">
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              onEdit(id)
+            }}
+            className="opacity-0 group-hover:opacity-100 w-7 h-7 rounded-full bg-[#fafafa] hover:bg-[#f0f0f0] flex items-center justify-center transition-all"
+            title="Edit"
+          >
+            <Pencil className="w-3.5 h-3.5 text-[#888]" />
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              onDelete(id)
+            }}
+            className="opacity-0 group-hover:opacity-100 w-7 h-7 rounded-full bg-[#fafafa] hover:bg-red-50 flex items-center justify-center transition-all"
+            title="Delete"
+          >
+            <Trash2 className="w-3.5 h-3.5 text-[#c0392b]" />
+          </button>
+          <div className="w-7 h-7 rounded-full bg-[#fafafa] group-hover:bg-[#171717] flex items-center justify-center transition-colors">
+            <ArrowUpRight className="w-3.5 h-3.5 text-[#999] group-hover:text-white transition-colors" />
+          </div>
         </div>
       </div>
 
