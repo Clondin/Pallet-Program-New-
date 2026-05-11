@@ -13,6 +13,7 @@ export interface AssortmentRow {
   cases: number
   totalUnits: number | null
   totalRevenue: number | null
+  status: 'authorized' | 'pending' | 'discontinued'
 }
 
 export function getUnitsPerCase(product: Product): number | null {
@@ -74,6 +75,13 @@ export function computeAssortmentTotals(
   return { totalCases, totalUnits, totalSKUs, totalRevenue }
 }
 
+export function getPalletQuantity(project: DisplayProject | undefined | null): number {
+  if (!project) return 1
+  const raw = project.quantity
+  if (typeof raw !== 'number' || !Number.isFinite(raw) || raw < 1) return 1
+  return Math.floor(raw)
+}
+
 export function buildAssortmentRows(
   retailer: Retailer,
   project: DisplayProject,
@@ -85,7 +93,7 @@ export function buildAssortmentRows(
   )
 
   return retailer.authorizedItems
-    .filter((item) => item.status === 'authorized')
+    .filter((item) => item.status === 'authorized' || item.status === 'pending')
     .map((item) => {
       const product = productMap.get(item.productId)
       const unitsPerCase = product ? getUnitsPerCase(product) : null
@@ -112,11 +120,17 @@ export function buildAssortmentRows(
         cases,
         totalUnits: unitsPerCase && cases > 0 ? unitsPerCase * cases : null,
         totalRevenue: casePrice !== null && cases > 0 ? casePrice * cases : null,
+        status: (item.status === 'authorized' ? 'authorized' : 'pending') as 'authorized' | 'pending',
       }
     })
-    .sort(
-      (left, right) =>
+    .sort((left, right) => {
+      // Authorized rows first, then pending.
+      if (left.status !== right.status) {
+        return left.status === 'authorized' ? -1 : 1
+      }
+      return (
         left.brand.localeCompare(right.brand) ||
-        left.productName.localeCompare(right.productName),
-    )
+        left.productName.localeCompare(right.productName)
+      )
+    })
 }

@@ -68,6 +68,7 @@ export function PalletDetailPage() {
   const updateSeasonId = useDisplayStore((state) => state.updateSeasonId)
   const updateBuildLocation = useDisplayStore((state) => state.updateBuildLocation)
   const updateLaborCost = useDisplayStore((state) => state.updateLaborCost)
+  const updateQuantity = useDisplayStore((state) => state.updateQuantity)
   const updateStatus = useDisplayStore((state) => state.updateStatus)
   const deleteProject = useDisplayStore((state) => state.deleteProject)
   const duplicateProject = useDisplayStore((state) => state.duplicateProject)
@@ -279,6 +280,25 @@ export function PalletDetailPage() {
                   ))}
                 {!isSalesman && <option value="__new__">+ Create new season…</option>}
               </select>
+            </div>
+            <div className="rounded-lg bg-[#fafafa] px-4 py-4 col-span-2">
+              <p className="text-[10px] uppercase tracking-wider text-[#999] mb-2">
+                Pallets requested
+              </p>
+              <input
+                type="text"
+                inputMode="numeric"
+                value={pallet.quantity ?? 1}
+                onChange={(event) => {
+                  const val = event.target.value.replace(/\D/g, '')
+                  const num = parseInt(val, 10)
+                  updateQuantity(isNaN(num) ? 1 : num)
+                }}
+                className="w-full text-[14px] font-semibold text-[#171717] bg-transparent border-none outline-none focus:ring-2 focus:ring-[#0a72ef]/30 rounded-md tabular-nums -ml-1 pl-1"
+              />
+              <p className="text-[11px] text-[#888] mt-1">
+                How many identical pallets to build. Cases per item multiply by this for the total order.
+              </p>
             </div>
             {!isSalesman && (
               <>

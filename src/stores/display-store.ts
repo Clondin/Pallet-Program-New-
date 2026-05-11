@@ -81,6 +81,7 @@ interface DisplayState {
   updateAssortment: (productId: string, cases: number) => void
   setAssortment: (assortment: AssortmentEntry[]) => void
   updateShipByDate: (date: number | undefined) => void
+  updateQuantity: (quantity: number) => void
   populateFromAssortment: () => void
   openPicker: () => void
   closePicker: () => void
@@ -802,6 +803,20 @@ export const useDisplayStore = create<DisplayState>((set, get) => ({
     const nextProject = {
       ...state.currentProject,
       shipByDate: date,
+      updatedAt: Date.now(),
+    }
+
+    set(commitProjectUpdate(state, nextProject))
+  },
+
+  updateQuantity: (quantity) => {
+    const state = get()
+    if (!state.currentProject) return
+
+    const next = Math.max(1, Math.floor(quantity))
+    const nextProject = {
+      ...state.currentProject,
+      quantity: next,
       updatedAt: Date.now(),
     }
 

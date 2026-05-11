@@ -8,6 +8,7 @@ import { useRoleStore } from '../../stores/role-store'
 import {
   buildAssortmentRows,
   computeAssortmentTotals,
+  getPalletQuantity,
 } from '../../lib/assortment-utils'
 import type { AuthorizedItem, DisplayProject, Retailer } from '../../types'
 
@@ -99,6 +100,7 @@ export function AssortmentTable({ project, retailer }: AssortmentTableProps) {
     () => computeAssortmentTotals(project.assortment, products, retailer),
     [products, project.assortment, retailer],
   )
+  const palletQuantity = getPalletQuantity(project)
 
   return (
     <div className="bg-white shadow-card rounded-xl overflow-hidden">
@@ -172,15 +174,26 @@ export function AssortmentTable({ project, retailer }: AssortmentTableProps) {
                 </td>
               </tr>
             ) : (
-              filteredRows.map((row) => (
+              filteredRows.map((row) => {
+                const isPending = row.status === 'pending'
+                return (
                 <tr
                   key={row.productId}
-                  className="border-t border-[#f5f5f5] hover:bg-[#fafafa] transition-colors"
+                  className={`border-t border-[#f5f5f5] transition-colors ${
+                    isPending ? 'bg-amber-50/40 hover:bg-amber-50/60' : 'hover:bg-[#fafafa]'
+                  }`}
                 >
                   <td className="px-6 py-3">
-                    <p className="text-[13px] font-medium text-[#171717]">
-                      {row.productName}
-                    </p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-[13px] font-medium text-[#171717]">
+                        {row.productName}
+                      </p>
+                      {isPending && (
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-800 text-[10px] font-medium uppercase tracking-wider">
+                          Requested
+                        </span>
+                      )}
+                    </div>
                     <p className="text-[11px] text-[#999]">{row.brand}</p>
                   </td>
                   <td className="px-4 py-3 text-[12px] text-[#666] font-mono">{row.upc || '—'}</td>
@@ -251,7 +264,8 @@ export function AssortmentTable({ project, retailer }: AssortmentTableProps) {
                     {row.totalUnits ?? '—'}
                   </td>
                 </tr>
-              ))
+                )
+              })
             )}
 
             {catalogMatches.length > 0 && (
@@ -317,7 +331,7 @@ export function AssortmentTable({ project, retailer }: AssortmentTableProps) {
                   className="px-6 py-3 text-[12px] font-semibold text-[#171717]"
                   colSpan={5}
                 >
-                  Totals
+                  Per pallet
                 </td>
                 <td className="px-4 py-3 text-[13px] font-semibold text-[#171717] text-right tabular-nums">
                   {totals.totalCases}
@@ -331,6 +345,24 @@ export function AssortmentTable({ project, retailer }: AssortmentTableProps) {
                   {totals.totalUnits}
                 </td>
               </tr>
+              {palletQuantity > 1 && (
+                <tr className="border-t border-[#e5e5e5] bg-[#171717] text-white">
+                  <td className="px-6 py-3 text-[12px] font-semibold" colSpan={5}>
+                    × {palletQuantity} pallets — order total
+                  </td>
+                  <td className="px-4 py-3 text-[13px] font-semibold text-right tabular-nums">
+                    {totals.totalCases * palletQuantity}
+                  </td>
+                  <td className="px-4 py-3 text-[13px] font-semibold text-right tabular-nums">
+                    {totals.totalRevenue > 0
+                      ? `$${(totals.totalRevenue * palletQuantity).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                      : '—'}
+                  </td>
+                  <td className="px-6 py-3 text-[13px] font-semibold text-right tabular-nums">
+                    {totals.totalUnits * palletQuantity}
+                  </td>
+                </tr>
+              )}
             </tfoot>
           )}
         </table>

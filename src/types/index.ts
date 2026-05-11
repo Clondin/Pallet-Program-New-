@@ -359,6 +359,10 @@ export interface DisplayProject {
   placements: PlacedProduct[]
   assortment: AssortmentEntry[]
   shipByDate?: number
+  // Number of identical pallets the salesman is requesting (default 1).
+  // Cases on each assortment entry are per-pallet; multiply by quantity for
+  // total cases the retailer is buying / the warehouse needs to build.
+  quantity?: number
   createdAt: number
   updatedAt: number
 }

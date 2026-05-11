@@ -24,6 +24,10 @@ export function buildRollupData(
   const rows = new Map<string, RollupRow>()
 
   for (const pallet of pallets) {
+    const quantity =
+      typeof pallet.quantity === 'number' && pallet.quantity >= 1
+        ? Math.floor(pallet.quantity)
+        : 1
     for (const entry of pallet.assortment) {
       if (entry.cases <= 0) continue
 
@@ -47,15 +51,16 @@ export function buildRollupData(
         rows.set(entry.productId, row)
       }
 
-      row.palletCases.set(pallet.id, entry.cases)
+      const casesForPallet = entry.cases * quantity
+      row.palletCases.set(pallet.id, casesForPallet)
       row.retailerCases.set(
         pallet.retailerId,
-        (row.retailerCases.get(pallet.retailerId) ?? 0) + entry.cases,
+        (row.retailerCases.get(pallet.retailerId) ?? 0) + casesForPallet,
       )
-      row.totalCases += entry.cases
+      row.totalCases += casesForPallet
 
       if (row.unitsPerCase) {
-        row.totalUnits = (row.totalUnits ?? 0) + entry.cases * row.unitsPerCase
+        row.totalUnits = (row.totalUnits ?? 0) + casesForPallet * row.unitsPerCase
       }
     }
   }
