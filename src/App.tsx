@@ -42,7 +42,7 @@ const SALESPEOPLE_STORAGE_KEY = 'palletforge-salespeople'
 const INVENTORY_STORAGE_KEY = 'palletforge-inventory'
 const MIGRATION_KEY = 'palletforge-migration-version'
 // Bump when a destructive migration needs to re-run for every user.
-const CURRENT_MIGRATION_VERSION = '2026-05-11-orphan-cleanup'
+const CURRENT_MIGRATION_VERSION = '2026-05-11-orphan-cleanup-v2'
 
 function loadPersistedState<T>(key: string): T | null {
   try {
@@ -131,6 +131,23 @@ function mergeRetailers(
   return mergedRetailers
 }
 
+function pruneOrphanedAuthorizedItems(
+  retailers: Retailer[],
+  validProductIds: Set<string>,
+): { next: Retailer[]; dropped: number } {
+  let dropped = 0
+  const next = retailers.map((retailer) => {
+    const filtered = retailer.authorizedItems.filter((item) => {
+      const ok = validProductIds.has(item.productId)
+      if (!ok) dropped += 1
+      return ok
+    })
+    if (filtered.length === retailer.authorizedItems.length) return retailer
+    return { ...retailer, authorizedItems: filtered }
+  })
+  return { next, dropped }
+}
+
 function pruneOrphanedAssortmentAndPlacements(
   projects: DisplayProject[],
   validProductIds: Set<string>,
@@ -204,6 +221,14 @@ export default function App() {
         const validIds = new Set(
           useCatalogStore.getState().products.map((product) => product.id),
         )
+
+        const retailerState = useRetailerStore.getState()
+        const { next: cleanedRetailers, dropped: authDropped } =
+          pruneOrphanedAuthorizedItems(retailerState.retailers, validIds)
+        if (authDropped > 0) {
+          retailerState.setRetailers(cleanedRetailers)
+        }
+
         const displayState = useDisplayStore.getState()
         const { next, assortmentDropped, placementsDropped } =
           pruneOrphanedAssortmentAndPlacements(displayState.projects, validIds)
@@ -214,8 +239,11 @@ export default function App() {
             const updated = next.find((p) => p.id === currentId)
             if (updated) displayState.setCurrentProject(updated)
           }
+        }
+
+        if (authDropped > 0 || assortmentDropped > 0 || placementsDropped > 0) {
           console.info(
-            `[migration] orphan cleanup pruned ${assortmentDropped} assortment entries and ${placementsDropped} placements`,
+            `[migration] orphan cleanup pruned ${authDropped} authorized items, ${assortmentDropped} assortment entries, and ${placementsDropped} placements`,
           )
         }
         try {
