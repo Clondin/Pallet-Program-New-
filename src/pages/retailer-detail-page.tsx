@@ -693,13 +693,25 @@ export function RetailerDetailPage() {
               Delete
             </button>
           )}
-          <button
-            onClick={() => setWizardOpen(true)}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-[#171717] text-white text-[13px] font-medium hover:bg-[#333] transition-colors"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            New Pallet
-          </button>
+          {(() => {
+            const blockedForSalesman =
+              role === 'salesman' && retailer.status === 'inactive'
+            return (
+              <button
+                onClick={() => setWizardOpen(true)}
+                disabled={blockedForSalesman}
+                title={
+                  blockedForSalesman
+                    ? 'This program is inactive — ask your manager to reactivate it before building.'
+                    : undefined
+                }
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-[#171717] text-white text-[13px] font-medium hover:bg-[#333] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                New Pallet
+              </button>
+            )
+          })()}
         </div>
       </div>
 

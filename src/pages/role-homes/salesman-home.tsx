@@ -49,6 +49,15 @@ export function SalesmanHome() {
     [activeSalesperson],
   )
 
+  // Salesmen can see pallets on inactive programs (history) but can't start
+  // new ones. The wizard's allowed-retailer list filters out inactives.
+  const buildableRetailerIds = useMemo(() => {
+    if (!activeSalesperson) return [] as string[]
+    return retailers
+      .filter((r) => activeSalesperson.retailerIds.includes(r.id) && r.status !== 'inactive')
+      .map((r) => r.id)
+  }, [retailers, activeSalesperson])
+
   const scopedProjects = useMemo(() => {
     if (!activeSalesperson) return []
     return projects.filter((p) => scopedRetailerIds.has(p.retailerId))
@@ -138,7 +147,13 @@ export function SalesmanHome() {
         </div>
         <button
           onClick={() => setWizardOpen(true)}
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-md bg-[#171717] text-white text-[13px] font-medium hover:bg-[#333] transition-colors shrink-0"
+          disabled={buildableRetailerIds.length === 0}
+          title={
+            buildableRetailerIds.length === 0
+              ? 'All your programs are inactive — ask your manager to reactivate one.'
+              : undefined
+          }
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-md bg-[#171717] text-white text-[13px] font-medium hover:bg-[#333] transition-colors shrink-0 disabled:opacity-40 disabled:cursor-not-allowed"
         >
           <Plus className="w-3.5 h-3.5" />
           New Pallet
@@ -154,7 +169,13 @@ export function SalesmanHome() {
           </p>
           <button
             onClick={() => setWizardOpen(true)}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-[#171717] text-white text-[13px] font-medium hover:bg-[#333] transition-colors mt-5"
+            disabled={buildableRetailerIds.length === 0}
+            title={
+              buildableRetailerIds.length === 0
+                ? 'All your programs are inactive — ask your manager to reactivate one.'
+                : undefined
+            }
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-[#171717] text-white text-[13px] font-medium hover:bg-[#333] transition-colors mt-5 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <Plus className="w-3.5 h-3.5" />
             New Pallet
@@ -224,7 +245,7 @@ export function SalesmanHome() {
       <PalletCreationWizard
         open={wizardOpen}
         onClose={() => setWizardOpen(false)}
-        allowedRetailerIds={activeSalesperson.retailerIds}
+        allowedRetailerIds={buildableRetailerIds}
       />
     </div>
   )
