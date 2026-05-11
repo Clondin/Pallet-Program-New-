@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, Boxes, CalendarDays, Copy, Package, PenLine, Store, Trash2 } from 'lucide-react'
 import { AssortmentTable } from '../components/Assortment/assortment-table'
 import { CommentsThread } from '../components/Comments/comments-thread'
-import { StatusPill, STATUS_LABELS } from '../components/Status/status-pill'
+import { StatusPill, STATUS_LABELS_BY_ROLE, getStatusLabel } from '../components/Status/status-pill'
 import { DeadlineChip } from '../components/Deadline/deadline-chip'
 import { computeConfirmByDate } from '../lib/deadline'
 import type { PalletStatus } from '../types'
@@ -121,7 +121,7 @@ export function PalletDetailPage() {
             className="text-[28px] font-semibold tracking-display text-[#171717] mt-1 bg-transparent border-none outline-none focus:ring-2 focus:ring-[#0a72ef]/30 rounded-md px-1 -mx-1 w-full"
           />
           <div className="flex flex-wrap items-center gap-2 mt-3 text-[12px] text-[#666]">
-            <StatusPill status={pallet.status} />
+            <StatusPill status={pallet.status} role={role} />
             {(() => {
               const season = pallet.seasonId
                 ? seasons.find((s) => s.id === pallet.seasonId)
@@ -225,27 +225,52 @@ export function PalletDetailPage() {
           <div className="grid grid-cols-2 gap-4 mt-5">
             <div className="rounded-lg bg-[#fafafa] px-4 py-4 col-span-2">
               <p className="text-[10px] uppercase tracking-wider text-[#999] mb-2">Status</p>
-              <select
-                value={pallet.status}
-                onChange={(e) => {
-                  const next = e.target.value as PalletStatus
-                  if (next !== 'draft' && !pallet.shipByDate) {
-                    setStatusError(
-                      'Set a Ship By date before moving this pallet out of Draft.',
-                    )
-                    return
-                  }
-                  setStatusError(null)
-                  updateStatus(next)
-                }}
-                className="w-full text-[14px] font-semibold text-[#171717] bg-transparent border-none outline-none cursor-pointer focus:ring-2 focus:ring-[#0a72ef]/30 rounded-md -ml-1 pl-1"
-              >
-                {(['draft', 'ready', 'in_build', 'built'] as PalletStatus[]).map((s) => (
-                  <option key={s} value={s}>
-                    {STATUS_LABELS[s]}
-                  </option>
-                ))}
-              </select>
+              {isSalesman ? (
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                  <p className="text-[14px] font-semibold text-[#171717]">
+                    {getStatusLabel(pallet.status, 'salesman')}
+                  </p>
+                  {pallet.status === 'draft' && (
+                    <button
+                      onClick={() => {
+                        if (!pallet.shipByDate) {
+                          setStatusError(
+                            'Set a Ship By date before pushing this pallet to the builder.',
+                          )
+                          return
+                        }
+                        setStatusError(null)
+                        updateStatus('ready')
+                      }}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-[#171717] text-white text-[12px] font-medium hover:bg-[#333] transition-colors"
+                    >
+                      Approve &amp; push to build
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <select
+                  value={pallet.status}
+                  onChange={(e) => {
+                    const next = e.target.value as PalletStatus
+                    if (next !== 'draft' && !pallet.shipByDate) {
+                      setStatusError(
+                        'Set a Ship By date before moving this pallet out of Draft.',
+                      )
+                      return
+                    }
+                    setStatusError(null)
+                    updateStatus(next)
+                  }}
+                  className="w-full text-[14px] font-semibold text-[#171717] bg-transparent border-none outline-none cursor-pointer focus:ring-2 focus:ring-[#0a72ef]/30 rounded-md -ml-1 pl-1"
+                >
+                  {(['draft', 'ready', 'in_build', 'built'] as PalletStatus[]).map((s) => (
+                    <option key={s} value={s}>
+                      {role ? STATUS_LABELS_BY_ROLE[role][s] : s}
+                    </option>
+                  ))}
+                </select>
+              )}
               {statusError && (
                 <p className="text-[11px] text-red-600 mt-2">{statusError}</p>
               )}

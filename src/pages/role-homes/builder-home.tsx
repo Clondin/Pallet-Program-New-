@@ -224,7 +224,7 @@ function PalletQueueCard({
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div className="flex-1 min-w-[260px]">
           <div className="flex items-center gap-2 mb-2">
-            <StatusPill status={pallet.status} size={hero ? 'md' : 'sm'} />
+            <StatusPill status={pallet.status} size={hero ? 'md' : 'sm'} role="builder" />
             {deadline && pallet.status !== 'built' && (
               <DeadlineChip confirmByMs={deadline} size="sm" />
             )}

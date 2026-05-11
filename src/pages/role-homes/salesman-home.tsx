@@ -189,7 +189,7 @@ export function SalesmanHome() {
             return (
               <section key={status}>
                 <div className="flex items-center gap-3 mb-4">
-                  <StatusPill status={status} />
+                  <StatusPill status={status} role="salesman" />
                   <p className="text-[13px] text-[#666]">
                     {items.length} {items.length === 1 ? 'pallet' : 'pallets'}
                   </p>

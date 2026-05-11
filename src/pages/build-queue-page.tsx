@@ -14,6 +14,7 @@ import { useCatalogStore } from '../stores/catalog-store'
 import { useRetailerStore } from '../stores/retailer-store'
 import { useAppSettingsStore } from '../stores/app-settings-store'
 import { useRoleHref } from '../lib/role-href'
+import { useRoleStore } from '../stores/role-store'
 import { StatusPill } from '../components/Status/status-pill'
 import { DeadlineChip } from '../components/Deadline/deadline-chip'
 import { computeConfirmByDate } from '../lib/deadline'
@@ -50,6 +51,7 @@ export function BuildQueuePage() {
   const settings = useAppSettingsStore((state) => state.settings)
   const updateSettings = useAppSettingsStore((state) => state.updateSettings)
   const roleHref = useRoleHref()
+  const role = useRoleStore((state) => state.role)
 
   const [seasonId, setSeasonId] = useState<string>('')
   const [pullListLocation, setPullListLocation] = useState<BuildLocation | 'all'>('all')
@@ -228,7 +230,7 @@ export function BuildQueuePage() {
                               >
                                 {pallet.name}
                               </Link>
-                              <StatusPill status={pallet.status} size="sm" />
+                              <StatusPill status={pallet.status} size="sm" role={role} />
                             </div>
                             <p className="text-[10px] text-[#888]">
                               {retailer?.name ?? '—'} · {pallet.palletType} · {cases} cases
