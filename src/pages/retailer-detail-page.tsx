@@ -86,10 +86,23 @@ function getTodayDateString() {
   return `${year}-${month}-${day}`
 }
 
-function StatusBadge({ status }: { status: string }) {
+function StatusBadge({ status, onClick }: { status: string; onClick?: () => void }) {
   const style = STATUS_COLORS[status] ?? STATUS_COLORS.inactive
+  const className = `inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${style.bg} ${style.text}`
+  if (onClick) {
+    return (
+      <button
+        onClick={onClick}
+        className={`${className} hover:brightness-95 transition-all cursor-pointer`}
+        title="Click to toggle"
+      >
+        <span className={`w-1.5 h-1.5 rounded-full ${style.dot}`} />
+        {status.replace(/-/g, ' ')}
+      </button>
+    )
+  }
   return (
-    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${style.bg} ${style.text}`}>
+    <span className={className}>
       <span className={`w-1.5 h-1.5 rounded-full ${style.dot}`} />
       {status.replace(/-/g, ' ')}
     </span>
@@ -563,6 +576,7 @@ export function RetailerDetailPage() {
   const roleHref = useRoleHref()
   const role = useRoleStore((state) => state.role)
   const deleteRetailer = useRetailerStore((state) => state.deleteRetailer)
+  const updateRetailer = useRetailerStore((state) => state.updateRetailer)
   const retailer = useRetailerStore((state) => state.getRetailer(id ?? ''))
   const projects = useDisplayStore((state) => state.projects)
   const { confirm, dialog: confirmDialog } = useConfirm()
@@ -645,7 +659,17 @@ export function RetailerDetailPage() {
             <h1 className="text-[28px] font-semibold tracking-display text-[#171717]">
               {retailer.name}
             </h1>
-            <StatusBadge status={retailer.status} />
+            <StatusBadge
+              status={retailer.status}
+              onClick={
+                role === 'manager'
+                  ? () =>
+                      updateRetailer(retailer.id, {
+                        status: retailer.status === 'active' ? 'inactive' : 'active',
+                      })
+                  : undefined
+              }
+            />
           </div>
           <div className="flex items-center gap-4 mt-2 text-[12px] text-[#888]">
             <span className="flex items-center gap-1">

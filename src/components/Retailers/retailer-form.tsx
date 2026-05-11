@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { X } from 'lucide-react'
-import type { Retailer } from '../../types'
+import type { Retailer, RetailerStatus } from '../../types'
 import { useRetailerStore } from '../../stores/retailer-store'
 
 interface RetailerFormProps {
@@ -17,12 +17,14 @@ export function RetailerForm({ retailer, onSave, onCancel }: RetailerFormProps) 
   const existingRetailers = useRetailerStore((state) => state.retailers)
   const [name, setName] = useState('')
   const [notes, setNotes] = useState('')
+  const [status, setStatus] = useState<RetailerStatus>('active')
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (retailer) {
       setName(retailer.name)
       setNotes(retailer.notes ?? '')
+      setStatus(retailer.status === 'pending' ? 'active' : retailer.status)
     }
   }, [retailer])
 
@@ -48,7 +50,7 @@ export function RetailerForm({ retailer, onSave, onCancel }: RetailerFormProps) 
       maxDisplayHeight: retailer?.maxDisplayHeight ?? DEFAULT_MAX_HEIGHT,
       palletDimensions: retailer?.palletDimensions ?? DEFAULT_PALLET_DIMENSIONS,
       notes: notes.trim() || undefined,
-      status: retailer?.status ?? 'active',
+      status,
       tier: retailer?.tier ?? 'standard',
       storeCount: retailer?.storeCount ?? 0,
       regions: retailer?.regions ?? [],
@@ -107,6 +109,26 @@ export function RetailerForm({ retailer, onSave, onCancel }: RetailerFormProps) 
             {error && (
               <p className="text-[11px] text-red-600 mt-1.5">{error}</p>
             )}
+          </div>
+
+          <div>
+            <label className="block text-[12px] font-medium text-[#555] mb-1">Status</label>
+            <div className="inline-flex shadow-border rounded-md overflow-hidden">
+              {(['active', 'inactive'] as const).map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => setStatus(s)}
+                  className={`px-4 py-1.5 text-[12px] font-medium capitalize transition-colors ${
+                    status === s
+                      ? 'bg-[#171717] text-white'
+                      : 'bg-white text-[#666] hover:bg-[#fafafa]'
+                  }`}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
           </div>
 
           <div>
