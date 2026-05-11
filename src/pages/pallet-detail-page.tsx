@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, Boxes, CalendarDays, Copy, Package, PenLine, Store, Trash2 } from 'lucide-react'
 import { AssortmentTable } from '../components/Assortment/assortment-table'
@@ -58,6 +58,7 @@ export function PalletDetailPage() {
   const role = useRoleStore((state) => state.role)
   const isSalesman = role === 'salesman'
   const { confirm, dialog: confirmDialog } = useConfirm()
+  const [statusError, setStatusError] = useState<string | null>(null)
   const pallet = useDisplayStore((state) =>
     palletId ? state.getProject(palletId) : undefined
   )
@@ -226,7 +227,17 @@ export function PalletDetailPage() {
               <p className="text-[10px] uppercase tracking-wider text-[#999] mb-2">Status</p>
               <select
                 value={pallet.status}
-                onChange={(e) => updateStatus(e.target.value as PalletStatus)}
+                onChange={(e) => {
+                  const next = e.target.value as PalletStatus
+                  if (next !== 'draft' && !pallet.shipByDate) {
+                    setStatusError(
+                      'Set a Ship By date before moving this pallet out of Draft.',
+                    )
+                    return
+                  }
+                  setStatusError(null)
+                  updateStatus(next)
+                }}
                 className="w-full text-[14px] font-semibold text-[#171717] bg-transparent border-none outline-none cursor-pointer focus:ring-2 focus:ring-[#0a72ef]/30 rounded-md -ml-1 pl-1"
               >
                 {(['draft', 'ready', 'in_build', 'built'] as PalletStatus[]).map((s) => (
@@ -235,6 +246,9 @@ export function PalletDetailPage() {
                   </option>
                 ))}
               </select>
+              {statusError && (
+                <p className="text-[11px] text-red-600 mt-2">{statusError}</p>
+              )}
             </div>
             <div className="rounded-lg bg-[#fafafa] px-4 py-4">
               <p className="text-[10px] uppercase tracking-wider text-[#999] mb-2">Structure</p>
@@ -392,15 +406,24 @@ export function PalletDetailPage() {
       </div>
 
       <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
-        <label className="text-[12px] font-medium text-[#555]">Ship By</label>
+        <label className="text-[12px] font-medium text-[#555]">
+          Ship By
+          {pallet.status === 'draft' && (
+            <span className="text-[11px] text-[#888] ml-1">
+              (required before moving out of Draft)
+            </span>
+          )}
+        </label>
         <input
           type="date"
           value={formatDateInputValue(pallet.shipByDate)}
-          onChange={(event) =>
-            updateShipByDate(
-              event.target.value ? parseDateInputValue(event.target.value) : undefined,
-            )
-          }
+          onChange={(event) => {
+            const next = event.target.value
+              ? parseDateInputValue(event.target.value)
+              : undefined
+            updateShipByDate(next)
+            if (next && statusError) setStatusError(null)
+          }}
           className="px-3 py-1.5 text-[13px] shadow-border rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-[#0a72ef]/30 focus:shadow-none w-full sm:w-auto"
         />
       </div>
