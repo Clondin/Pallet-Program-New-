@@ -264,7 +264,13 @@ export function AssortmentTable({ project, retailer }: AssortmentTableProps) {
                     From catalog · {isManager ? 'click to authorize' : 'click to request'}
                   </td>
                 </tr>
-                {catalogMatches.map((product) => (
+                {catalogMatches.map((product) => {
+                  const brandLabel =
+                    product.brandCode ??
+                    (product.brand && product.brand !== 'other'
+                      ? product.brand
+                      : '')
+                  return (
                   <tr
                     key={product.id}
                     className="border-t border-[#f5f5f5] hover:bg-[#fafafa] transition-colors"
@@ -273,7 +279,9 @@ export function AssortmentTable({ project, retailer }: AssortmentTableProps) {
                       <p className="text-[13px] font-medium text-[#171717]">
                         {product.name}
                       </p>
-                      <p className="text-[11px] text-[#999]">{product.brand}</p>
+                      <p className="text-[11px] text-[#999]">
+                        {brandLabel || product.buyer || '—'}
+                      </p>
                     </td>
                     <td className="px-4 py-3 text-[12px] text-[#666] font-mono">
                       {product.upc || '—'}
@@ -297,7 +305,8 @@ export function AssortmentTable({ project, retailer }: AssortmentTableProps) {
                     <td className="px-4 py-3 text-[12px] text-[#bbb] text-right">—</td>
                     <td className="px-6 py-3 text-[12px] text-[#bbb] text-right">—</td>
                   </tr>
-                ))}
+                  )
+                })}
               </>
             )}
           </tbody>

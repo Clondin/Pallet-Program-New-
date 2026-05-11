@@ -92,6 +92,13 @@ export function buildAssortmentRows(
       const cases = assortmentMap.get(item.productId) ?? 0
 
       const casePrice = typeof item.casePrice === 'number' ? item.casePrice : null
+      const brandLabel =
+        product?.brandCode ??
+        (item.brand && item.brand !== 'other'
+          ? item.brand
+          : product?.brand && product.brand !== 'other'
+            ? product.brand
+            : '')
       return {
         productId: item.productId,
         productName: item.productName,
@@ -99,7 +106,7 @@ export function buildAssortmentRows(
         upc: product?.upc ?? '',
         kaycoItemNumber: product?.kaycoItemNumber ?? '',
         buyer: product?.buyer ?? '',
-        brand: item.brand,
+        brand: brandLabel || item.brand,
         unitsPerCase,
         casePrice,
         cases,
