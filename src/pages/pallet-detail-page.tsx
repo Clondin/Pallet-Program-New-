@@ -252,7 +252,7 @@ export function PalletDetailPage() {
                 value={pallet.seasonId ?? ''}
                 onChange={(event) => {
                   const value = event.target.value
-                  if (value === '__new__') {
+                  if (!isSalesman && value === '__new__') {
                     const name = window.prompt('Name for the new season:')
                     if (!name || !name.trim()) return
                     const created = createSeason(name)
@@ -263,9 +263,12 @@ export function PalletDetailPage() {
                 }}
                 className="w-full text-[14px] font-semibold text-[#171717] bg-transparent border-none outline-none cursor-pointer focus:ring-2 focus:ring-[#0a72ef]/30 rounded-md -ml-1 pl-1"
               >
-                <option value="">Unassigned</option>
+                {!isSalesman && <option value="">Unassigned</option>}
                 {seasons
-                  .filter((season) => !season.archived || season.id === pallet.seasonId)
+                  .filter((season) => {
+                    if (isSalesman) return !season.archived
+                    return !season.archived || season.id === pallet.seasonId
+                  })
                   .slice()
                   .sort(compareSeasonsByHolidayDate)
                   .map((season) => (
@@ -274,7 +277,7 @@ export function PalletDetailPage() {
                       {season.archived ? ' (archived)' : ''}
                     </option>
                   ))}
-                <option value="__new__">+ Create new season…</option>
+                {!isSalesman && <option value="__new__">+ Create new season…</option>}
               </select>
             </div>
             {!isSalesman && (
