@@ -1,8 +1,9 @@
 import type { ReactNode } from 'react'
-import { Link, NavLink, useNavigate } from 'react-router-dom'
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { Briefcase, LogOut } from 'lucide-react'
 import { useRoleStore } from '../../stores/role-store'
 import { useSalespersonStore } from '../../stores/salesperson-store'
+import { TopToolbar } from '../Toolbar/top-toolbar'
 
 const TABS = [
   { to: '/salesman', label: 'My Pallets', end: true },
@@ -18,12 +19,23 @@ function initialsOf(name: string): string {
 
 export function SalesmanLayout({ children }: { children: ReactNode }) {
   const navigate = useNavigate()
+  const { pathname } = useLocation()
+  const isEditor = pathname.endsWith('/editor')
   const salespeople = useSalespersonStore((s) => s.salespeople)
   const activeSalespersonId = useRoleStore((s) => s.activeSalespersonId)
   const setActiveSalespersonId = useRoleStore((s) => s.setActiveSalespersonId)
   const activeSalesperson = activeSalespersonId
     ? salespeople.find((sp) => sp.id === activeSalespersonId) ?? null
     : null
+
+  if (isEditor) {
+    return (
+      <div className="min-h-screen bg-[#fafafa]">
+        <TopToolbar />
+        <main className="pt-16">{children}</main>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-[#fafafa] text-[#171717] flex flex-col">

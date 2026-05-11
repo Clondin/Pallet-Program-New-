@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useDisplayStore } from '../stores/display-store'
+import { useRoleStore } from '../stores/role-store'
 import { ThreeDViewer } from '../components/Editor/three-d-viewer'
 import { GridEditor } from '../components/Editor/grid-editor'
 import { ProductPickerModal } from '../components/Editor/product-picker-modal'
@@ -10,7 +11,9 @@ import { Package } from 'lucide-react'
 export function EditorPage() {
   const { palletId, retailerId } = useParams()
   const roleHref = useRoleHref()
+  const role = useRoleStore((state) => state.role)
   const viewMode = useDisplayStore((state) => state.viewMode)
+  const setViewMode = useDisplayStore((state) => state.setViewMode)
   const currentProject = useDisplayStore((state) => state.currentProject)
   const selectProject = useDisplayStore((state) => state.selectProject)
 
@@ -19,6 +22,14 @@ export function EditorPage() {
       selectProject(palletId)
     }
   }, [palletId, currentProject?.id, selectProject])
+
+  // Salesmen land in 3D — they're orienting on the pallet, not gridding cases.
+  useEffect(() => {
+    if (role === 'salesman' && viewMode !== '3d') {
+      setViewMode('3d')
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [role])
 
   if (!currentProject) {
     return (

@@ -69,7 +69,7 @@ export function TopToolbar() {
   const colCount = viewMode === '2d' ? editorGridColumns : actualColCount
 
   return (
-    <div className="fixed top-0 left-[200px] right-0 z-40 flex justify-center px-8">
+    <div className="fixed top-0 left-0 right-0 z-40 flex justify-center px-8">
       <div className="mt-4 mx-auto max-w-fit px-5 py-2 bg-white/90 backdrop-blur-md shadow-card rounded-lg flex items-center gap-6">
         {/* 2D/3D Toggle */}
         <div className="flex items-center shadow-ring rounded-md overflow-hidden" style={{ boxShadow: undefined }}>
