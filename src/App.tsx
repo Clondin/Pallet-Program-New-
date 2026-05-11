@@ -40,6 +40,9 @@ const RETAILER_STORAGE_KEY = 'palletforge-retailers'
 const SEASONS_STORAGE_KEY = 'palletforge-seasons'
 const SALESPEOPLE_STORAGE_KEY = 'palletforge-salespeople'
 const INVENTORY_STORAGE_KEY = 'palletforge-inventory'
+const MIGRATION_KEY = 'palletforge-migration-version'
+// Bump when a destructive migration needs to re-run for every user.
+const CURRENT_MIGRATION_VERSION = '2026-05-11-orphan-cleanup'
 
 function loadPersistedState<T>(key: string): T | null {
   try {
@@ -128,6 +131,44 @@ function mergeRetailers(
   return mergedRetailers
 }
 
+function pruneOrphanedAssortmentAndPlacements(
+  projects: DisplayProject[],
+  validProductIds: Set<string>,
+): { next: DisplayProject[]; assortmentDropped: number; placementsDropped: number } {
+  let assortmentDropped = 0
+  let placementsDropped = 0
+
+  const next = projects.map((project) => {
+    const nextAssortment = project.assortment.filter((entry) => {
+      const ok = validProductIds.has(entry.productId)
+      if (!ok) assortmentDropped += 1
+      return ok
+    })
+    const nextPlacements = project.placements.filter((placement) => {
+      if (!placement.sourceProductId) return true
+      const ok = validProductIds.has(placement.sourceProductId)
+      if (!ok) placementsDropped += 1
+      return ok
+    })
+
+    if (
+      nextAssortment.length === project.assortment.length &&
+      nextPlacements.length === project.placements.length
+    ) {
+      return project
+    }
+
+    return {
+      ...project,
+      assortment: nextAssortment,
+      placements: nextPlacements,
+      updatedAt: Date.now(),
+    }
+  })
+
+  return { next, assortmentDropped, placementsDropped }
+}
+
 export default function App() {
   useEffect(() => {
     const catalogProducts = mergeCatalogProducts(
@@ -152,6 +193,36 @@ export default function App() {
       )
       if (result.products.length > 0) {
         catalogState.setProducts(result.products)
+      }
+
+      // One-time orphan cleanup: drop assortment entries + placements that
+      // reference productIds no longer in the catalog (e.g. legacy mock
+      // prod-N entries from before we removed the seed). Gated by a
+      // version key so each user pays the cost exactly once.
+      const ranVersion = localStorage.getItem(MIGRATION_KEY)
+      if (ranVersion !== CURRENT_MIGRATION_VERSION) {
+        const validIds = new Set(
+          useCatalogStore.getState().products.map((product) => product.id),
+        )
+        const displayState = useDisplayStore.getState()
+        const { next, assortmentDropped, placementsDropped } =
+          pruneOrphanedAssortmentAndPlacements(displayState.projects, validIds)
+        if (assortmentDropped > 0 || placementsDropped > 0) {
+          displayState.setProjects(next)
+          const currentId = displayState.currentProject?.id
+          if (currentId) {
+            const updated = next.find((p) => p.id === currentId)
+            if (updated) displayState.setCurrentProject(updated)
+          }
+          console.info(
+            `[migration] orphan cleanup pruned ${assortmentDropped} assortment entries and ${placementsDropped} placements`,
+          )
+        }
+        try {
+          localStorage.setItem(MIGRATION_KEY, CURRENT_MIGRATION_VERSION)
+        } catch {
+          // best effort
+        }
       }
     })
 
