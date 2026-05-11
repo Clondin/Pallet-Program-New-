@@ -28,32 +28,7 @@ import { useSeasonStore } from './stores/season-store'
 import { useSalespersonStore } from './stores/salesperson-store'
 import { useInventoryStore } from './stores/inventory-store'
 import { useAppSettingsStore } from './stores/app-settings-store'
-import { mockProducts, mockRetailers } from './lib/mock-data'
-
-// Stamp deterministic UPC + Kayco item numbers on seeded demo products so
-// the assortment table has values to render. Real products imported from
-// the inventory CSV already carry these fields.
-const SEEDED_MOCK_PRODUCTS: Product[] = mockProducts.map((product, index) => {
-  if (product.upc && product.kaycoItemNumber) return product
-  const seq = String(index + 1).padStart(4, '0')
-  const upcCore = `0734901${seq.padStart(5, '0')}`
-  const checkDigit = (() => {
-    const digits = upcCore.split('').map((d) => parseInt(d, 10))
-    let odd = 0
-    let even = 0
-    digits.forEach((d, i) => {
-      if (i % 2 === 0) odd += d
-      else even += d
-    })
-    const sum = odd * 3 + even
-    return (10 - (sum % 10)) % 10
-  })()
-  return {
-    ...product,
-    upc: product.upc ?? `${upcCore}${checkDigit}`,
-    kaycoItemNumber: product.kaycoItemNumber ?? `2${seq.padStart(5, '0')}`,
-  }
-})
+import { mockRetailers } from './lib/mock-data'
 import { loadInventoryInfo } from './lib/inventory-info-loader'
 import { mergeInventoryInfoIntoProducts } from './lib/inventory-info-import'
 
@@ -157,7 +132,7 @@ export default function App() {
   useEffect(() => {
     const catalogProducts = mergeCatalogProducts(
       loadPersistedState(CATALOG_STORAGE_KEY),
-      SEEDED_MOCK_PRODUCTS
+      []
     )
     const retailers = mergeRetailers(
       loadPersistedState(RETAILER_STORAGE_KEY),

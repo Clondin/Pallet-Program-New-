@@ -236,6 +236,16 @@ export function mergeInventoryInfoIntoProducts(
     }
   })
 
+  // Preserve existing products that aren't in the inventory feed (e.g.
+  // manually authorized items, hand-imported CSVs). Without this, the
+  // merge would silently drop them — causing the UPC/Kayco values to
+  // flash on initial render and then vanish.
+  products.forEach((product, index) => {
+    if (!updatedProductIndexes.has(index)) {
+      nextProducts.push(product)
+    }
+  })
+
   return {
     products: nextProducts,
     totalRows: items.length,
