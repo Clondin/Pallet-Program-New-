@@ -21,6 +21,7 @@ import { DemandPage } from './pages/demand-page'
 import { AssignmentsPage } from './pages/assignments-page'
 import { TransfersPage } from './pages/transfers-page'
 import { ScenePage } from './pages/scene-page'
+import { PalletsPage } from './pages/pallets-page'
 import { useDisplayStore } from './stores/display-store'
 import { useCatalogStore } from './stores/catalog-store'
 import { useRetailerStore } from './stores/retailer-store'
@@ -377,6 +378,7 @@ export default function App() {
           <Route path="assignments" element={<AssignmentsPage />} />
           <Route path="transfers" element={<TransfersPage />} />
           <Route path="scene" element={<ScenePage />} />
+          <Route path="pallets" element={<PalletsPage />} />
           <Route path="views/salesman" element={<ManagerSalesmanView />} />
           <Route path="views/builder" element={<ManagerBuilderView />} />
           <Route path="views/buyer" element={<ManagerBuyerView />} />

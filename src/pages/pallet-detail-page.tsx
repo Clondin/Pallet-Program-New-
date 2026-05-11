@@ -227,9 +227,16 @@ export function PalletDetailPage() {
               <p className="text-[10px] uppercase tracking-wider text-[#999] mb-2">Status</p>
               {isSalesman ? (
                 <div className="flex items-center justify-between gap-3 flex-wrap">
-                  <p className="text-[14px] font-semibold text-[#171717]">
-                    {getStatusLabel(pallet.status, 'salesman')}
-                  </p>
+                  <div>
+                    <p className="text-[14px] font-semibold text-[#171717]">
+                      {getStatusLabel(pallet.status, 'salesman')}
+                    </p>
+                    {pallet.status === 'in_build' && (
+                      <p className="text-[11px] text-[#888] mt-1">
+                        The builder has started — you can no longer pull this back.
+                      </p>
+                    )}
+                  </div>
                   {pallet.status === 'draft' && (
                     <button
                       onClick={() => {
@@ -245,6 +252,24 @@ export function PalletDetailPage() {
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-[#171717] text-white text-[12px] font-medium hover:bg-[#333] transition-colors"
                     >
                       Approve &amp; push to build
+                    </button>
+                  )}
+                  {pallet.status === 'ready' && (
+                    <button
+                      onClick={async () => {
+                        const ok = await confirm({
+                          title: 'Pull this pallet back?',
+                          description:
+                            'It will return to In Progress and disappear from the builder’s queue until you push it again.',
+                          confirmLabel: 'Pull back',
+                        })
+                        if (!ok) return
+                        setStatusError(null)
+                        updateStatus('draft')
+                      }}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] font-medium text-[#171717] shadow-border hover:bg-[#fafafa] transition-colors"
+                    >
+                      Pull back to In Progress
                     </button>
                   )}
                 </div>

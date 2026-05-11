@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import {
   ArrowLeftRight,
+  Boxes,
   Briefcase,
   Building2,
   CalendarRange,
@@ -28,6 +29,7 @@ interface NavItem {
 const TODAY: NavItem[] = [{ to: '/manager', label: 'Dashboard', icon: Home, end: true }]
 
 const OPERATIONS: NavItem[] = [
+  { to: '/manager/pallets', label: 'All Pallets', icon: Boxes },
   { to: '/manager/builders', label: 'Build Queue', icon: HardHat },
   { to: '/manager/demand', label: 'Demand', icon: TrendingUp },
   { to: '/manager/transfers', label: 'Transfers', icon: ArrowLeftRight },

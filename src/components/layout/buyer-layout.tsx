@@ -4,8 +4,9 @@ import { LogOut, ShoppingCart } from 'lucide-react'
 
 const TABS = [
   { to: '/buyer', label: 'Demand', end: true },
+  { to: '/buyer/pallets', label: 'Pallets', end: false },
   { to: '/buyer/catalog', label: 'Catalog', end: false },
-  { to: '/buyer/retailers', label: 'Pallets', end: false },
+  { to: '/buyer/retailers', label: 'Retailers', end: false },
   { to: '/buyer/builders', label: 'Build queue', end: false },
 ]
 
