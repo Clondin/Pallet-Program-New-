@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
-import { Briefcase, LogOut } from 'lucide-react'
+import { ArrowLeft, Briefcase, LogOut } from 'lucide-react'
 import { useRoleStore } from '../../stores/role-store'
 import { useSalespersonStore } from '../../stores/salesperson-store'
 import { TopToolbar } from '../Toolbar/top-toolbar'
@@ -29,8 +29,18 @@ export function SalesmanLayout({ children }: { children: ReactNode }) {
     : null
 
   if (isEditor) {
+    // /:role/retailers/:retailerId/pallets/:palletId/editor — peel off /editor
+    // to derive the pallet detail URL.
+    const palletPath = pathname.replace(/\/editor\/?$/, '')
     return (
       <div className="min-h-screen bg-[#fafafa]">
+        <Link
+          to={palletPath}
+          className="fixed top-4 left-4 z-[60] inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-white/95 backdrop-blur text-[12px] font-medium text-[#555] hover:text-[#171717] shadow-card transition-colors"
+        >
+          <ArrowLeft className="w-3.5 h-3.5" />
+          Back to pallet
+        </Link>
         <TopToolbar />
         <main className="pt-16">{children}</main>
       </div>

@@ -6,7 +6,7 @@ import { ThreeDViewer } from '../components/Editor/three-d-viewer'
 import { GridEditor } from '../components/Editor/grid-editor'
 import { ProductPickerModal } from '../components/Editor/product-picker-modal'
 import { useRoleHref } from '../lib/role-href'
-import { Package } from 'lucide-react'
+import { ArrowLeft, Package } from 'lucide-react'
 
 export function EditorPage() {
   const { palletId, retailerId } = useParams()
@@ -51,15 +51,18 @@ export function EditorPage() {
     )
   }
 
+  const isSalesman = role === 'salesman'
+
   return (
     <>
       <div className="flex-1 h-screen relative">
-        {retailerId && palletId && (
-          <div className="absolute left-4 top-5 z-30">
+        {!isSalesman && retailerId && palletId && (
+          <div className="absolute left-4 top-5 z-[60]">
             <Link
               to={roleHref(`/retailers/${retailerId}/pallets/${palletId}`)}
-              className="inline-flex items-center px-3 py-1.5 rounded-md bg-white/90 backdrop-blur text-[12px] font-medium text-[#555] hover:text-[#171717] transition-colors shadow-sm"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-white/95 backdrop-blur text-[12px] font-medium text-[#555] hover:text-[#171717] shadow-card transition-colors"
             >
+              <ArrowLeft className="w-3.5 h-3.5" />
               Back to pallet
             </Link>
           </div>
