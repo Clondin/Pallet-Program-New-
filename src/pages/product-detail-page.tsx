@@ -19,6 +19,7 @@ import { BRAND_COLORS } from '../lib/mock-data'
 import { useCatalogStore } from '../stores/catalog-store'
 import { useRetailerStore } from '../stores/retailer-store'
 import { useRoleHref } from '../lib/role-href'
+import { useConfirm } from '../components/ConfirmDialog'
 
 const BRANDS: Brand[] = ['tuscanini', 'kedem', 'gefen', 'liebers', 'haddar', 'osem']
 const HOLIDAYS: Holiday[] = ['rosh-hashanah', 'pesach', 'sukkos', 'none']
@@ -60,6 +61,7 @@ function getStackingGuidance(product: Product) {
 
 export function ProductDetailPage() {
   const roleHref = useRoleHref()
+  const { confirm, dialog: confirmDialog } = useConfirm()
   const { id } = useParams()
   const navigate = useNavigate()
   const product = useCatalogStore((s) => s.getProduct(id ?? ''))
@@ -229,8 +231,14 @@ export function ProductDetailPage() {
     setIsEditing(false)
   }
 
-  const handleDelete = () => {
-    if (!window.confirm(`Delete "${product.name}" from the catalog?`)) return
+  const handleDelete = async () => {
+    const ok = await confirm({
+      title: `Delete "${product.name}" from the catalog?`,
+      description: 'This product will be removed from the master catalog.',
+      confirmLabel: 'Delete product',
+      destructive: true,
+    })
+    if (!ok) return
     deleteProduct(product.id)
     navigate(roleHref('/catalog'))
   }
@@ -547,6 +555,7 @@ export function ProductDetailPage() {
           </div>
         )}
       </div>
+      {confirmDialog}
     </div>
   )
 }

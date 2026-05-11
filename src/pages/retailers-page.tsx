@@ -12,6 +12,7 @@ import { useRoleStore } from '../stores/role-store'
 import { useSalespersonStore } from '../stores/salesperson-store'
 import { RetailerCard } from '../components/Retailers/retailer-card'
 import { RetailerForm } from '../components/Retailers/retailer-form'
+import { useConfirm } from '../components/ConfirmDialog'
 import type { Retailer, RetailerStatus } from '../types'
 
 const STATUS_FILTERS: { value: RetailerStatus | 'all'; label: string }[] = [
@@ -33,6 +34,7 @@ export function RetailersPage() {
       ? salespeople.find((sp) => sp.id === activeSalespersonId)
       : null
   const navigate = useNavigate()
+  const { confirm, dialog: confirmDialog } = useConfirm()
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [editingRetailerId, setEditingRetailerId] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
@@ -99,10 +101,16 @@ export function RetailersPage() {
     setIsFormOpen(true)
   }
 
-  function handleDelete(id: string) {
+  async function handleDelete(id: string) {
     const retailer = retailers.find((r) => r.id === id)
     if (!retailer) return
-    if (!window.confirm(`Delete "${retailer.name}"? This cannot be undone.`)) return
+    const ok = await confirm({
+      title: `Delete "${retailer.name}"?`,
+      description: 'This program and any pallets created under it will be removed. This cannot be undone.',
+      confirmLabel: 'Delete program',
+      destructive: true,
+    })
+    if (!ok) return
     deleteRetailer(id)
   }
 
@@ -228,6 +236,7 @@ export function RetailersPage() {
       {isFormOpen && (
         <RetailerForm retailer={editingRetailer} onSave={handleSave} onCancel={handleCancel} />
       )}
+      {confirmDialog}
     </div>
   )
 }

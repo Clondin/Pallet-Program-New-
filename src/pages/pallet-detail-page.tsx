@@ -12,6 +12,7 @@ import { useDisplayStore } from '../stores/display-store'
 import { useRetailerStore } from '../stores/retailer-store'
 import { compareSeasonsByHolidayDate, useSeasonStore } from '../stores/season-store'
 import { useRoleHref } from '../lib/role-href'
+import { useConfirm } from '../components/ConfirmDialog'
 
 function formatDateInputValue(timestamp?: number) {
   if (!timestamp) return ''
@@ -53,6 +54,7 @@ export function PalletDetailPage() {
   const { retailerId, palletId } = useParams()
   const navigate = useNavigate()
   const roleHref = useRoleHref()
+  const { confirm, dialog: confirmDialog } = useConfirm()
   const pallet = useDisplayStore((state) =>
     palletId ? state.getProject(palletId) : undefined
   )
@@ -173,13 +175,16 @@ export function PalletDetailPage() {
             Duplicate
           </button>
           <button
-            onClick={() => {
-              if (
-                window.confirm(`Delete pallet "${pallet.name}"? This cannot be undone.`)
-              ) {
-                deleteProject(pallet.id)
-                navigate(roleHref(`/retailers/${retailerId}`))
-              }
+            onClick={async () => {
+              const ok = await confirm({
+                title: `Delete pallet "${pallet.name}"?`,
+                description: 'This pallet and its assortment will be removed. This cannot be undone.',
+                confirmLabel: 'Delete pallet',
+                destructive: true,
+              })
+              if (!ok) return
+              deleteProject(pallet.id)
+              navigate(roleHref(`/retailers/${retailerId}`))
             }}
             className="inline-flex items-center gap-2 px-3 py-2 rounded-md text-[#c0392b] text-[13px] font-medium hover:bg-[#c0392b]/5 transition-colors"
           >
@@ -375,6 +380,7 @@ export function PalletDetailPage() {
       <div className="mt-6">
         <CommentsThread palletId={pallet.id} />
       </div>
+      {confirmDialog}
     </div>
   )
 }

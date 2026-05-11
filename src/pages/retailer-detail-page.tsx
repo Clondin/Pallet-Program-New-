@@ -19,7 +19,9 @@ import { useCatalogStore } from '../stores/catalog-store'
 import { useRetailerStore } from '../stores/retailer-store'
 import { useDisplayStore } from '../stores/display-store'
 import { useRoleHref } from '../lib/role-href'
+import { useRoleStore } from '../stores/role-store'
 import { PalletWizard } from '../components/Wizard/PalletWizard'
+import { useConfirm } from '../components/ConfirmDialog'
 import type { WizardPalletConfig } from '../components/Wizard/wizardTypes'
 import { BRAND_COLORS } from '../lib/mock-data'
 import type { AuthorizedItem, Brand, DisplayProject, Holiday, Retailer } from '../types'
@@ -559,8 +561,11 @@ export function RetailerDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const roleHref = useRoleHref()
+  const role = useRoleStore((state) => state.role)
+  const deleteRetailer = useRetailerStore((state) => state.deleteRetailer)
   const retailer = useRetailerStore((state) => state.getRetailer(id ?? ''))
   const projects = useDisplayStore((state) => state.projects)
+  const { confirm, dialog: confirmDialog } = useConfirm()
   const pallets = useMemo(
     () => projects.filter((p) => p.retailerId === (id ?? '')).sort((a, b) => b.updatedAt - a.updatedAt),
     [projects, id],
@@ -572,6 +577,22 @@ export function RetailerDetailPage() {
     const seasons = new Set(pallets.map((pallet) => pallet.season))
     return Array.from(seasons).filter((season) => season !== 'none')
   }, [pallets])
+
+  const handleDeleteProgram = async () => {
+    if (!retailer) return
+    const ok = await confirm({
+      title: `Delete "${retailer.name}"?`,
+      description:
+        pallets.length > 0
+          ? `This program and ${pallets.length} pallet${pallets.length === 1 ? '' : 's'} under it will be removed. This cannot be undone.`
+          : 'This cannot be undone.',
+      confirmLabel: 'Delete program',
+      destructive: true,
+    })
+    if (!ok) return
+    deleteRetailer(retailer.id)
+    navigate(roleHref('/retailers'), { replace: true })
+  }
 
   const handleWizardComplete = (config: WizardPalletConfig) => {
     const project = createProject(
@@ -638,13 +659,24 @@ export function RetailerDetailPage() {
           </div>
         </div>
 
-        <button
-          onClick={() => setWizardOpen(true)}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-[#171717] text-white text-[13px] font-medium hover:bg-[#333] transition-colors shrink-0"
-        >
-          <Plus className="w-3.5 h-3.5" />
-          New Pallet
-        </button>
+        <div className="flex items-center gap-2 shrink-0">
+          {role === 'manager' && (
+            <button
+              onClick={handleDeleteProgram}
+              className="inline-flex items-center gap-2 px-3 py-2 rounded-md text-[13px] font-medium text-[#c0392b] hover:bg-red-50 transition-colors"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              Delete
+            </button>
+          )}
+          <button
+            onClick={() => setWizardOpen(true)}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-[#171717] text-white text-[13px] font-medium hover:bg-[#333] transition-colors"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            New Pallet
+          </button>
+        </div>
       </div>
 
       {/* Tabs */}
@@ -717,6 +749,7 @@ export function RetailerDetailPage() {
         onClose={() => setWizardOpen(false)}
         onComplete={handleWizardComplete}
       />
+      {confirmDialog}
     </div>
   )
 }

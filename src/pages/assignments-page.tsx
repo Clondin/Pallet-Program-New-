@@ -3,6 +3,7 @@ import { Building2, Pencil, Plus, Trash2, UserPlus, Users } from 'lucide-react'
 import { useSalespersonStore } from '../stores/salesperson-store'
 import { useRetailerStore } from '../stores/retailer-store'
 import { RetailerForm } from '../components/Retailers/retailer-form'
+import { useConfirm } from '../components/ConfirmDialog'
 import type { Retailer } from '../types'
 
 export function AssignmentsPage() {
@@ -18,6 +19,7 @@ export function AssignmentsPage() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingName, setEditingName] = useState('')
   const [isRetailerFormOpen, setIsRetailerFormOpen] = useState(false)
+  const { confirm, dialog: confirmDialog } = useConfirm()
 
   const handleRetailerSave = (data: Omit<Retailer, 'id'> & { id?: string }) => {
     addRetailer({ ...data, id: `ret-${Date.now()}` } as Retailer)
@@ -141,10 +143,14 @@ export function AssignmentsPage() {
                       </button>
                     )}
                     <button
-                      onClick={() => {
-                        if (window.confirm(`Delete salesman "${sp.name}"?`)) {
-                          deleteSalesperson(sp.id)
-                        }
+                      onClick={async () => {
+                        const ok = await confirm({
+                          title: `Delete salesman "${sp.name}"?`,
+                          description: 'Their retailer assignments will be removed too.',
+                          confirmLabel: 'Delete',
+                          destructive: true,
+                        })
+                        if (ok) deleteSalesperson(sp.id)
                       }}
                       className="p-2 rounded-md text-[#c0392b] hover:bg-[#c0392b]/5 transition-colors"
                       title="Delete"
@@ -191,6 +197,7 @@ export function AssignmentsPage() {
           onCancel={() => setIsRetailerFormOpen(false)}
         />
       )}
+      {confirmDialog}
     </div>
   )
 }
