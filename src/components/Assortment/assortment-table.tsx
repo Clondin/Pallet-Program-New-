@@ -29,6 +29,7 @@ export function AssortmentTable({ project, retailer }: AssortmentTableProps) {
   const role = useRoleStore((state) => state.role)
   const isManager = role === 'manager'
   const [showRequestModal, setShowRequestModal] = useState(false)
+  const [activeTab, setActiveTab] = useState<'authorized' | 'pending'>('authorized')
 
   // Auto-populate pallet when assortment changes
   const prevAssortmentRef = useRef(JSON.stringify(project.assortment))
@@ -45,18 +46,32 @@ export function AssortmentTable({ project, retailer }: AssortmentTableProps) {
     [products, project, retailer],
   )
 
+  const authorizedCount = useMemo(
+    () => rows.filter((row) => row.status === 'authorized').length,
+    [rows],
+  )
+  const pendingCount = useMemo(
+    () => rows.filter((row) => row.status === 'pending').length,
+    [rows],
+  )
+
+  const tabbedRows = useMemo(
+    () => rows.filter((row) => row.status === activeTab),
+    [rows, activeTab],
+  )
+
   const filteredRows = useMemo(() => {
-    if (!search) return rows
+    if (!search) return tabbedRows
 
     const query = search.toLowerCase()
-    return rows.filter(
+    return tabbedRows.filter(
       (row) =>
         row.productName.toLowerCase().includes(query) ||
         row.sku.toLowerCase().includes(query) ||
         (row.upc ?? '').toLowerCase().includes(query) ||
         (row.kaycoItemNumber ?? '').toLowerCase().includes(query),
     )
-  }, [rows, search])
+  }, [tabbedRows, search])
 
   const authorizedIds = useMemo(
     () => new Set(retailer.authorizedItems.map((item) => item.productId)),
@@ -131,6 +146,35 @@ export function AssortmentTable({ project, retailer }: AssortmentTableProps) {
         <RequestItemModal retailer={retailer} onClose={() => setShowRequestModal(false)} />
       )}
 
+      <div className="px-6 -mb-px flex items-center gap-1">
+        {([
+          ['authorized', 'Authorized', authorizedCount],
+          ['pending', 'Requested', pendingCount],
+        ] as const).map(([key, label, count]) => {
+          const isActive = activeTab === key
+          return (
+            <button
+              key={key}
+              onClick={() => setActiveTab(key)}
+              className={`px-3 py-2 text-[12px] font-medium border-b-2 transition-colors ${
+                isActive
+                  ? 'border-[#171717] text-[#171717]'
+                  : 'border-transparent text-[#888] hover:text-[#171717]'
+              }`}
+            >
+              {label}
+              <span
+                className={`ml-1.5 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-semibold tabular-nums ${
+                  isActive ? 'bg-[#171717] text-white' : 'bg-[#f3f3f3] text-[#666]'
+                }`}
+              >
+                {count}
+              </span>
+            </button>
+          )
+        })}
+      </div>
+
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead>
@@ -169,31 +213,23 @@ export function AssortmentTable({ project, retailer }: AssortmentTableProps) {
                   <p className="text-[12px] text-[#888]">
                     {search
                       ? 'No matches in the catalog. Try a different keyword, Kayco #, or UPC.'
-                      : 'No authorized products yet. Search above or click Request item to add from the catalog.'}
+                      : activeTab === 'pending'
+                        ? 'No pending requests. Search above to request items from the catalog.'
+                        : 'No authorized products yet. Search above or click Request item to add from the catalog.'}
                   </p>
                 </td>
               </tr>
             ) : (
               filteredRows.map((row) => {
-                const isPending = row.status === 'pending'
                 return (
                 <tr
                   key={row.productId}
-                  className={`border-t border-[#f5f5f5] transition-colors ${
-                    isPending ? 'bg-amber-50/40 hover:bg-amber-50/60' : 'hover:bg-[#fafafa]'
-                  }`}
+                  className="border-t border-[#f5f5f5] hover:bg-[#fafafa] transition-colors"
                 >
                   <td className="px-6 py-3">
-                    <div className="flex items-center gap-2">
-                      <p className="text-[13px] font-medium text-[#171717]">
-                        {row.productName}
-                      </p>
-                      {isPending && (
-                        <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-800 text-[10px] font-medium uppercase tracking-wider">
-                          Requested
-                        </span>
-                      )}
-                    </div>
+                    <p className="text-[13px] font-medium text-[#171717]">
+                      {row.productName}
+                    </p>
                     <p className="text-[11px] text-[#999]">{row.brand}</p>
                   </td>
                   <td className="px-4 py-3 text-[12px] text-[#666] font-mono">{row.upc || '—'}</td>
