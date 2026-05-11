@@ -4,11 +4,12 @@ import { RequestItemModal } from './request-item-modal'
 import { useCatalogStore } from '../../stores/catalog-store'
 import { useDisplayStore } from '../../stores/display-store'
 import { useRetailerStore } from '../../stores/retailer-store'
+import { useRoleStore } from '../../stores/role-store'
 import {
   buildAssortmentRows,
   computeAssortmentTotals,
 } from '../../lib/assortment-utils'
-import type { DisplayProject, Retailer } from '../../types'
+import type { AuthorizedItem, DisplayProject, Retailer } from '../../types'
 
 interface AssortmentTableProps {
   project: DisplayProject
@@ -23,6 +24,9 @@ export function AssortmentTable({ project, retailer }: AssortmentTableProps) {
   const updateAuthorizedItemCasePrice = useRetailerStore(
     (state) => state.updateAuthorizedItemCasePrice,
   )
+  const addAuthorizedItem = useRetailerStore((state) => state.addAuthorizedItem)
+  const role = useRoleStore((state) => state.role)
+  const isManager = role === 'manager'
   const [showRequestModal, setShowRequestModal] = useState(false)
 
   // Auto-populate pallet when assortment changes
@@ -47,9 +51,49 @@ export function AssortmentTable({ project, retailer }: AssortmentTableProps) {
     return rows.filter(
       (row) =>
         row.productName.toLowerCase().includes(query) ||
-        row.sku.toLowerCase().includes(query),
+        row.sku.toLowerCase().includes(query) ||
+        (row.upc ?? '').toLowerCase().includes(query) ||
+        (row.kaycoItemNumber ?? '').toLowerCase().includes(query),
     )
   }, [rows, search])
+
+  const authorizedIds = useMemo(
+    () => new Set(retailer.authorizedItems.map((item) => item.productId)),
+    [retailer.authorizedItems],
+  )
+
+  const catalogMatches = useMemo(() => {
+    const query = search.trim().toLowerCase()
+    if (!query) return []
+    return products
+      .filter((product) => !authorizedIds.has(product.id))
+      .filter((product) => {
+        return (
+          product.name.toLowerCase().includes(query) ||
+          product.sku.toLowerCase().includes(query) ||
+          (product.upc ?? '').toLowerCase().includes(query) ||
+          (product.kaycoItemNumber ?? '').toLowerCase().includes(query) ||
+          (product.brand ?? '').toLowerCase().includes(query)
+        )
+      })
+      .slice(0, 20)
+  }, [products, authorizedIds, search])
+
+  const handleAuthorizeFromCatalog = (productId: string) => {
+    const product = products.find((p) => p.id === productId)
+    if (!product) return
+    const item: AuthorizedItem = {
+      productId: product.id,
+      productName: product.name,
+      sku: product.sku,
+      brand: product.brand,
+      status: isManager ? 'authorized' : 'pending',
+      authorizedDate: new Date().toISOString().slice(0, 10),
+      avgMonthlyUnits: 0,
+      marginPercent: 0,
+    }
+    addAuthorizedItem(retailer.id, item)
+  }
 
   const totals = useMemo(
     () => computeAssortmentTotals(project.assortment, products, retailer),
@@ -69,8 +113,8 @@ export function AssortmentTable({ project, retailer }: AssortmentTableProps) {
           <input
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search products..."
-            className="w-full sm:w-[220px] px-3 py-1.5 text-[12px] shadow-border rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-[#0a72ef]/30 focus:shadow-none"
+            placeholder="Search name, Kayco #, UPC, brand…"
+            className="w-full sm:w-[260px] px-3 py-1.5 text-[12px] shadow-border rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-[#0a72ef]/30 focus:shadow-none"
           />
           <button
             onClick={() => setShowRequestModal(true)}
@@ -116,11 +160,15 @@ export function AssortmentTable({ project, retailer }: AssortmentTableProps) {
             </tr>
           </thead>
           <tbody>
-            {filteredRows.length === 0 ? (
+            {filteredRows.length === 0 && catalogMatches.length === 0 ? (
               <tr>
                 <td colSpan={8} className="px-6 py-8 text-center">
                   <Package className="w-6 h-6 text-[#ccc] mx-auto mb-2" />
-                  <p className="text-[12px] text-[#888]">No authorized products found</p>
+                  <p className="text-[12px] text-[#888]">
+                    {search
+                      ? 'No matches in the catalog. Try a different keyword, Kayco #, or UPC.'
+                      : 'No authorized products yet. Search above or click Request item to add from the catalog.'}
+                  </p>
                 </td>
               </tr>
             ) : (
@@ -204,6 +252,53 @@ export function AssortmentTable({ project, retailer }: AssortmentTableProps) {
                   </td>
                 </tr>
               ))
+            )}
+
+            {catalogMatches.length > 0 && (
+              <>
+                <tr>
+                  <td
+                    colSpan={8}
+                    className="px-6 pt-5 pb-2 text-[10px] uppercase tracking-wider text-[#999]"
+                  >
+                    From catalog · {isManager ? 'click to authorize' : 'click to request'}
+                  </td>
+                </tr>
+                {catalogMatches.map((product) => (
+                  <tr
+                    key={product.id}
+                    className="border-t border-[#f5f5f5] hover:bg-[#fafafa] transition-colors"
+                  >
+                    <td className="px-6 py-3">
+                      <p className="text-[13px] font-medium text-[#171717]">
+                        {product.name}
+                      </p>
+                      <p className="text-[11px] text-[#999]">{product.brand}</p>
+                    </td>
+                    <td className="px-4 py-3 text-[12px] text-[#666] font-mono">
+                      {product.upc || '—'}
+                    </td>
+                    <td className="px-4 py-3 text-[12px] text-[#666] font-mono">
+                      {product.kaycoItemNumber || '—'}
+                    </td>
+                    <td className="px-4 py-3 text-[12px] text-[#666] text-right tabular-nums">
+                      {product.unitsPerCase ?? '—'}
+                    </td>
+                    <td className="px-4 py-3 text-[12px] text-[#bbb] text-right">—</td>
+                    <td className="px-4 py-3 text-right">
+                      <button
+                        onClick={() => handleAuthorizeFromCatalog(product.id)}
+                        className="inline-flex items-center gap-1 px-3 py-1 rounded-md text-[11px] font-medium bg-[#171717] text-white hover:bg-[#333] transition-colors"
+                      >
+                        <Plus className="w-3 h-3" />
+                        {isManager ? 'Add' : 'Request'}
+                      </button>
+                    </td>
+                    <td className="px-4 py-3 text-[12px] text-[#bbb] text-right">—</td>
+                    <td className="px-6 py-3 text-[12px] text-[#bbb] text-right">—</td>
+                  </tr>
+                ))}
+              </>
             )}
           </tbody>
           {filteredRows.length > 0 && (
