@@ -41,9 +41,9 @@ const SETUP: NavItem[] = [
 ]
 
 const VIEW_AS: { to: string; label: string; icon: typeof Briefcase }[] = [
-  { to: '/salesman', label: 'Salesman', icon: Briefcase },
-  { to: '/builder', label: 'Builder', icon: HardHat },
-  { to: '/buyer', label: 'Buyer', icon: ShoppingCart },
+  { to: '/manager/views/salesman', label: 'Salesman', icon: Briefcase },
+  { to: '/manager/views/builder', label: 'Builder', icon: HardHat },
+  { to: '/manager/views/buyer', label: 'Buyer', icon: ShoppingCart },
 ]
 
 function NavSection({ heading, items }: { heading: string; items: NavItem[] }) {

@@ -4,6 +4,9 @@ import { DisplayProject, InventoryLocation, InventorySnapshot, Product, Retailer
 import { RoleAppLayout } from './components/layout/role-app-layout'
 import { LegacyFlatRedirect } from './components/layout/legacy-flat-redirect'
 import { RoleLauncher } from './pages/role-launcher'
+import { ManagerSalesmanView } from './pages/manager-views/salesman-view'
+import { ManagerBuilderView } from './pages/manager-views/builder-view'
+import { ManagerBuyerView } from './pages/manager-views/buyer-view'
 import { EditorPage } from './pages/editor-page'
 import { CatalogPage } from './pages/catalog-page'
 import { ProductDetailPage } from './pages/product-detail-page'
@@ -275,6 +278,9 @@ export default function App() {
           <Route path="assignments" element={<AssignmentsPage />} />
           <Route path="transfers" element={<TransfersPage />} />
           <Route path="scene" element={<ScenePage />} />
+          <Route path="views/salesman" element={<ManagerSalesmanView />} />
+          <Route path="views/builder" element={<ManagerBuilderView />} />
+          <Route path="views/buyer" element={<ManagerBuyerView />} />
           <Route path="*" element={<Navigate to="." replace />} />
         </Route>
 

@@ -88,9 +88,9 @@ export function ManagerHome() {
           See what each role sees
         </p>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <ViewAsTile to="/salesman" icon={Briefcase} title="Salesman view" subtitle="Pick a salesperson, see their pallets" />
-          <ViewAsTile to="/builder" icon={HardHat} title="Builder view" subtitle="What's ready, in build, sorted by deadline" />
-          <ViewAsTile to="/buyer" icon={ShoppingCart} title="Buyer view" subtitle="Demand swings vs prior season" />
+          <ViewAsTile to="/manager/views/salesman" icon={Briefcase} title="Salesman view" subtitle="Pick a salesperson, see their pallets" />
+          <ViewAsTile to="/manager/views/builder" icon={HardHat} title="Builder view" subtitle="What's ready, in build, sorted by deadline" />
+          <ViewAsTile to="/manager/views/buyer" icon={ShoppingCart} title="Buyer view" subtitle="Demand swings vs prior season" />
         </div>
       </div>
 

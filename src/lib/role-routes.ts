@@ -20,6 +20,7 @@ export const ROUTE_RULES: RouteRule[] = [
   { match: (p) => p === '/demand', allowedRoles: ['buyer', 'manager'] },
   { match: (p) => p === '/transfers', allowedRoles: ['manager'] },
   { match: (p) => p === '/assignments', allowedRoles: ['manager'] },
+  { match: (p) => p.startsWith('/views/'), allowedRoles: ['manager'] },
 ]
 
 export function isRouteAllowedForRole(pathname: string, role: Role): boolean {
