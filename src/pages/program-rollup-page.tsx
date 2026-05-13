@@ -5,6 +5,7 @@ import { ProgramMatrix } from '../components/Assortment/program-matrix'
 import { useCatalogStore } from '../stores/catalog-store'
 import { useDisplayStore } from '../stores/display-store'
 import { useRetailerStore } from '../stores/retailer-store'
+import { useSeasonStore } from '../stores/season-store'
 import { useRoleHref } from '../lib/role-href'
 import { useRoleStore } from '../stores/role-store'
 import { useConfirm } from '../components/ConfirmDialog'
@@ -18,7 +19,7 @@ const HOLIDAY_LABELS: Record<Holiday, string> = {
 }
 
 export function ProgramRollupPage() {
-  const { retailerId, season } = useParams()
+  const { retailerId, season: seasonParam } = useParams()
   const navigate = useNavigate()
   const roleHref = useRoleHref()
   const role = useRoleStore((state) => state.role)
@@ -29,6 +30,7 @@ export function ProgramRollupPage() {
     retailerId ? state.getProjectsForRetailer(retailerId) : [],
   )
   const products = useCatalogStore((state) => state.products)
+  const seasons = useSeasonStore((state) => state.seasons)
   const updateAssortmentForProject = useDisplayStore(
     (state) => state.updateAssortmentForProject,
   )
@@ -40,10 +42,21 @@ export function ProgramRollupPage() {
   const { confirm, dialog } = useConfirm()
   const [busy, setBusy] = useState<PalletType | null>(null)
 
-  const seasonPallets = useMemo(
-    () => pallets.filter((pallet) => pallet.season === season),
-    [pallets, season],
+  // The URL `season` param holds either a Season id (new) or a Holiday family
+  // string (legacy). Match both so existing "Program summary" links keep
+  // working.
+  const seasonRecord = useMemo(
+    () => seasons.find((s) => s.id === seasonParam) ?? null,
+    [seasons, seasonParam],
   )
+
+  const seasonPallets = useMemo(() => {
+    if (!seasonParam) return []
+    if (seasonRecord) {
+      return pallets.filter((pallet) => pallet.seasonId === seasonRecord.id)
+    }
+    return pallets.filter((pallet) => pallet.season === seasonParam)
+  }, [pallets, seasonParam, seasonRecord])
 
   const halfPallet = useMemo(
     () => seasonPallets.find((p) => p.palletType === 'half') ?? null,
@@ -63,9 +76,18 @@ export function ProgramRollupPage() {
   }
 
   const seasonLabel =
-    season && season in HOLIDAY_LABELS
-      ? HOLIDAY_LABELS[season as Holiday]
-      : season ?? 'Program'
+    seasonRecord?.name ??
+    (seasonParam && seasonParam in HOLIDAY_LABELS
+      ? HOLIDAY_LABELS[seasonParam as Holiday]
+      : seasonParam ?? 'Program')
+
+  const referencePallet = seasonPallets[0]
+  const seasonHoliday: Holiday = (referencePallet?.season ??
+    (seasonParam && seasonParam in HOLIDAY_LABELS
+      ? (seasonParam as Holiday)
+      : 'none')) as Holiday
+  const seasonIdForNew: string | null =
+    seasonRecord?.id ?? referencePallet?.seasonId ?? null
 
   const handleAddPallet = (type: PalletType) => {
     setBusy(type)
@@ -74,8 +96,9 @@ export function ProgramRollupPage() {
         `${seasonLabel} ${type === 'full' ? 'Full' : 'Half'} — ${retailer.name}`,
         {
           palletType: type,
-          season: (season as Holiday) ?? 'none',
+          season: seasonHoliday,
           retailerId,
+          seasonId: seasonIdForNew,
         },
         retailer.defaultTierCount ?? 4,
       )
