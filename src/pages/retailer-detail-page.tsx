@@ -18,19 +18,18 @@ import {
 import { useCatalogStore } from '../stores/catalog-store'
 import { useRetailerStore } from '../stores/retailer-store'
 import { useDisplayStore } from '../stores/display-store'
+import { useSalespersonStore } from '../stores/salesperson-store'
 import { useRoleHref } from '../lib/role-href'
 import { useRoleStore } from '../stores/role-store'
 import { PalletWizard } from '../components/Wizard/PalletWizard'
 import { useConfirm } from '../components/ConfirmDialog'
 import type { WizardPalletConfig } from '../components/Wizard/wizardTypes'
-import { BRAND_COLORS } from '../lib/mock-data'
-import type { AuthorizedItem, Brand, DisplayProject, Holiday, Retailer } from '../types'
+import type { AuthorizedItem, DisplayProject, Holiday, Retailer } from '../types'
 
-type Tab = 'pallets' | 'overview' | 'items' | 'contacts' | 'compliance'
+type Tab = 'pallets' | 'items' | 'contacts' | 'compliance'
 
 const TABS: { value: Tab; label: string }[] = [
   { value: 'pallets', label: 'Pallets' },
-  { value: 'overview', label: 'Overview' },
   { value: 'items', label: 'Items' },
 ]
 
@@ -65,17 +64,19 @@ function formatHoliday(holiday: Holiday) {
     .join(' ')
 }
 
+function fmtMoney(v: number) {
+  return v.toLocaleString('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    maximumFractionDigits: v >= 1000 ? 0 : 2,
+  })
+}
+
 function formatDate(timestamp: number) {
   return new Date(timestamp).toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
   })
-}
-
-function fmtCurrency(v: number) {
-  if (v >= 1000000) return `$${(v / 1000000).toFixed(1)}M`
-  if (v >= 1000) return `$${(v / 1000).toFixed(0)}K`
-  return `$${v}`
 }
 
 function getTodayDateString() {
@@ -113,6 +114,11 @@ function PalletCard({ pallet, retailerId }: { pallet: DisplayProject; retailerId
   const navigate = useNavigate()
   const roleHref = useRoleHref()
 
+  const palletQty = pallet.quantity ?? 1
+  const itemCount = pallet.assortment.length
+  const casesPerPallet = pallet.assortment.reduce((sum, entry) => sum + entry.cases, 0)
+  const totalCases = casesPerPallet * palletQty
+
   return (
     <div
       onClick={() => navigate(roleHref(`/retailers/${retailerId}/pallets/${pallet.id}`))}
@@ -122,10 +128,6 @@ function PalletCard({ pallet, retailerId }: { pallet: DisplayProject; retailerId
         <div>
           <p className="text-[14px] font-semibold text-[#171717]">{pallet.name}</p>
           <div className="flex items-center gap-2 mt-1.5">
-            <span className="text-[11px] font-medium text-[#888]">
-              {formatHoliday(pallet.holiday)}
-            </span>
-            <span className="text-[#ddd]">/</span>
             <span className="text-[11px] font-medium text-[#888] capitalize">
               {pallet.palletType}
             </span>
@@ -135,95 +137,174 @@ function PalletCard({ pallet, retailerId }: { pallet: DisplayProject; retailerId
       </div>
 
       <div className="flex items-center gap-4 mt-4 text-[11px] text-[#999]">
-        <span className="tabular-nums">{pallet.placements.length} products</span>
-        <span className="tabular-nums">{pallet.tierCount} tiers</span>
+        <span className="tabular-nums">{palletQty} pallet{palletQty === 1 ? '' : 's'}</span>
+        <span className="tabular-nums">{itemCount} item{itemCount === 1 ? '' : 's'}</span>
+        <span className="tabular-nums">{totalCases} case{totalCases === 1 ? '' : 's'}</span>
         <span className="ml-auto tabular-nums">{formatDate(pallet.updatedAt)}</span>
       </div>
     </div>
   )
 }
 
-function OverviewTab({ retailer }: { retailer: Retailer }) {
-  const brandSet = new Set(
-    retailer.authorizedItems.filter((i) => i.status === 'authorized').map((i) => i.brand)
-  )
-  const brands = Array.from(brandSet) as Brand[]
+function OverviewTab({
+  retailer,
+  pallets,
+}: {
+  retailer: Retailer
+  pallets: DisplayProject[]
+}) {
+  const products = useCatalogStore((state) => state.products)
+
+  const metrics = useMemo(() => {
+    const priceByProduct = new Map<string, number>()
+    for (const item of retailer.authorizedItems) {
+      if (typeof item.casePrice === 'number') {
+        priceByProduct.set(item.productId, item.casePrice)
+      }
+    }
+    const costByProduct = new Map<string, number>()
+    for (const product of products) {
+      if (typeof product.caseCost === 'number') {
+        costByProduct.set(product.id, product.caseCost)
+      }
+    }
+
+    let revenue = 0
+    let materialCost = 0
+    let labor = 0
+    let totalCases = 0
+    let totalPallets = 0
+    let pricedCases = 0
+    let costedCases = 0
+
+    for (const pallet of pallets) {
+      const qty = pallet.quantity ?? 1
+      totalPallets += qty
+      if (typeof pallet.laborCost === 'number') {
+        labor += pallet.laborCost * qty
+      }
+      for (const entry of pallet.assortment) {
+        if (entry.cases <= 0) continue
+        const cases = entry.cases * qty
+        totalCases += cases
+        const price = priceByProduct.get(entry.productId)
+        const cost = costByProduct.get(entry.productId)
+        if (typeof price === 'number') {
+          revenue += price * cases
+          pricedCases += cases
+        }
+        if (typeof cost === 'number') {
+          materialCost += cost * cases
+          costedCases += cases
+        }
+      }
+    }
+
+    const cost = materialCost + labor
+    const marginDollars = revenue - cost
+    const marginPct = revenue > 0 ? (marginDollars / revenue) * 100 : null
+    const avgPrice = pricedCases > 0 ? revenue / pricedCases : null
+    const avgCost = costedCases > 0 ? materialCost / costedCases : null
+
+    return {
+      revenue,
+      cost,
+      materialCost,
+      labor,
+      marginDollars,
+      marginPct,
+      avgPrice,
+      avgCost,
+      totalCases,
+      totalPallets,
+    }
+  }, [retailer.authorizedItems, products, pallets])
+
+  if (pallets.length === 0) {
+    return null
+  }
+
+  const hero = [
+    { label: 'Revenue', value: fmtMoney(metrics.revenue) },
+    { label: 'Cost', value: fmtMoney(metrics.cost) },
+    {
+      label: 'Margin',
+      value: fmtMoney(metrics.marginDollars),
+      tone: metrics.marginDollars < 0 ? 'negative' : 'positive',
+    },
+    {
+      label: 'Margin %',
+      value: metrics.marginPct === null ? '—' : `${metrics.marginPct.toFixed(1)}%`,
+      tone:
+        metrics.marginPct === null
+          ? 'neutral'
+          : metrics.marginPct < 0
+            ? 'negative'
+            : 'positive',
+    },
+  ] as const
+
+  const breakdown = [
+    {
+      label: 'Avg case price',
+      value: metrics.avgPrice === null ? '—' : fmtMoney(metrics.avgPrice),
+    },
+    {
+      label: 'Avg case cost',
+      value: metrics.avgCost === null ? '—' : fmtMoney(metrics.avgCost),
+    },
+    { label: 'Material cost', value: fmtMoney(metrics.materialCost) },
+    { label: 'Labor cost', value: fmtMoney(metrics.labor) },
+    { label: 'Total cases', value: metrics.totalCases.toLocaleString() },
+    { label: 'Total pallets', value: metrics.totalPallets.toLocaleString() },
+  ]
 
   return (
     <div className="space-y-6">
-      {/* Info grid */}
-      <div className="bg-white shadow-card rounded-lg">
-        <div className="grid grid-cols-2 lg:grid-cols-4">
-          {[
-            { label: 'Headquarters', value: `${retailer.headquartersCity}, ${retailer.headquartersState}` },
-            { label: 'Stores', value: retailer.storeCount.toLocaleString() },
-            { label: 'Account Manager', value: retailer.accountManager },
-            { label: 'Contract', value: `${retailer.contractStart} — ${retailer.contractEnd || 'Ongoing'}` },
-          ].map((item, i) => (
-            <div
-              key={item.label}
-              className="px-5 py-4"
-              style={i > 0 ? { boxShadow: '-1px 0 0 0 rgba(0,0,0,0.04)' } : undefined}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {hero.map((stat) => (
+          <div key={stat.label} className="bg-white shadow-card rounded-xl px-5 py-5">
+            <p className="text-[10px] font-medium uppercase tracking-wider text-[#999]">
+              {stat.label}
+            </p>
+            <p
+              className={`text-[24px] font-semibold tabular-nums tracking-tight mt-1 ${
+                'tone' in stat && stat.tone === 'negative'
+                  ? 'text-red-600'
+                  : 'text-[#171717]'
+              }`}
             >
-              <p className="text-[10px] font-medium uppercase tracking-wider text-[#bbb]">{item.label}</p>
-              <p className="text-[13px] font-medium text-[#171717] mt-1">{item.value}</p>
+              {stat.value}
+            </p>
+          </div>
+        ))}
+      </div>
+
+      <div className="bg-white shadow-card rounded-xl">
+        <div className="px-5 py-4 border-b border-[#f0f0f0]">
+          <h3 className="text-[13px] font-semibold text-[#171717]">Breakdown</h3>
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-3">
+          {breakdown.map((row, i) => (
+            <div
+              key={row.label}
+              className="px-5 py-4"
+              style={
+                i % 3 !== 0
+                  ? { boxShadow: '-1px 0 0 0 rgba(0,0,0,0.04)' }
+                  : undefined
+              }
+            >
+              <p className="text-[10px] font-medium uppercase tracking-wider text-[#bbb]">
+                {row.label}
+              </p>
+              <p className="text-[15px] font-semibold text-[#171717] tabular-nums mt-1">
+                {row.value}
+              </p>
             </div>
           ))}
         </div>
       </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Performance */}
-        <div className="bg-white shadow-card rounded-lg p-5">
-          <h3 className="text-[13px] font-semibold text-[#171717] mb-4">Performance</h3>
-          <div className="grid grid-cols-3 gap-4">
-            {[
-              { label: 'YTD Revenue', value: fmtCurrency(retailer.performance.totalRevenueYTD) },
-              { label: 'Fill Rate', value: `${retailer.performance.fillRate}%` },
-              { label: 'On-Time', value: `${retailer.performance.onTimeDelivery}%` },
-              { label: 'MTD Revenue', value: fmtCurrency(retailer.performance.totalRevenueMTD) },
-              { label: 'Avg Order', value: fmtCurrency(retailer.performance.avgOrderValue) },
-              { label: 'Return Rate', value: `${retailer.performance.returnRate}%` },
-            ].map((m) => (
-              <div key={m.label}>
-                <p className="text-[10px] font-medium uppercase tracking-wider text-[#bbb]">{m.label}</p>
-                <p className="text-[14px] font-semibold text-[#171717] tabular-nums mt-0.5">{m.value}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Regions + Brands */}
-        <div className="bg-white shadow-card rounded-lg p-5">
-          <h3 className="text-[13px] font-semibold text-[#171717] mb-4">Regions</h3>
-          <div className="flex flex-wrap gap-1.5 mb-5">
-            {retailer.regions.map((region) => (
-              <span key={region} className="px-2.5 py-1 rounded-md bg-[#f5f5f5] text-[11px] font-medium text-[#555]">
-                {region}
-              </span>
-            ))}
-          </div>
-          <h3 className="text-[13px] font-semibold text-[#171717] mb-3">Brands</h3>
-          <div className="flex items-center gap-2 flex-wrap">
-            {brands.map((brand) => (
-              <span
-                key={brand}
-                className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-medium text-white"
-                style={{ backgroundColor: BRAND_COLORS[brand] }}
-              >
-                {brand.charAt(0).toUpperCase() + brand.slice(1)}
-              </span>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {retailer.notes && (
-        <div className="bg-white shadow-card rounded-lg p-5">
-          <h3 className="text-[13px] font-semibold text-[#171717] mb-2">Notes</h3>
-          <p className="text-[13px] text-[#555] leading-relaxed">{retailer.notes}</p>
-        </div>
-      )}
     </div>
   )
 }
@@ -275,8 +356,6 @@ function AddAuthorizedItemModal({
       brand: product.brand,
       status: 'authorized',
       authorizedDate: getTodayDateString(),
-      avgMonthlyUnits: 0,
-      marginPercent: 0,
     })
     setSearch('')
     onClose()
@@ -380,6 +459,11 @@ function ItemsTab({ retailer }: { retailer: Retailer }) {
     (state) => state.updateAuthorizedItemStatus,
   )
   const removeAuthorizedItem = useRetailerStore((state) => state.removeAuthorizedItem)
+  const products = useCatalogStore((state) => state.products)
+  const catalogById = useMemo(
+    () => new Map(products.map((product) => [product.id, product])),
+    [products],
+  )
 
   const items = useMemo(() => {
     const statusOrder = new Map(ITEM_STATUS_OPTIONS.map((status, index) => [status, index]))
@@ -391,6 +475,15 @@ function ItemsTab({ retailer }: { retailer: Retailer }) {
     )
   }, [retailer.authorizedItems])
 
+  const pendingCount = items.filter((item) => item.status === 'pending').length
+  const approveAllPending = () => {
+    items
+      .filter((item) => item.status === 'pending')
+      .forEach((item) =>
+        updateAuthorizedItemStatus(retailer.id, item.productId, 'authorized'),
+      )
+  }
+
   return (
     <>
       <div className="flex items-center justify-between gap-4 mb-4">
@@ -399,25 +492,33 @@ function ItemsTab({ retailer }: { retailer: Retailer }) {
             Manage retailer-specific assortment authorization and status.
           </p>
         </div>
-        <button
-          onClick={() => setIsAddModalOpen(true)}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-[#171717] text-white text-[13px] font-medium hover:bg-[#333] transition-colors shrink-0"
-        >
-          <Plus className="w-3.5 h-3.5" />
-          Add Item
-        </button>
+        <div className="flex items-center gap-2 shrink-0">
+          {pendingCount > 0 && (
+            <button
+              onClick={approveAllPending}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md bg-emerald-600 text-white text-[13px] font-medium hover:bg-emerald-700 transition-colors"
+            >
+              Approve all ({pendingCount})
+            </button>
+          )}
+          <button
+            onClick={() => setIsAddModalOpen(true)}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-[#171717] text-white text-[13px] font-medium hover:bg-[#333] transition-colors"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            Add Item
+          </button>
+        </div>
       </div>
 
       <div className="bg-white shadow-card rounded-lg overflow-hidden">
         <div
-          className="grid grid-cols-[minmax(0,1.3fr)_100px_100px_140px_88px] gap-4 px-5 py-3 text-[10px] font-medium uppercase tracking-wider text-[#bbb]"
+          className="grid grid-cols-[minmax(0,1.3fr)_140px_180px] gap-4 px-5 py-3 text-[10px] font-medium uppercase tracking-wider text-[#bbb]"
           style={{ boxShadow: '0 1px 0 0 rgba(0,0,0,0.04)' }}
         >
           <span>Product</span>
-          <span className="text-right">Monthly Units</span>
-          <span className="text-right">Margin</span>
-          <span className="text-right">Status</span>
-          <span className="text-right">Action</span>
+          <span>Status</span>
+          <span className="text-right">Actions</span>
         </div>
 
         {items.length === 0 ? (
@@ -429,10 +530,17 @@ function ItemsTab({ retailer }: { retailer: Retailer }) {
             </p>
           </div>
         ) : (
-          items.map((item) => (
+          items.map((item) => {
+            const product = catalogById.get(item.productId)
+            const rawBrand = product?.brandCode || product?.brand || item.brand
+            const brandLabel =
+              !rawBrand || rawBrand === 'other'
+                ? '—'
+                : rawBrand.charAt(0).toUpperCase() + rawBrand.slice(1)
+            return (
             <div
               key={`${item.productId}-${item.sku}`}
-              className="grid grid-cols-[minmax(0,1.3fr)_100px_100px_140px_88px] gap-4 px-5 py-3 items-center hover:bg-[#fafafa] transition-colors"
+              className="grid grid-cols-[minmax(0,1.3fr)_140px_180px] gap-4 px-5 py-3 items-center hover:bg-[#fafafa] transition-colors"
               style={{ boxShadow: '0 -1px 0 0 rgba(0,0,0,0.03)' }}
             >
               <div className="min-w-0">
@@ -440,51 +548,61 @@ function ItemsTab({ retailer }: { retailer: Retailer }) {
                   {item.productName}
                 </p>
                 <div className="flex items-center gap-2 mt-0.5">
-                  <span className="text-[11px] text-[#999] font-mono">{item.sku}</span>
-                  <div
-                    className="w-2 h-2 rounded-full"
-                    style={{ backgroundColor: BRAND_COLORS[item.brand as Brand] }}
-                  />
-                  <span className="text-[11px] text-[#777] capitalize">{item.brand}</span>
+                  <span className="text-[11px] text-[#999] font-mono">
+                    {product?.kaycoItemNumber ?? item.sku}
+                  </span>
+                  <span className="text-[#ddd]">·</span>
+                  <span className="text-[11px] text-[#777]">{brandLabel}</span>
                 </div>
               </div>
-              <p className="text-[12px] text-[#555] tabular-nums text-right">
-                {item.avgMonthlyUnits > 0 ? item.avgMonthlyUnits.toLocaleString() : '--'}
-              </p>
-              <p className="text-[12px] text-[#555] tabular-nums text-right">
-                {item.marginPercent > 0 ? `${item.marginPercent}%` : '--'}
-              </p>
-              <div className="text-right">
-                <select
-                  aria-label={`Status for ${item.productName}`}
-                  value={item.status}
-                  onChange={(event) =>
-                    updateAuthorizedItemStatus(
-                      retailer.id,
-                      item.productId,
-                      event.target.value as AuthorizedItem['status'],
-                    )
-                  }
-                  className="w-full px-2 py-1.5 text-[12px] text-[#171717] shadow-border rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-[#0a72ef]/30 focus:shadow-none"
-                >
-                  {ITEM_STATUS_OPTIONS.map((status) => (
-                    <option key={status} value={status}>
-                      {status.replace(/-/g, ' ')}
-                    </option>
-                  ))}
-                </select>
+              <div>
+                {item.status === 'authorized' && (
+                  <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full bg-emerald-50 text-emerald-700 text-[11px] font-medium">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                    Authorized
+                  </span>
+                )}
+                {item.status === 'pending' && (
+                  <button
+                    onClick={() =>
+                      updateAuthorizedItemStatus(retailer.id, item.productId, 'authorized')
+                    }
+                    title="Click to approve"
+                    className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full bg-amber-50 text-amber-700 text-[11px] font-medium hover:bg-amber-100 transition-colors cursor-pointer"
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                    Pending — click to approve
+                  </button>
+                )}
+                {item.status === 'discontinued' && (
+                  <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full bg-[#f5f5f5] text-[#666] text-[11px] font-medium">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#999]" />
+                    Discontinued
+                  </span>
+                )}
               </div>
-              <div className="text-right">
+              <div className="flex items-center justify-end gap-1.5">
+                {item.status === 'authorized' && (
+                  <button
+                    onClick={() =>
+                      updateAuthorizedItemStatus(retailer.id, item.productId, 'discontinued')
+                    }
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[12px] font-medium text-[#555] shadow-border hover:bg-[#fafafa] transition-colors"
+                  >
+                    Discontinue
+                  </button>
+                )}
                 <button
                   onClick={() => removeAuthorizedItem(retailer.id, item.productId)}
                   aria-label={`Remove ${item.productName}`}
-                  className="inline-flex items-center justify-center w-8 h-8 rounded-md text-[#999] hover:text-red-600 hover:bg-red-50 transition-colors"
+                  className="inline-flex items-center justify-center w-7 h-7 rounded-md text-[#999] hover:text-red-600 hover:bg-red-50 transition-colors"
                 >
-                  <Trash2 className="w-4 h-4" />
+                  <Trash2 className="w-3.5 h-3.5" />
                 </button>
               </div>
             </div>
-          ))
+            )
+          })
         )}
       </div>
 
@@ -578,6 +696,7 @@ export function RetailerDetailPage() {
   const deleteRetailer = useRetailerStore((state) => state.deleteRetailer)
   const updateRetailer = useRetailerStore((state) => state.updateRetailer)
   const retailer = useRetailerStore((state) => state.getRetailer(id ?? ''))
+  const salespeople = useSalespersonStore((state) => state.salespeople)
   const projects = useDisplayStore((state) => state.projects)
   const { confirm, dialog: confirmDialog } = useConfirm()
   const pallets = useMemo(
@@ -625,6 +744,18 @@ export function RetailerDetailPage() {
   const tierCfg = TIER_LABEL[retailer?.tier ?? 'standard']
 
   const authorizedCount = retailer?.authorizedItems.filter((i) => i.status === 'authorized').length ?? 0
+
+  const assignedSalespeople = useMemo(
+    () =>
+      retailer
+        ? salespeople.filter((sp) => sp.retailerIds.includes(retailer.id))
+        : [],
+    [salespeople, retailer],
+  )
+  const salesmanLabel =
+    assignedSalespeople.length > 0
+      ? assignedSalespeople.map((sp) => sp.name).join(', ')
+      : 'No salesman assigned'
 
   if (!retailer) {
     return (
@@ -674,7 +805,7 @@ export function RetailerDetailPage() {
           <div className="flex items-center gap-4 mt-2 text-[12px] text-[#888]">
             <span className="flex items-center gap-1">
               <User className="w-3 h-3" />
-              {retailer.accountManager || 'No sales rep assigned'}
+              {salesmanLabel}
             </span>
             <span className="flex items-center gap-1">
               <Package className="w-3 h-3" />
@@ -714,6 +845,13 @@ export function RetailerDetailPage() {
           })()}
         </div>
       </div>
+
+      {/* Program financials */}
+      {role === 'manager' && (
+        <div className="mb-8">
+          <OverviewTab retailer={retailer} pallets={pallets} />
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="flex items-center gap-0 mb-6" style={{ boxShadow: '0 1px 0 0 rgba(0,0,0,0.06)' }}>
@@ -777,7 +915,6 @@ export function RetailerDetailPage() {
         </>
       )}
 
-      {activeTab === 'overview' && <OverviewTab retailer={retailer} />}
       {activeTab === 'items' && <ItemsTab retailer={retailer} />}
 
       <PalletWizard

@@ -500,10 +500,8 @@ export function ProductDetailPage() {
                               item.status === 'pending' ? 'bg-amber-50 text-amber-700' :
                               'bg-gray-100 text-gray-500'
                             }`}>{item.status}</span>
-                            <span>{item.avgMonthlyUnits.toLocaleString()} units/mo</span>
                           </div>
                         </div>
-                        <span className="text-[14px] font-semibold text-[#171717] tabular-nums">{item.marginPercent}%</span>
                       </div>
                     </div>
                   ))}

@@ -21,7 +21,7 @@ const STATUS_FILTERS: { value: RetailerStatus | 'all'; label: string }[] = [
   { value: 'inactive', label: 'Inactive' },
 ]
 
-type SortKey = 'pallets' | 'name' | 'revenue' | 'stores' | 'items'
+type SortKey = 'pallets' | 'name' | 'items'
 
 export function RetailersPage() {
   const { retailers, addRetailer, updateRetailer, deleteRetailer } = useRetailerStore()
@@ -82,8 +82,6 @@ export function RetailersPage() {
             (palletCountByRetailer.get(a.id) ?? 0)
           )
         case 'name': return a.name.localeCompare(b.name)
-        case 'revenue': return b.performance.totalRevenueYTD - a.performance.totalRevenueYTD
-        case 'stores': return b.storeCount - a.storeCount
         case 'items': return b.authorizedItems.length - a.authorizedItems.length
         default: return 0
       }
@@ -199,7 +197,6 @@ export function RetailersPage() {
             className="text-[12px] font-medium text-[#555] bg-transparent border-none focus:outline-none cursor-pointer"
           >
             <option value="pallets">Pallets</option>
-            <option value="revenue">Revenue</option>
             <option value="name">Name</option>
             <option value="items">Items</option>
           </select>

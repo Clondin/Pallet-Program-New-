@@ -1,11 +1,11 @@
 import { useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { ArrowRight, Boxes, Search } from 'lucide-react'
+import { Link, useSearchParams } from 'react-router-dom'
+import { ArrowRight, Boxes, Search, X } from 'lucide-react'
 import { useDisplayStore } from '../stores/display-store'
 import { useRetailerStore } from '../stores/retailer-store'
 import { useSeasonStore } from '../stores/season-store'
 import { useRoleStore } from '../stores/role-store'
-import { StatusPill, getStatusLabel } from '../components/Status/status-pill'
+import { StatusPill, STATUS_LABELS, getStatusLabel } from '../components/Status/status-pill'
 import { DeadlineChip } from '../components/Deadline/deadline-chip'
 import { computeConfirmByDate } from '../lib/deadline'
 import { useRoleHref } from '../lib/role-href'
@@ -20,8 +20,20 @@ export function PalletsPage() {
   const seasons = useSeasonStore((state) => state.seasons)
   const role = useRoleStore((state) => state.role)
   const roleHref = useRoleHref()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [search, setSearch] = useState('')
   const [seasonFilter, setSeasonFilter] = useState<string>('')
+
+  const statusParam = searchParams.get('status') as PalletStatus | null
+  const statusFilter: PalletStatus | null =
+    statusParam && (STATUS_ORDER as string[]).includes(statusParam)
+      ? statusParam
+      : null
+  const clearStatusFilter = () => {
+    const next = new URLSearchParams(searchParams)
+    next.delete('status')
+    setSearchParams(next, { replace: true })
+  }
 
   const retailerById = useMemo(
     () => new Map(retailers.map((r) => [r.id, r])),
@@ -36,6 +48,7 @@ export function PalletsPage() {
     const query = search.trim().toLowerCase()
     return projects
       .filter((p) => (seasonFilter ? p.seasonId === seasonFilter : true))
+      .filter((p) => (statusFilter ? p.status === statusFilter : true))
       .filter((p) => {
         if (!query) return true
         const retailerName = retailerById.get(p.retailerId)?.name ?? ''
@@ -44,7 +57,7 @@ export function PalletsPage() {
           retailerName.toLowerCase().includes(query)
         )
       })
-  }, [projects, seasonFilter, search, retailerById])
+  }, [projects, seasonFilter, statusFilter, search, retailerById])
 
   const grouped = useMemo(() => {
     const groups: Record<PalletStatus, typeof projects> = {
@@ -103,6 +116,16 @@ export function PalletsPage() {
             </option>
           ))}
         </select>
+
+        {statusFilter && (
+          <button
+            onClick={clearStatusFilter}
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md bg-[#171717] text-white text-[12px] font-medium hover:bg-[#333] transition-colors"
+          >
+            Status: {STATUS_LABELS[statusFilter]}
+            <X className="w-3.5 h-3.5" />
+          </button>
+        )}
       </div>
 
       {visibleProjects.length === 0 ? (
@@ -160,12 +183,14 @@ export function PalletsPage() {
                         <div className="flex items-center gap-3 mt-3 text-[11px] text-[#666]">
                           <span className="capitalize">{pallet.palletType}</span>
                           <span>·</span>
+                          <span>
+                            {quantity} {pallet.palletType} pallet
+                            {quantity === 1 ? '' : 's'}
+                          </span>
+                          <span>·</span>
                           <span>{pallet.assortment.length} SKUs</span>
                           <span>·</span>
-                          <span>
-                            {cases} cases
-                            {quantity > 1 ? ` × ${quantity}` : ''}
-                          </span>
+                          <span>{cases * quantity} cases</span>
                         </div>
                         {confirmBy && pallet.status !== 'built' && (
                           <div className="mt-3">

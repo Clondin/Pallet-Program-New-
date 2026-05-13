@@ -33,7 +33,7 @@ describe('Sidebar', () => {
     expect(screen.getByText('Retailer-first pallet planning')).toBeInTheDocument()
     expect(screen.getByText('Spring Reset')).toBeInTheDocument()
     expect(screen.getByText('Retail Partner')).toBeInTheDocument()
-    expect(screen.getByText('5 tiers · 2 products')).toBeInTheDocument()
+    expect(screen.getByText('2 products')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /Pallet Details/i })).toHaveAttribute(
       'href',
       '/retailers/ret-1/pallets/proj-1'

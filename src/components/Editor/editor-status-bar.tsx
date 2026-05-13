@@ -12,7 +12,6 @@ export function EditorStatusBar({ activeFace }: EditorStatusBarProps) {
   const tiers = useTierConfig(currentProject?.tierCount ?? 4)
 
   const placedCount = currentProject?.placements?.length ?? 0
-  const tierCount = currentProject?.tierCount ?? 0
   const totalSlots = useMemo(
     () =>
       tiers.reduce((sum, tier) => {
@@ -39,9 +38,6 @@ export function EditorStatusBar({ activeFace }: EditorStatusBarProps) {
           <span>
             <span className="text-white tabular-nums">{placedCount}</span> of{' '}
             <span className="text-white tabular-nums">{totalSlots}</span> slots
-          </span>
-          <span>
-            <span className="text-white tabular-nums">{tierCount}</span> tiers
           </span>
           <span>
             <span className="text-white tabular-nums">{weight}</span> lbs

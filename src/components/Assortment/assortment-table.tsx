@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { ChangeEvent, useEffect, useMemo, useRef, useState } from 'react'
 import { Minus, Package, Plus } from 'lucide-react'
 import { RequestItemModal } from './request-item-modal'
 import { useCatalogStore } from '../../stores/catalog-store'
@@ -105,8 +105,6 @@ export function AssortmentTable({ project, retailer }: AssortmentTableProps) {
       brand: product.brand,
       status: isManager ? 'authorized' : 'pending',
       authorizedDate: new Date().toISOString().slice(0, 10),
-      avgMonthlyUnits: 0,
-      marginPercent: 0,
     }
     addAuthorizedItem(retailer.id, item)
   }
@@ -200,6 +198,9 @@ export function AssortmentTable({ project, retailer }: AssortmentTableProps) {
               <th className="text-right text-[10px] font-medium uppercase tracking-wider text-[#bbb] px-4 py-3">
                 Revenue
               </th>
+              <th className="text-right text-[10px] font-medium uppercase tracking-wider text-[#bbb] px-4 py-3">
+                Total Cases
+              </th>
               <th className="text-right text-[10px] font-medium uppercase tracking-wider text-[#bbb] px-6 py-3">
                 Total Units
               </th>
@@ -272,16 +273,9 @@ export function AssortmentTable({ project, retailer }: AssortmentTableProps) {
                       >
                         <Minus size={12} />
                       </button>
-                      <input
-                        type="text"
-                        inputMode="numeric"
-                        value={row.cases || ''}
-                        onChange={(event) => {
-                          const val = event.target.value.replace(/\D/g, '')
-                          updateAssortment(row.productId, parseInt(val, 10) || 0)
-                        }}
-                        placeholder="0"
-                        className="w-[44px] h-7 px-1 text-[13px] text-center tabular-nums border-y border-[#e5e5e5] bg-white focus:outline-none focus:ring-2 focus:ring-[#0a72ef]/30 focus:border-transparent"
+                      <CasesInput
+                        cases={row.cases}
+                        onCommit={(next) => updateAssortment(row.productId, next)}
                       />
                       <button
                         onClick={() => updateAssortment(row.productId, row.cases + 1)}
@@ -296,8 +290,11 @@ export function AssortmentTable({ project, retailer }: AssortmentTableProps) {
                       ? `$${row.totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
                       : '—'}
                   </td>
+                  <td className="px-4 py-3 text-[13px] font-medium text-[#171717] text-right tabular-nums">
+                    {row.cases > 0 ? row.cases * palletQuantity : '—'}
+                  </td>
                   <td className="px-6 py-3 text-[13px] font-medium text-[#171717] text-right tabular-nums">
-                    {row.totalUnits ?? '—'}
+                    {row.totalUnits != null ? row.totalUnits * palletQuantity : '—'}
                   </td>
                 </tr>
                 )
@@ -308,7 +305,7 @@ export function AssortmentTable({ project, retailer }: AssortmentTableProps) {
               <>
                 <tr>
                   <td
-                    colSpan={8}
+                    colSpan={9}
                     className="px-6 pt-5 pb-2 text-[10px] uppercase tracking-wider text-[#999]"
                   >
                     From catalog · {isManager ? 'click to authorize' : 'click to request'}
@@ -353,6 +350,7 @@ export function AssortmentTable({ project, retailer }: AssortmentTableProps) {
                       </button>
                     </td>
                     <td className="px-4 py-3 text-[12px] text-[#bbb] text-right">—</td>
+                    <td className="px-4 py-3 text-[12px] text-[#bbb] text-right">—</td>
                     <td className="px-6 py-3 text-[12px] text-[#bbb] text-right">—</td>
                   </tr>
                   )
@@ -377,8 +375,11 @@ export function AssortmentTable({ project, retailer }: AssortmentTableProps) {
                     ? `$${totals.totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
                     : '—'}
                 </td>
+                <td className="px-4 py-3 text-[13px] font-semibold text-[#171717] text-right tabular-nums">
+                  {totals.totalCases * palletQuantity}
+                </td>
                 <td className="px-6 py-3 text-[13px] font-semibold text-[#171717] text-right tabular-nums">
-                  {totals.totalUnits}
+                  {totals.totalUnits * palletQuantity}
                 </td>
               </tr>
               {palletQuantity > 1 && (
@@ -394,6 +395,9 @@ export function AssortmentTable({ project, retailer }: AssortmentTableProps) {
                       ? `$${(totals.totalRevenue * palletQuantity).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
                       : '—'}
                   </td>
+                  <td className="px-4 py-3 text-[13px] font-semibold text-right tabular-nums">
+                    {totals.totalCases * palletQuantity}
+                  </td>
                   <td className="px-6 py-3 text-[13px] font-semibold text-right tabular-nums">
                     {totals.totalUnits * palletQuantity}
                   </td>
@@ -404,5 +408,58 @@ export function AssortmentTable({ project, retailer }: AssortmentTableProps) {
         </table>
       </div>
     </div>
+  )
+}
+
+function casesToDraft(cases: number) {
+  return cases > 0 ? String(cases) : ''
+}
+
+function CasesInput({
+  cases,
+  onCommit,
+}: {
+  cases: number
+  onCommit: (next: number) => void
+}) {
+  const [draft, setDraft] = useState(() => casesToDraft(cases))
+
+  // Re-sync the draft when the underlying value changes via something other
+  // than the user typing in this field (e.g. the +/- buttons). Compare by
+  // parsed value so intermediate strings like "0." don't get clobbered.
+  useEffect(() => {
+    const parsed = parseFloat(draft)
+    const current = isNaN(parsed) ? 0 : parsed
+    if (current !== cases) setDraft(casesToDraft(cases))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cases])
+
+  function handleChange(event: ChangeEvent<HTMLInputElement>) {
+    let val = event.target.value.replace(/[^\d.]/g, '')
+    const firstDot = val.indexOf('.')
+    if (firstDot !== -1) {
+      val =
+        val.slice(0, firstDot + 1) +
+        val.slice(firstDot + 1).replace(/\./g, '')
+    }
+    setDraft(val)
+    const num = parseFloat(val)
+    onCommit(isNaN(num) ? 0 : num)
+  }
+
+  function handleBlur() {
+    setDraft(casesToDraft(cases))
+  }
+
+  return (
+    <input
+      type="text"
+      inputMode="decimal"
+      value={draft}
+      onChange={handleChange}
+      onBlur={handleBlur}
+      placeholder="0"
+      className="w-[52px] h-7 px-1 text-[13px] text-center tabular-nums border-y border-[#e5e5e5] bg-white focus:outline-none focus:ring-2 focus:ring-[#0a72ef]/30 focus:border-transparent"
+    />
   )
 }

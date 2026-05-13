@@ -29,18 +29,29 @@ export function PendingRequestsPanel() {
       for (const item of retailer.authorizedItems) {
         if (item.status !== 'pending') continue
         const product = productById.get(item.productId)
+        const rawBrand = product?.brandCode || product?.brand || item.brand
+        const brandLabel =
+          !rawBrand || rawBrand === 'other'
+            ? ''
+            : rawBrand.charAt(0).toUpperCase() + rawBrand.slice(1)
         out.push({
           retailerId: retailer.id,
           retailerName: retailer.name,
           productId: item.productId,
           productName: item.productName,
           kaycoItemNumber: product?.kaycoItemNumber,
-          brand: item.brand,
+          brand: brandLabel,
         })
       }
     }
     return out
   }, [retailers, productById])
+
+  const approveAll = () => {
+    requests.forEach((req) =>
+      updateAuthorizedItemStatus(req.retailerId, req.productId, 'authorized'),
+    )
+  }
 
   if (requests.length === 0) {
     return (
@@ -62,6 +73,13 @@ export function PendingRequestsPanel() {
         <Inbox className="w-4 h-4 text-[#666]" />
         <h3 className="text-[14px] font-semibold text-[#171717]">Pending item requests</h3>
         <span className="text-[11px] text-[#888]">({requests.length})</span>
+        <button
+          onClick={approveAll}
+          className="ml-auto inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] font-medium bg-emerald-600 text-white hover:bg-emerald-700 transition-colors"
+        >
+          <Check className="w-3.5 h-3.5" />
+          Approve all ({requests.length})
+        </button>
       </div>
       <div className="divide-y divide-[#f0f0f0]">
         {requests.map((req) => (
@@ -76,7 +94,7 @@ export function PendingRequestsPanel() {
               <p className="text-[11px] text-[#888] mt-0.5">
                 For <span className="font-medium text-[#171717]">{req.retailerName}</span>
                 {req.kaycoItemNumber && ` · Kayco #${req.kaycoItemNumber}`}
-                {req.brand && ` · ${req.brand}`}
+                {req.brand ? ` · ${req.brand}` : ''}
               </p>
             </div>
             <div className="flex items-center gap-1 shrink-0">

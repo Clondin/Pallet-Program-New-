@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, Boxes, CalendarDays, Copy, Package, PenLine, Store, Trash2 } from 'lucide-react'
 import { AssortmentTable } from '../components/Assortment/assortment-table'
@@ -14,6 +14,14 @@ import { useRoleStore } from '../stores/role-store'
 import { compareSeasonsByHolidayDate, useSeasonStore } from '../stores/season-store'
 import { useRoleHref } from '../lib/role-href'
 import { useConfirm } from '../components/ConfirmDialog'
+
+function fmtMoney(v: number) {
+  return v.toLocaleString('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    maximumFractionDigits: v >= 1000 ? 0 : 2,
+  })
+}
 
 function formatDateInputValue(timestamp?: number) {
   if (!timestamp) return ''
@@ -86,6 +94,60 @@ export function PalletDetailPage() {
       selectProject(palletId)
     }
   }, [palletId, currentProjectId, selectProject])
+
+  const isManager = role === 'manager'
+
+  const financials = useMemo(() => {
+    if (!pallet || !retailer) return null
+    const qty = pallet.quantity ?? 1
+    const priceByProduct = new Map<string, number>()
+    for (const item of retailer.authorizedItems) {
+      if (typeof item.casePrice === 'number') {
+        priceByProduct.set(item.productId, item.casePrice)
+      }
+    }
+    const costByProduct = new Map<string, number>()
+    for (const product of products) {
+      if (typeof product.caseCost === 'number') {
+        costByProduct.set(product.id, product.caseCost)
+      }
+    }
+    let revenue = 0
+    let materialCost = 0
+    let totalCases = 0
+    let pricedCases = 0
+    let costedCases = 0
+    for (const entry of pallet.assortment) {
+      if (entry.cases <= 0) continue
+      const cases = entry.cases * qty
+      totalCases += cases
+      const price = priceByProduct.get(entry.productId)
+      const cost = costByProduct.get(entry.productId)
+      if (typeof price === 'number') {
+        revenue += price * cases
+        pricedCases += cases
+      }
+      if (typeof cost === 'number') {
+        materialCost += cost * cases
+        costedCases += cases
+      }
+    }
+    const labor = typeof pallet.laborCost === 'number' ? pallet.laborCost * qty : 0
+    const cost = materialCost + labor
+    const marginDollars = revenue - cost
+    const marginPct = revenue > 0 ? (marginDollars / revenue) * 100 : null
+    return {
+      revenue,
+      cost,
+      materialCost,
+      labor,
+      marginDollars,
+      marginPct,
+      avgPrice: pricedCases > 0 ? revenue / pricedCases : null,
+      avgCost: costedCases > 0 ? materialCost / costedCases : null,
+      totalCases,
+    }
+  }, [pallet, retailer, products])
 
   if (!pallet || !retailerId || !retailer) {
     return (
@@ -206,12 +268,9 @@ export function PalletDetailPage() {
         </div>
       </div>
 
-      <div className={`grid grid-cols-1 ${isSalesman ? 'md:grid-cols-3' : 'md:grid-cols-4'} gap-4 mb-8`}>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
         <Stat icon={Store} label="Retailer" value={retailer.name} />
         <Stat icon={Package} label="Products" value={String(pallet.placements.length)} />
-        {!isSalesman && (
-          <Stat icon={Boxes} label="Tiers" value={String(pallet.tierCount)} />
-        )}
         <Stat
           icon={CalendarDays}
           label="Updated"
@@ -367,12 +426,6 @@ export function PalletDetailPage() {
             {!isSalesman && (
               <>
                 <div className="rounded-lg bg-[#fafafa] px-4 py-4">
-                  <p className="text-[10px] uppercase tracking-wider text-[#999]">Tiers</p>
-                  <p className="text-[14px] font-semibold text-[#171717] mt-1">
-                    {pallet.tierCount}
-                  </p>
-                </div>
-                <div className="rounded-lg bg-[#fafafa] px-4 py-4">
                   <p className="text-[10px] uppercase tracking-wider text-[#999] mb-2">Build location</p>
                   <select
                     value={pallet.buildLocation ?? ''}
@@ -477,6 +530,93 @@ export function PalletDetailPage() {
           className="px-3 py-1.5 text-[13px] shadow-border rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-[#0a72ef]/30 focus:shadow-none w-full sm:w-auto"
         />
       </div>
+
+      {isManager && financials && (
+        <div className="mt-6 bg-white shadow-card rounded-xl">
+          <div className="px-5 py-4 border-b border-[#f0f0f0]">
+            <h3 className="text-[15px] font-semibold text-[#171717]">Financials</h3>
+            <p className="text-[11px] text-[#888] mt-1">
+              Totals for this pallet × {pallet.quantity ?? 1} requested.
+            </p>
+          </div>
+          <div className="grid grid-cols-2 lg:grid-cols-4">
+            {[
+              { label: 'Revenue', value: fmtMoney(financials.revenue), tone: 'neutral' as const },
+              { label: 'Cost', value: fmtMoney(financials.cost), tone: 'neutral' as const },
+              {
+                label: 'Margin',
+                value: fmtMoney(financials.marginDollars),
+                tone:
+                  financials.marginDollars < 0 ? ('negative' as const) : ('neutral' as const),
+              },
+              {
+                label: 'Margin %',
+                value:
+                  financials.marginPct === null
+                    ? '—'
+                    : `${financials.marginPct.toFixed(1)}%`,
+                tone:
+                  financials.marginPct === null
+                    ? ('neutral' as const)
+                    : financials.marginPct < 0
+                      ? ('negative' as const)
+                      : ('neutral' as const),
+              },
+            ].map((stat, i) => (
+              <div
+                key={stat.label}
+                className="px-5 py-4"
+                style={
+                  i > 0 ? { boxShadow: '-1px 0 0 0 rgba(0,0,0,0.04)' } : undefined
+                }
+              >
+                <p className="text-[10px] font-medium uppercase tracking-wider text-[#bbb]">
+                  {stat.label}
+                </p>
+                <p
+                  className={`text-[20px] font-semibold tabular-nums mt-1 ${
+                    stat.tone === 'negative' ? 'text-red-600' : 'text-[#171717]'
+                  }`}
+                >
+                  {stat.value}
+                </p>
+              </div>
+            ))}
+          </div>
+          <div
+            className="grid grid-cols-2 lg:grid-cols-4"
+            style={{ boxShadow: '0 1px 0 0 rgba(0,0,0,0.04) inset' }}
+          >
+            {[
+              {
+                label: 'Avg case price',
+                value: financials.avgPrice === null ? '—' : fmtMoney(financials.avgPrice),
+              },
+              {
+                label: 'Avg case cost',
+                value: financials.avgCost === null ? '—' : fmtMoney(financials.avgCost),
+              },
+              { label: 'Labor', value: fmtMoney(financials.labor) },
+              { label: 'Cases', value: financials.totalCases.toLocaleString() },
+            ].map((row, i) => (
+              <div
+                key={row.label}
+                className="px-5 py-3 bg-[#fafafa]"
+                style={
+                  i > 0 ? { boxShadow: '-1px 0 0 0 rgba(0,0,0,0.04)' } : undefined
+                }
+              >
+                <p className="text-[10px] font-medium uppercase tracking-wider text-[#bbb]">
+                  {row.label}
+                </p>
+                <p className="text-[13px] font-semibold text-[#171717] tabular-nums mt-1">
+                  {row.value}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="mt-6">
         <AssortmentTable project={pallet} retailer={retailer} />

@@ -60,7 +60,11 @@ export function ManagerHome() {
       {/* Status tiles */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
         {STAT_TILES.map(({ status, label }) => (
-          <div key={status} className="bg-white shadow-card rounded-xl px-5 py-5">
+          <Link
+            key={status}
+            to={`/manager/pallets?status=${status}`}
+            className="group bg-white shadow-card hover:shadow-elevated transition-all rounded-xl px-5 py-5"
+          >
             <div className="flex items-center justify-between mb-3">
               <p className="text-[10px] font-medium uppercase tracking-wider text-[#999]">
                 {label}
@@ -73,7 +77,7 @@ export function ManagerHome() {
             <p className="text-[11px] text-[#999] mt-1">
               {label === STATUS_LABELS[status] ? 'pallets' : ''}
             </p>
-          </div>
+          </Link>
         ))}
       </div>
 

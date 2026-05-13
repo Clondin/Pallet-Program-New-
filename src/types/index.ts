@@ -236,8 +236,8 @@ export interface AuthorizedItem {
   status: 'authorized' | 'pending' | 'discontinued'
   authorizedDate: string
   lastOrderDate?: string
-  avgMonthlyUnits: number
-  marginPercent: number
+  avgMonthlyUnits?: number
+  marginPercent?: number
   casePrice?: number
 }
 

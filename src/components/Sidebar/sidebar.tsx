@@ -144,7 +144,7 @@ export function Sidebar() {
             {currentRetailer?.name ?? 'Unknown retailer'}
           </p>
           <p className="text-[10px] text-[#555] mt-0.5">
-            {currentProject.tierCount} tiers · {currentProject.placements.length} products
+            {currentProject.placements.length} products
           </p>
 
           <div className="mt-3 grid gap-2">

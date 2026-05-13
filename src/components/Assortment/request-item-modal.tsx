@@ -46,8 +46,6 @@ export function RequestItemModal({
       brand: product.brand,
       status: 'pending',
       authorizedDate: new Date().toISOString().slice(0, 10),
-      avgMonthlyUnits: 0,
-      marginPercent: 0,
     })
     onClose()
   }

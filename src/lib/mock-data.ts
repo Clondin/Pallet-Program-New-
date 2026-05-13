@@ -3,6 +3,7 @@ import {
   calculateCaseDimensions,
   getCaseWeight,
 } from '../components/PalletDisplay/products/caseUtils'
+import { WALMART_AUTHORIZED_ITEMS } from './walmart-authorized'
 
 export const BRAND_COLORS: Record<Brand, string> = {
   tuscanini: '#1B4D3E',
@@ -456,7 +457,7 @@ export const mockRetailers: Retailer[] = [
       { id: 'c-2', name: 'Marcus Rivera', title: 'Display Compliance Lead', email: 'm.rivera@walmart.com', phone: '(479) 555-0198', isPrimary: false },
       { id: 'c-3', name: 'Sarah Kim', title: 'Procurement Specialist', email: 's.kim@walmart.com', phone: '(479) 555-0167', isPrimary: false },
     ],
-    authorizedItems: [],
+    authorizedItems: WALMART_AUTHORIZED_ITEMS,
     compliance: [
       { id: 'comp-1', requirement: 'Pallet Display Height Standards', status: 'compliant', lastAuditDate: '2026-02-15', nextAuditDate: '2026-08-15' },
       { id: 'comp-2', requirement: 'Product Labeling (FDA)', status: 'compliant', lastAuditDate: '2026-01-20', nextAuditDate: '2026-07-20' },
