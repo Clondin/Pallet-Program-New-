@@ -26,8 +26,15 @@ export function ProgramRollupPage() {
   const retailer = useRetailerStore((state) =>
     retailerId ? state.getRetailer(retailerId) : undefined,
   )
-  const pallets = useDisplayStore((state) =>
-    retailerId ? state.getProjectsForRetailer(retailerId) : [],
+  const allProjects = useDisplayStore((state) => state.projects)
+  const pallets = useMemo(
+    () =>
+      retailerId
+        ? allProjects
+            .filter((project) => project.retailerId === retailerId)
+            .sort((a, b) => b.updatedAt - a.updatedAt)
+        : [],
+    [allProjects, retailerId],
   )
   const products = useCatalogStore((state) => state.products)
   const seasons = useSeasonStore((state) => state.seasons)
