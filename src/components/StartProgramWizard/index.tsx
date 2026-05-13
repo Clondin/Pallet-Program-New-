@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, ArrowRight, Check, X } from 'lucide-react'
+import { motion, AnimatePresence } from 'motion/react'
+import { ArrowLeft, ArrowRight, CalendarRange, Check, X } from 'lucide-react'
 import { useDisplayStore } from '../../stores/display-store'
 import { useRetailerStore } from '../../stores/retailer-store'
 import {
@@ -19,14 +20,74 @@ interface StartProgramWizardProps {
   allowedRetailerIds?: string[]
 }
 
-const HOLIDAY_OPTIONS: { value: Holiday; label: string }[] = [
-  { value: 'rosh-hashanah', label: 'Rosh Hashanah' },
-  { value: 'pesach', label: 'Pesach' },
-  { value: 'sukkos', label: 'Sukkos' },
-  { value: 'none', label: 'Everyday' },
-]
-
 type Step = 'retailer' | 'season' | 'types' | 'review'
+
+// Infer the Holiday family from a free-form season name so users don't have
+// to pick one explicitly. Falls back to 'none' (everyday).
+function inferHoliday(name: string): Holiday {
+  const lower = name.toLowerCase()
+  if (lower.includes('rosh') || lower.includes('hashan')) return 'rosh-hashanah'
+  if (lower.includes('pesach') || lower.includes('passover')) return 'pesach'
+  if (lower.includes('sukk')) return 'sukkos'
+  return 'none'
+}
+
+function StepDots({ current, total }: { current: number; total: number }) {
+  return (
+    <div className="flex items-center gap-2 justify-center mb-8">
+      {Array.from({ length: total }, (_, index) => (
+        <div key={index} className="flex items-center gap-2">
+          <div
+            className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${
+              index === current
+                ? 'bg-white scale-125'
+                : index < current
+                  ? 'bg-white/60'
+                  : 'bg-white/20'
+            }`}
+          />
+          {index < total - 1 && (
+            <div
+              className={`w-8 h-px transition-colors duration-300 ${
+                index < current ? 'bg-white/40' : 'bg-white/10'
+              }`}
+            />
+          )}
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function SelectionCard({
+  selected,
+  onClick,
+  children,
+  className = '',
+}: {
+  selected: boolean
+  onClick: () => void
+  children: React.ReactNode
+  className?: string
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`relative rounded-xl border p-5 text-left transition-all duration-200 cursor-pointer w-full ${
+        selected
+          ? 'border-white/40 bg-white/[0.08] ring-1 ring-white/20'
+          : 'border-white/[0.08] bg-white/[0.03] hover:border-white/20 hover:bg-white/[0.06]'
+      } ${className}`}
+    >
+      {selected && (
+        <div className="absolute top-3 right-3 w-5 h-5 rounded-full bg-white flex items-center justify-center">
+          <Check size={12} className="text-[#111]" />
+        </div>
+      )}
+      {children}
+    </button>
+  )
+}
 
 export function StartProgramWizard({
   open,
@@ -58,52 +119,51 @@ export function StartProgramWizard({
     [seasons],
   )
 
-  const initialStep: Step = pinnedRetailerId ? 'season' : 'retailer'
+  const steps: Step[] = pinnedRetailerId
+    ? ['season', 'types', 'review']
+    : ['retailer', 'season', 'types', 'review']
 
-  const [step, setStep] = useState<Step>(initialStep)
+  const [stepIndex, setStepIndex] = useState(0)
+  const [direction, setDirection] = useState(1)
   const [retailerId, setRetailerId] = useState<string>(pinnedRetailerId ?? '')
   const [seasonId, setSeasonId] = useState<string>('')
   const [newSeasonName, setNewSeasonName] = useState('')
-  const [holiday, setHoliday] = useState<Holiday>('rosh-hashanah')
   const [includeHalf, setIncludeHalf] = useState(false)
   const [includeFull, setIncludeFull] = useState(true)
 
   useEffect(() => {
     if (!open) return
-    setStep(pinnedRetailerId ? 'season' : 'retailer')
+    setStepIndex(0)
+    setDirection(1)
     setRetailerId(pinnedRetailerId ?? '')
     setSeasonId('')
     setNewSeasonName('')
-    setHoliday('rosh-hashanah')
     setIncludeHalf(false)
     setIncludeFull(true)
   }, [open, pinnedRetailerId])
 
   if (!open) return null
 
+  const step = steps[stepIndex]
   const retailer: Retailer | undefined = retailers.find((r) => r.id === retailerId)
   const season: Season | undefined = seasons.find((s) => s.id === seasonId)
 
-  const isLastStep = step === 'review'
   const canAdvanceRetailer = retailerId !== ''
-  const canAdvanceSeason =
-    seasonId !== '' || newSeasonName.trim().length > 0
+  const canAdvanceSeason = seasonId !== '' || newSeasonName.trim().length > 0
   const canAdvanceTypes = includeHalf || includeFull
-
-  const steps: Step[] = pinnedRetailerId
-    ? ['season', 'types', 'review']
-    : ['retailer', 'season', 'types', 'review']
-  const stepIndex = steps.indexOf(step)
+  const isLastStep = step === 'review'
 
   function goNext() {
-    if (step === 'retailer' && canAdvanceRetailer) setStep('season')
-    else if (step === 'season' && canAdvanceSeason) setStep('types')
-    else if (step === 'types' && canAdvanceTypes) setStep('review')
+    if (step === 'retailer' && !canAdvanceRetailer) return
+    if (step === 'season' && !canAdvanceSeason) return
+    if (step === 'types' && !canAdvanceTypes) return
+    setDirection(1)
+    setStepIndex((i) => Math.min(steps.length - 1, i + 1))
   }
 
   function goBack() {
-    const prev = steps[stepIndex - 1]
-    if (prev) setStep(prev)
+    setDirection(-1)
+    setStepIndex((i) => Math.max(0, i - 1))
   }
 
   function handleCreate() {
@@ -115,6 +175,7 @@ export function StartProgramWizard({
       effectiveSeason = createSeason(name)
     }
     const seasonLabel = effectiveSeason.name
+    const holiday = inferHoliday(seasonLabel)
     const types: PalletType[] = []
     if (includeHalf) types.push('half')
     if (includeFull) types.push('full')
@@ -138,239 +199,217 @@ export function StartProgramWizard({
     )
   }
 
+  const slideVariants = {
+    enter: (dir: number) => ({ x: dir > 0 ? 80 : -80, opacity: 0 }),
+    center: { x: 0, opacity: 1 },
+    exit: (dir: number) => ({ x: dir > 0 ? -80 : 80, opacity: 0 }),
+  }
+
+  const reviewTypesLabel = [
+    includeHalf ? 'Half' : null,
+    includeFull ? 'Full' : null,
+  ]
+    .filter(Boolean)
+    .join(' + ')
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-      <div className="bg-white w-full max-w-[640px] mx-4 shadow-elevated rounded-xl overflow-hidden">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#f0f0f0]">
-          <div>
-            <h2 className="text-[16px] font-semibold text-[#171717]">
-              Start a program
-            </h2>
-            <p className="text-[11px] text-[#888] mt-1">
-              {stepIndex + 1} of {steps.length}
-            </p>
-          </div>
-          <button
-            onClick={onClose}
-            aria-label="Close"
-            className="p-1 rounded-md hover:bg-[#fafafa] text-[#ccc] hover:text-[#666] transition-colors"
-          >
-            <X className="w-4 h-4" />
-          </button>
+    <div className="fixed inset-0 z-[100] flex items-center justify-center">
+      <div
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        onClick={onClose}
+      />
+
+      <div className="relative w-full max-w-2xl mx-6 bg-[#161616] border border-white/[0.08] rounded-2xl p-8 shadow-2xl">
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 text-[#555] hover:text-white transition-colors"
+          aria-label="Close"
+        >
+          <X size={18} />
+        </button>
+
+        <div className="text-center mb-2">
+          <h1 className="text-[22px] font-semibold text-white tracking-tight">
+            Start a program
+          </h1>
+          <p className="text-[13px] text-[#666] mt-1 capitalize">
+            {step === 'types' ? 'Pallet types' : step}
+          </p>
         </div>
 
-        <div className="px-6 py-6 min-h-[260px]">
-          {step === 'retailer' && (
-            <div>
-              <p className="text-[10px] uppercase tracking-wider text-[#999] mb-3">
-                Retailer
-              </p>
-              {allowedRetailers.length === 0 ? (
-                <p className="text-[12px] text-[#888]">
-                  No retailers available.
-                </p>
-              ) : (
-                <div className="grid grid-cols-1 gap-2 max-h-[280px] overflow-y-auto">
-                  {allowedRetailers.map((r) => (
-                    <button
+        <StepDots current={stepIndex} total={steps.length} />
+
+        <div className="relative overflow-hidden min-h-[420px]">
+          <AnimatePresence mode="wait" custom={direction}>
+            {step === 'retailer' && (
+              <motion.div
+                key="step-retailer"
+                custom={direction}
+                variants={slideVariants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                transition={{ duration: 0.25, ease: 'easeInOut' }}
+                className="space-y-2 max-h-[380px] overflow-y-auto pr-1"
+              >
+                {allowedRetailers.length === 0 ? (
+                  <p className="text-[12px] text-[#888] px-2 py-4">
+                    No retailers available.
+                  </p>
+                ) : (
+                  allowedRetailers.map((r) => (
+                    <SelectionCard
                       key={r.id}
+                      selected={retailerId === r.id}
                       onClick={() => setRetailerId(r.id)}
-                      className={`flex items-center justify-between px-4 py-3 rounded-md text-left transition-colors ${
-                        retailerId === r.id
-                          ? 'bg-[#171717] text-white'
-                          : 'bg-[#fafafa] hover:bg-[#f0f0f0] text-[#171717]'
-                      }`}
+                      className="!p-4"
                     >
-                      <span className="text-[14px] font-medium">{r.name}</span>
-                      {retailerId === r.id && (
-                        <Check className="w-3.5 h-3.5" />
-                      )}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
+                      <p className="text-[14px] font-medium text-white">
+                        {r.name}
+                      </p>
+                    </SelectionCard>
+                  ))
+                )}
+              </motion.div>
+            )}
 
-          {step === 'season' && (
-            <div>
-              <p className="text-[10px] uppercase tracking-wider text-[#999] mb-3">
-                Season
-              </p>
-              {activeSeasons.length > 0 && (
-                <div className="grid grid-cols-1 gap-2 mb-4 max-h-[200px] overflow-y-auto">
-                  {activeSeasons.map((s) => (
-                    <button
-                      key={s.id}
-                      onClick={() => {
-                        setSeasonId(s.id)
-                        setNewSeasonName('')
-                      }}
-                      className={`flex items-center justify-between px-4 py-3 rounded-md text-left transition-colors ${
-                        seasonId === s.id
-                          ? 'bg-[#171717] text-white'
-                          : 'bg-[#fafafa] hover:bg-[#f0f0f0] text-[#171717]'
-                      }`}
-                    >
-                      <span className="text-[13px] font-medium">{s.name}</span>
-                      {seasonId === s.id && <Check className="w-3.5 h-3.5" />}
-                    </button>
-                  ))}
+            {step === 'season' && (
+              <motion.div
+                key="step-season"
+                custom={direction}
+                variants={slideVariants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                transition={{ duration: 0.25, ease: 'easeInOut' }}
+              >
+                {activeSeasons.length > 0 && (
+                  <div className="space-y-2 max-h-[240px] overflow-y-auto pr-1 mb-5">
+                    {activeSeasons.map((s) => (
+                      <SelectionCard
+                        key={s.id}
+                        selected={seasonId === s.id}
+                        onClick={() => {
+                          setSeasonId(s.id)
+                          setNewSeasonName('')
+                        }}
+                        className="!p-4"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-md bg-white/[0.08] flex items-center justify-center">
+                            <CalendarRange size={15} className="text-white" />
+                          </div>
+                          <p className="text-[14px] font-medium text-white">
+                            {s.name}
+                          </p>
+                        </div>
+                      </SelectionCard>
+                    ))}
+                  </div>
+                )}
+                <div>
+                  <p className="text-[11px] uppercase tracking-wider text-[#777] mb-2">
+                    Or create a new season
+                  </p>
+                  <input
+                    autoFocus={activeSeasons.length === 0}
+                    type="text"
+                    value={newSeasonName}
+                    onChange={(e) => {
+                      setNewSeasonName(e.target.value)
+                      if (e.target.value.trim()) setSeasonId('')
+                    }}
+                    placeholder="e.g. Rosh Hashanah 2026"
+                    className="w-full px-4 py-3 rounded-xl bg-white/[0.06] border border-white/[0.08] text-white placeholder:text-[#666] focus:outline-none focus:ring-2 focus:ring-white/20"
+                  />
                 </div>
-              )}
-              <div>
-                <p className="text-[11px] font-medium text-[#666] mb-2">
-                  Or create a new season
-                </p>
-                <input
-                  type="text"
-                  value={newSeasonName}
-                  onChange={(e) => {
-                    setNewSeasonName(e.target.value)
-                    if (e.target.value.trim()) setSeasonId('')
-                  }}
-                  placeholder="e.g. Rosh Hashanah 2026"
-                  className="w-full px-3 py-2 text-[13px] shadow-border rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-[#0a72ef]/30 focus:shadow-none placeholder:text-[#aaa]"
-                />
-              </div>
-              <div className="mt-5">
-                <p className="text-[10px] uppercase tracking-wider text-[#999] mb-2">
-                  Holiday family
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {HOLIDAY_OPTIONS.map(({ value, label }) => (
-                    <button
-                      key={value}
-                      onClick={() => setHoliday(value)}
-                      className={`px-3 py-1.5 rounded-md text-[12px] font-medium transition-colors ${
-                        holiday === value
-                          ? 'bg-[#171717] text-white'
-                          : 'bg-[#fafafa] hover:bg-[#f0f0f0] text-[#555]'
-                      }`}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
+              </motion.div>
+            )}
 
-          {step === 'types' && (
-            <div>
-              <p className="text-[10px] uppercase tracking-wider text-[#999] mb-3">
-                Pallet types
-              </p>
-              <p className="text-[12px] text-[#888] mb-4">
-                Pick which pallet sizes are part of this program. You can edit
-                quantities and assortment after creation.
-              </p>
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  onClick={() => setIncludeHalf((v) => !v)}
-                  className={`flex flex-col items-start gap-2 px-4 py-4 rounded-lg text-left transition-colors ${
-                    includeHalf
-                      ? 'bg-[#171717] text-white'
-                      : 'bg-[#fafafa] hover:bg-[#f0f0f0] text-[#171717]'
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    {includeHalf ? (
-                      <Check className="w-4 h-4" />
-                    ) : (
-                      <span className="w-4 h-4 rounded-full shadow-border" />
-                    )}
-                    <span className="text-[14px] font-semibold">
+            {step === 'types' && (
+              <motion.div
+                key="step-types"
+                custom={direction}
+                variants={slideVariants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                transition={{ duration: 0.25, ease: 'easeInOut' }}
+              >
+                <p className="text-[13px] text-[#888] mb-5 text-center">
+                  Pick which pallet sizes are part of this program. You can edit
+                  quantities and assortment after creation.
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  <SelectionCard
+                    selected={includeHalf}
+                    onClick={() => setIncludeHalf((v) => !v)}
+                  >
+                    <p className="text-[15px] font-semibold text-white">
                       Half pallet
-                    </span>
-                  </div>
-                  <span
-                    className={`text-[11px] ${
-                      includeHalf ? 'text-white/70' : 'text-[#888]'
-                    }`}
+                    </p>
+                    <p className="text-[12px] text-[#888] mt-1">
+                      24" × 20" footprint
+                    </p>
+                  </SelectionCard>
+                  <SelectionCard
+                    selected={includeFull}
+                    onClick={() => setIncludeFull((v) => !v)}
                   >
-                    48 × 20 footprint
-                  </span>
-                </button>
-                <button
-                  onClick={() => setIncludeFull((v) => !v)}
-                  className={`flex flex-col items-start gap-2 px-4 py-4 rounded-lg text-left transition-colors ${
-                    includeFull
-                      ? 'bg-[#171717] text-white'
-                      : 'bg-[#fafafa] hover:bg-[#f0f0f0] text-[#171717]'
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    {includeFull ? (
-                      <Check className="w-4 h-4" />
-                    ) : (
-                      <span className="w-4 h-4 rounded-full shadow-border" />
-                    )}
-                    <span className="text-[14px] font-semibold">
+                    <p className="text-[15px] font-semibold text-white">
                       Full pallet
-                    </span>
-                  </div>
-                  <span
-                    className={`text-[11px] ${
-                      includeFull ? 'text-white/70' : 'text-[#888]'
-                    }`}
-                  >
-                    48 × 40 footprint
-                  </span>
-                </button>
-              </div>
-            </div>
-          )}
+                    </p>
+                    <p className="text-[12px] text-[#888] mt-1">
+                      48" × 40" footprint
+                    </p>
+                  </SelectionCard>
+                </div>
+              </motion.div>
+            )}
 
-          {step === 'review' && retailer && (
-            <div>
-              <p className="text-[10px] uppercase tracking-wider text-[#999] mb-3">
-                Review
-              </p>
-              <div className="space-y-3">
-                <Row label="Retailer" value={retailer.name} />
-                <Row
-                  label="Season"
-                  value={season?.name ?? (newSeasonName.trim() || '—')}
-                />
-                <Row
-                  label="Pallets"
-                  value={[
-                    includeHalf ? 'Half' : null,
-                    includeFull ? 'Full' : null,
-                  ]
-                    .filter(Boolean)
-                    .join(' + ')}
-                />
-              </div>
-              <p className="text-[11px] text-[#888] mt-5">
-                You'll land on the program matrix where you can fill in cases
-                per item for each pallet type and set how many pallets to
-                build.
-              </p>
-            </div>
-          )}
+            {step === 'review' && retailer && (
+              <motion.div
+                key="step-review"
+                custom={direction}
+                variants={slideVariants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                transition={{ duration: 0.25, ease: 'easeInOut' }}
+                className="max-w-md mx-auto pt-6"
+              >
+                <div className="rounded-xl bg-white/[0.04] border border-white/[0.08] p-5 space-y-3">
+                  <ReviewRow label="Retailer" value={retailer.name} />
+                  <ReviewRow
+                    label="Season"
+                    value={season?.name ?? (newSeasonName.trim() || '—')}
+                  />
+                  <ReviewRow label="Pallets" value={reviewTypesLabel || '—'} />
+                </div>
+                <p className="text-[12px] text-[#777] mt-5 text-center">
+                  You'll land on the program matrix where you can fill in cases
+                  per item and adjust how many pallets to build.
+                </p>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
-        <div className="flex items-center justify-between px-6 py-4 border-t border-[#f0f0f0] bg-[#fafafa]">
-          {stepIndex > 0 ? (
-            <button
-              onClick={goBack}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] font-medium text-[#555] hover:bg-white transition-colors"
-            >
-              <ArrowLeft className="w-3.5 h-3.5" />
-              Back
-            </button>
-          ) : (
-            <span />
-          )}
+        <div className="flex items-center justify-between mt-8">
+          <button
+            onClick={goBack}
+            disabled={stepIndex === 0}
+            className="inline-flex items-center gap-2 px-4 py-2 text-[12px] font-medium text-[#bbb] hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          >
+            <ArrowLeft size={14} />
+            Back
+          </button>
           {isLastStep ? (
             <button
               onClick={handleCreate}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-[#171717] text-white text-[13px] font-medium hover:bg-[#333] transition-colors"
+              className="inline-flex items-center gap-2 px-5 py-2 rounded-md text-[12px] font-medium bg-white text-[#111] hover:bg-[#eee] transition-colors"
             >
               Create program
-              <ArrowRight className="w-3.5 h-3.5" />
             </button>
           ) : (
             <button
@@ -380,10 +419,10 @@ export function StartProgramWizard({
                 (step === 'season' && !canAdvanceSeason) ||
                 (step === 'types' && !canAdvanceTypes)
               }
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-[#171717] text-white text-[13px] font-medium hover:bg-[#333] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              className="inline-flex items-center gap-2 px-5 py-2 rounded-md text-[12px] font-medium bg-white text-[#111] hover:bg-[#eee] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
               Next
-              <ArrowRight className="w-3.5 h-3.5" />
+              <ArrowRight size={14} />
             </button>
           )}
         </div>
@@ -392,13 +431,13 @@ export function StartProgramWizard({
   )
 }
 
-function Row({ label, value }: { label: string; value: string }) {
+function ReviewRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-center justify-between gap-4">
-      <span className="text-[11px] uppercase tracking-wider text-[#bbb]">
+      <span className="text-[11px] uppercase tracking-wider text-[#666]">
         {label}
       </span>
-      <span className="text-[13px] font-medium text-[#171717] text-right">
+      <span className="text-[14px] font-medium text-white text-right">
         {value || '—'}
       </span>
     </div>
