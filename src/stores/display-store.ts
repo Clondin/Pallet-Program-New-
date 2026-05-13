@@ -79,9 +79,11 @@ interface DisplayState {
   addComment: (palletId: string, comment: { authorRole: Role; authorName?: string; text: string }) => void
   removeComment: (palletId: string, commentId: string) => void
   updateAssortment: (productId: string, cases: number) => void
+  updateAssortmentForProject: (projectId: string, productId: string, cases: number) => void
   setAssortment: (assortment: AssortmentEntry[]) => void
   updateShipByDate: (date: number | undefined) => void
   updateQuantity: (quantity: number) => void
+  updateQuantityForProject: (projectId: string, quantity: number) => void
   populateFromAssortment: () => void
   openPicker: () => void
   closePicker: () => void
@@ -783,6 +785,34 @@ export const useDisplayStore = create<DisplayState>((set, get) => ({
     set(commitProjectUpdate(state, nextProject))
   },
 
+  updateAssortmentForProject: (projectId, productId, cases) => {
+    const state = get()
+    const target = state.projects.find((p) => p.id === projectId)
+    if (!target) return
+
+    const existing = target.assortment
+    const nextAssortment =
+      cases > 0
+        ? existing.some((entry) => entry.productId === productId)
+          ? existing.map((entry) =>
+              entry.productId === productId ? { ...entry, cases } : entry
+            )
+          : [...existing, { productId, cases }]
+        : existing.filter((entry) => entry.productId !== productId)
+
+    const nextProject = {
+      ...target,
+      assortment: nextAssortment,
+      updatedAt: Date.now(),
+    }
+
+    if (state.currentProject?.id === projectId) {
+      set(commitProjectUpdate(state, nextProject))
+    } else {
+      set({ projects: replaceProject(state.projects, nextProject) })
+    }
+  },
+
   setAssortment: (assortment) => {
     const state = get()
     if (!state.currentProject) return
@@ -821,6 +851,25 @@ export const useDisplayStore = create<DisplayState>((set, get) => ({
     }
 
     set(commitProjectUpdate(state, nextProject))
+  },
+
+  updateQuantityForProject: (projectId, quantity) => {
+    const state = get()
+    const target = state.projects.find((p) => p.id === projectId)
+    if (!target) return
+
+    const next = Math.max(1, Math.floor(quantity))
+    const nextProject = {
+      ...target,
+      quantity: next,
+      updatedAt: Date.now(),
+    }
+
+    if (state.currentProject?.id === projectId) {
+      set(commitProjectUpdate(state, nextProject))
+    } else {
+      set({ projects: replaceProject(state.projects, nextProject) })
+    }
   },
 
   populateFromAssortment: () => {
