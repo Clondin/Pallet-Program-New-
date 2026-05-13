@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, Plus } from 'lucide-react'
+import { useNavigate, useParams } from 'react-router-dom'
+import { ArrowLeft, MoreHorizontal, Plus } from 'lucide-react'
 import { ProgramMatrix } from '../components/Assortment/program-matrix'
 import { useCatalogStore } from '../stores/catalog-store'
 import { useDisplayStore } from '../stores/display-store'
@@ -47,11 +47,8 @@ export function ProgramRollupPage() {
   const createProject = useDisplayStore((state) => state.createProject)
   const deleteProject = useDisplayStore((state) => state.deleteProject)
   const { confirm, dialog } = useConfirm()
-  const [busy, setBusy] = useState<PalletType | null>(null)
+  const [menuOpen, setMenuOpen] = useState(false)
 
-  // The URL `season` param holds either a Season id (new) or a Holiday family
-  // string (legacy). Match both so existing "Program summary" links keep
-  // working.
   const seasonRecord = useMemo(
     () => seasons.find((s) => s.id === seasonParam) ?? null,
     [seasons, seasonParam],
@@ -97,26 +94,23 @@ export function ProgramRollupPage() {
     seasonRecord?.id ?? referencePallet?.seasonId ?? null
 
   const handleAddPallet = (type: PalletType) => {
-    setBusy(type)
-    try {
-      createProject(
-        `${seasonLabel} ${type === 'full' ? 'Full' : 'Half'} — ${retailer.name}`,
-        {
-          palletType: type,
-          season: seasonHoliday,
-          retailerId,
-          seasonId: seasonIdForNew,
-        },
-        retailer.defaultTierCount ?? 4,
-      )
-    } finally {
-      setBusy(null)
-    }
+    createProject(
+      `${seasonLabel} ${type === 'full' ? 'Full' : 'Half'} — ${retailer.name}`,
+      {
+        palletType: type,
+        season: seasonHoliday,
+        retailerId,
+        seasonId: seasonIdForNew,
+      },
+      retailer.defaultTierCount ?? 4,
+    )
+    setMenuOpen(false)
   }
 
   const handleRemovePallet = async (type: PalletType) => {
     const pallet = type === 'half' ? halfPallet : fullPallet
     if (!pallet) return
+    setMenuOpen(false)
     const ok = await confirm({
       title: `Remove the ${type} pallet from this program?`,
       description:
@@ -129,40 +123,104 @@ export function ProgramRollupPage() {
   }
 
   const isReadOnly = role === 'builder'
-
-  const totalPallets =
-    (halfPallet?.quantity ?? 0) + (fullPallet?.quantity ?? 0)
-  const skuCount = new Set([
-    ...(halfPallet?.assortment.map((e) => e.productId) ?? []),
-    ...(fullPallet?.assortment.map((e) => e.productId) ?? []),
-  ]).size
+  const isSalesman = role === 'salesman'
 
   return (
-    <div className="px-10 py-10 max-w-[1500px]">
-      <button
-        onClick={() => navigate(roleHref(`/retailers/${retailerId}`))}
-        className="flex items-center gap-1.5 text-[#777] hover:text-[#171717] text-[12px] font-medium mb-5 transition-colors"
-      >
-        <ArrowLeft className="w-3.5 h-3.5" />
-        {retailer.name}
-      </button>
-
-      <div className="mb-8">
-        <p className="text-[11px] uppercase tracking-wider text-[#999]">Program</p>
-        <h1 className="text-[28px] font-semibold tracking-display text-[#171717] mt-1">
-          {retailer.name} — {seasonLabel}
-        </h1>
-        <div className="flex flex-wrap items-center gap-2 mt-3 text-[12px] text-[#666]">
-          <span className="px-2 py-1 rounded-md bg-[#f5f5f5] font-medium">
-            {seasonPallets.length} pallet type{seasonPallets.length === 1 ? '' : 's'}
-          </span>
-          <span className="px-2 py-1 rounded-md bg-[#f5f5f5] font-medium">
-            {totalPallets} pallet{totalPallets === 1 ? '' : 's'} requested
-          </span>
-          <span className="px-2 py-1 rounded-md bg-[#f5f5f5] font-medium">
-            {skuCount} SKUs
-          </span>
+    <div className="px-8 py-6 max-w-[1500px] mx-auto">
+      {/* Compact header */}
+      <div className="flex items-center justify-between gap-4 mb-4">
+        <div className="flex items-center gap-3 min-w-0">
+          <button
+            onClick={() => navigate(roleHref(`/retailers/${retailerId}`))}
+            className="inline-flex items-center gap-1.5 px-2 py-1.5 rounded-md text-[12px] font-medium text-[#777] hover:text-[#171717] hover:bg-[#fafafa] transition-colors"
+            title={`Back to ${retailer.name}`}
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            {retailer.name}
+          </button>
+          <span className="text-[#ddd]">/</span>
+          <h1 className="text-[18px] font-semibold tracking-tight text-[#171717] truncate">
+            {seasonLabel}
+          </h1>
         </div>
+
+        {!isReadOnly && (
+          <div className="relative shrink-0">
+            <button
+              onClick={() => setMenuOpen((v) => !v)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] font-medium text-[#555] shadow-border hover:bg-[#fafafa] transition-colors"
+            >
+              <MoreHorizontal className="w-3.5 h-3.5" />
+              Program actions
+            </button>
+            {menuOpen && (
+              <>
+                <button
+                  className="fixed inset-0 z-30 cursor-default"
+                  onClick={() => setMenuOpen(false)}
+                  aria-hidden
+                />
+                <div className="absolute right-0 top-full mt-1 w-[220px] bg-white shadow-elevated rounded-md py-1 z-40">
+                  {!halfPallet && (
+                    <MenuItem onClick={() => handleAddPallet('half')}>
+                      <Plus className="w-3.5 h-3.5" />
+                      Add half pallet
+                    </MenuItem>
+                  )}
+                  {!fullPallet && (
+                    <MenuItem onClick={() => handleAddPallet('full')}>
+                      <Plus className="w-3.5 h-3.5" />
+                      Add full pallet
+                    </MenuItem>
+                  )}
+                  {!isSalesman && halfPallet && (
+                    <MenuItem
+                      onClick={() =>
+                        navigate(
+                          roleHref(
+                            `/retailers/${retailerId}/pallets/${halfPallet.id}`,
+                          ),
+                        )
+                      }
+                    >
+                      Open half pallet detail
+                    </MenuItem>
+                  )}
+                  {!isSalesman && fullPallet && (
+                    <MenuItem
+                      onClick={() =>
+                        navigate(
+                          roleHref(
+                            `/retailers/${retailerId}/pallets/${fullPallet.id}`,
+                          ),
+                        )
+                      }
+                    >
+                      Open full pallet detail
+                    </MenuItem>
+                  )}
+                  {(halfPallet || fullPallet) && <Divider />}
+                  {halfPallet && (
+                    <MenuItem
+                      destructive
+                      onClick={() => handleRemovePallet('half')}
+                    >
+                      Remove half pallet
+                    </MenuItem>
+                  )}
+                  {fullPallet && (
+                    <MenuItem
+                      destructive
+                      onClick={() => handleRemovePallet('full')}
+                    >
+                      Remove full pallet
+                    </MenuItem>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+        )}
       </div>
 
       {seasonPallets.length === 0 ? (
@@ -171,22 +229,19 @@ export function ProgramRollupPage() {
             No pallets yet
           </p>
           <p className="text-[12px] text-[#888] mt-2 max-w-md mx-auto">
-            Choose which pallet types to include in the {seasonLabel} program
-            for {retailer.name}.
+            Choose which pallet types to include in this program.
           </p>
           <div className="flex items-center justify-center gap-3 mt-6">
             <button
               onClick={() => handleAddPallet('half')}
-              disabled={busy === 'half'}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-[#171717] text-white text-[13px] font-medium hover:bg-[#333] transition-colors disabled:opacity-50"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-[#171717] text-white text-[13px] font-medium hover:bg-[#333] transition-colors"
             >
               <Plus className="w-3.5 h-3.5" />
               Add half pallet
             </button>
             <button
               onClick={() => handleAddPallet('full')}
-              disabled={busy === 'full'}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-[#171717] text-white text-[13px] font-medium hover:bg-[#333] transition-colors disabled:opacity-50"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-[#171717] text-white text-[13px] font-medium hover:bg-[#333] transition-colors"
             >
               <Plus className="w-3.5 h-3.5" />
               Add full pallet
@@ -194,83 +249,48 @@ export function ProgramRollupPage() {
           </div>
         </div>
       ) : (
-        <>
-          <div className="flex items-center gap-2 mb-4">
-            {!halfPallet && (
-              <button
-                onClick={() => handleAddPallet('half')}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] font-medium text-[#555] shadow-border hover:bg-[#fafafa] transition-colors"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                Add half pallet
-              </button>
-            )}
-            {!fullPallet && (
-              <button
-                onClick={() => handleAddPallet('full')}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] font-medium text-[#555] shadow-border hover:bg-[#fafafa] transition-colors"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                Add full pallet
-              </button>
-            )}
-            <div className="ml-auto flex items-center gap-3 text-[11px] text-[#888]">
-              {halfPallet && (
-                <Link
-                  to={roleHref(`/retailers/${retailerId}/pallets/${halfPallet.id}`)}
-                  className="hover:text-[#171717] transition-colors"
-                >
-                  Open half pallet detail →
-                </Link>
-              )}
-              {fullPallet && (
-                <Link
-                  to={roleHref(`/retailers/${retailerId}/pallets/${fullPallet.id}`)}
-                  className="hover:text-[#171717] transition-colors"
-                >
-                  Open full pallet detail →
-                </Link>
-              )}
-            </div>
-          </div>
-
-          <ProgramMatrix
-            halfPallet={halfPallet}
-            fullPallet={fullPallet}
-            retailer={retailer}
-            products={products}
-            readOnly={isReadOnly}
-            onCellChange={(palletId, productId, cases) =>
-              updateAssortmentForProject(palletId, productId, cases)
-            }
-            onQuantityChange={(palletId, quantity) =>
-              updateQuantityForProject(palletId, quantity)
-            }
-          />
-
-          {(halfPallet || fullPallet) && !isReadOnly && (
-            <div className="mt-6 flex items-center gap-2">
-              {halfPallet && (
-                <button
-                  onClick={() => handleRemovePallet('half')}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] font-medium text-[#c0392b] hover:bg-red-50 transition-colors"
-                >
-                  Remove half pallet
-                </button>
-              )}
-              {fullPallet && (
-                <button
-                  onClick={() => handleRemovePallet('full')}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] font-medium text-[#c0392b] hover:bg-red-50 transition-colors"
-                >
-                  Remove full pallet
-                </button>
-              )}
-            </div>
-          )}
-        </>
+        <ProgramMatrix
+          halfPallet={halfPallet}
+          fullPallet={fullPallet}
+          retailer={retailer}
+          products={products}
+          readOnly={isReadOnly}
+          onCellChange={(palletId, productId, cases) =>
+            updateAssortmentForProject(palletId, productId, cases)
+          }
+          onQuantityChange={(palletId, quantity) =>
+            updateQuantityForProject(palletId, quantity)
+          }
+        />
       )}
       {dialog}
     </div>
   )
+}
+
+function MenuItem({
+  children,
+  onClick,
+  destructive,
+}: {
+  children: React.ReactNode
+  onClick: () => void
+  destructive?: boolean
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`w-full inline-flex items-center gap-2 px-3 py-2 text-left text-[12px] font-medium transition-colors ${
+        destructive
+          ? 'text-[#c0392b] hover:bg-red-50'
+          : 'text-[#171717] hover:bg-[#fafafa]'
+      }`}
+    >
+      {children}
+    </button>
+  )
+}
+
+function Divider() {
+  return <div className="h-px bg-[#f0f0f0] my-1" />
 }
