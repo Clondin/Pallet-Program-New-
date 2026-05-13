@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'motion/react'
 import { ArrowLeft, ArrowRight, CalendarRange, Check, X } from 'lucide-react'
 import { useDisplayStore } from '../../stores/display-store'
 import { useRetailerStore } from '../../stores/retailer-store'
+import { useRoleStore } from '../../stores/role-store'
 import {
   compareSeasonsByHolidayDate,
   useSeasonStore,
@@ -101,6 +102,8 @@ export function StartProgramWizard({
   const seasons = useSeasonStore((state) => state.seasons)
   const createSeason = useSeasonStore((state) => state.createSeason)
   const createProject = useDisplayStore((state) => state.createProject)
+  const role = useRoleStore((state) => state.role)
+  const canCreateSeason = role === 'manager'
 
   const allowedRetailers = useMemo(() => {
     let list = retailers.filter((r) => r.status !== 'inactive')
@@ -149,7 +152,9 @@ export function StartProgramWizard({
   const season: Season | undefined = seasons.find((s) => s.id === seasonId)
 
   const canAdvanceRetailer = retailerId !== ''
-  const canAdvanceSeason = seasonId !== '' || newSeasonName.trim().length > 0
+  const canAdvanceSeason =
+    seasonId !== '' ||
+    (canCreateSeason && newSeasonName.trim().length > 0)
   const canAdvanceTypes = includeHalf || includeFull
   const isLastStep = step === 'review'
 
@@ -170,6 +175,7 @@ export function StartProgramWizard({
     if (!retailer) return
     let effectiveSeason: Season | undefined = season
     if (!effectiveSeason) {
+      if (!canCreateSeason) return
       const name = newSeasonName.trim()
       if (!name) return
       effectiveSeason = createSeason(name)
@@ -283,8 +289,8 @@ export function StartProgramWizard({
                 exit="exit"
                 transition={{ duration: 0.25, ease: 'easeInOut' }}
               >
-                {activeSeasons.length > 0 && (
-                  <div className="space-y-2 max-h-[240px] overflow-y-auto pr-1 mb-5">
+                {activeSeasons.length > 0 ? (
+                  <div className="space-y-2 max-h-[320px] overflow-y-auto pr-1">
                     {activeSeasons.map((s) => (
                       <SelectionCard
                         key={s.id}
@@ -306,23 +312,32 @@ export function StartProgramWizard({
                       </SelectionCard>
                     ))}
                   </div>
+                ) : (
+                  !canCreateSeason && (
+                    <p className="text-[13px] text-[#888] px-2 py-6 text-center">
+                      No active seasons yet. Ask your manager to set one up
+                      before starting a program.
+                    </p>
+                  )
                 )}
-                <div>
-                  <p className="text-[11px] uppercase tracking-wider text-[#777] mb-2">
-                    Or create a new season
-                  </p>
-                  <input
-                    autoFocus={activeSeasons.length === 0}
-                    type="text"
-                    value={newSeasonName}
-                    onChange={(e) => {
-                      setNewSeasonName(e.target.value)
-                      if (e.target.value.trim()) setSeasonId('')
-                    }}
-                    placeholder="e.g. Rosh Hashanah 2026"
-                    className="w-full px-4 py-3 rounded-xl bg-white/[0.06] border border-white/[0.08] text-white placeholder:text-[#666] focus:outline-none focus:ring-2 focus:ring-white/20"
-                  />
-                </div>
+                {canCreateSeason && (
+                  <div className={activeSeasons.length > 0 ? 'mt-5' : ''}>
+                    <p className="text-[11px] uppercase tracking-wider text-[#777] mb-2">
+                      Or create a new season
+                    </p>
+                    <input
+                      autoFocus={activeSeasons.length === 0}
+                      type="text"
+                      value={newSeasonName}
+                      onChange={(e) => {
+                        setNewSeasonName(e.target.value)
+                        if (e.target.value.trim()) setSeasonId('')
+                      }}
+                      placeholder="e.g. Rosh Hashanah 2026"
+                      className="w-full px-4 py-3 rounded-xl bg-white/[0.06] border border-white/[0.08] text-white placeholder:text-[#666] focus:outline-none focus:ring-2 focus:ring-white/20"
+                    />
+                  </div>
+                )}
               </motion.div>
             )}
 
