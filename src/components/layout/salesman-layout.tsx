@@ -5,10 +5,7 @@ import { useRoleStore } from '../../stores/role-store'
 import { useSalespersonStore } from '../../stores/salesperson-store'
 import { TopToolbar } from '../Toolbar/top-toolbar'
 
-const TABS = [
-  { to: '/salesman', label: 'My Pallets', end: true },
-  { to: '/salesman/retailers', label: 'My Retailers', end: false },
-]
+const TABS: { to: string; label: string; end: boolean }[] = []
 
 function initialsOf(name: string): string {
   const parts = name.trim().split(/\s+/)

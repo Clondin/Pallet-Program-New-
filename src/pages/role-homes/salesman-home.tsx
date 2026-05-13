@@ -12,9 +12,8 @@ import { StartProgramWizard } from '../../components/StartProgramWizard'
 import { computeConfirmByDate } from '../../lib/deadline'
 import type { DisplayProject, PalletStatus } from '../../types'
 
-const STATUS_ORDER: PalletStatus[] = ['draft', 'ready', 'in_build', 'built']
 // When a program has multiple pallets in different states, surface the one
-// furthest along by index in STATUS_ORDER. Highest index "wins".
+// furthest along.
 const STATUS_INDEX: Record<PalletStatus, number> = {
   draft: 0,
   ready: 1,
@@ -112,18 +111,42 @@ export function SalesmanHome() {
     )
   }, [scopedProjects, seasonById])
 
-  const groupedByStatus = useMemo(() => {
-    const groups: Record<PalletStatus, ProgramCard[]> = {
-      draft: [],
-      ready: [],
-      in_build: [],
-      built: [],
-    }
+  // Group programs by retailer for the unified view.
+  interface RetailerBucket {
+    retailerId: string
+    retailerName: string
+    isInactive: boolean
+    programs: ProgramCard[]
+  }
+  const retailerBuckets: RetailerBucket[] = useMemo(() => {
+    if (!activeSalesperson) return []
+    const programsByRetailer = new Map<string, ProgramCard[]>()
     for (const program of programs) {
-      groups[program.leadStatus].push(program)
+      const list = programsByRetailer.get(program.retailerId) ?? []
+      list.push(program)
+      programsByRetailer.set(program.retailerId, list)
     }
-    return groups
-  }, [programs])
+    // Sort programs within each retailer by most-recent-update.
+    for (const list of programsByRetailer.values()) {
+      list.sort((a, b) => b.updatedAt - a.updatedAt)
+    }
+    const buckets: RetailerBucket[] = activeSalesperson.retailerIds
+      .map((id) => retailerById.get(id))
+      .filter((r): r is NonNullable<typeof r> => Boolean(r))
+      .map((r) => ({
+        retailerId: r.id,
+        retailerName: r.name,
+        isInactive: r.status === 'inactive',
+        programs: programsByRetailer.get(r.id) ?? [],
+      }))
+    // Retailers with programs float to the top; otherwise alpha.
+    return buckets.sort((a, b) => {
+      if (a.programs.length !== b.programs.length) {
+        return b.programs.length - a.programs.length
+      }
+      return a.retailerName.localeCompare(b.retailerName)
+    })
+  }, [activeSalesperson, programs, retailerById])
 
   // Hero state when no salesperson is picked yet.
   if (!activeSalesperson) {
@@ -177,20 +200,15 @@ export function SalesmanHome() {
   }
 
   return (
-    <div className="px-8 py-10 max-w-[1280px] mx-auto">
-      <div className="mb-8 flex items-start justify-between gap-6 flex-wrap">
+    <div className="px-8 py-8 max-w-[1280px] mx-auto">
+      <div className="mb-6 flex items-center justify-between gap-6 flex-wrap">
         <div>
           <p className="text-[11px] uppercase tracking-wider text-[#999]">
             Hello, {activeSalesperson.name.split(' ')[0]}
           </p>
-          <h1 className="text-[28px] font-semibold tracking-display text-[#171717] mt-1">
-            Your programs
+          <h1 className="text-[24px] font-semibold tracking-tight text-[#171717] mt-1">
+            Your retailers &amp; programs
           </h1>
-          <p className="text-[13px] text-[#666] mt-2 max-w-2xl">
-            {activeSalesperson.retailerIds.length} retailer
-            {activeSalesperson.retailerIds.length === 1 ? '' : 's'} assigned ·
-            programs you're building, grouped by where they are in the workflow.
-          </p>
         </div>
         <button
           onClick={() => setWizardOpen(true)}
@@ -200,53 +218,72 @@ export function SalesmanHome() {
               ? 'All your programs are inactive — ask your manager to reactivate one.'
               : undefined
           }
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-md bg-[#171717] text-white text-[13px] font-medium hover:bg-[#333] transition-colors shrink-0 disabled:opacity-40 disabled:cursor-not-allowed"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-[#171717] text-white text-[13px] font-medium hover:bg-[#333] transition-colors shrink-0 disabled:opacity-40 disabled:cursor-not-allowed"
         >
           <Plus className="w-3.5 h-3.5" />
           Start a program
         </button>
       </div>
 
-      {programs.length === 0 ? (
+      {retailerBuckets.length === 0 ? (
         <div className="bg-white shadow-card rounded-2xl p-16 text-center">
           <Briefcase className="w-9 h-9 text-[#ccc] mx-auto mb-4" />
           <p className="text-[15px] font-semibold text-[#171717]">
-            No programs yet
+            No retailers assigned yet
           </p>
           <p className="text-[13px] text-[#888] mt-2 max-w-md mx-auto">
-            Pitch a customer on a season program, then start it here once they
-            say yes.
+            Ask your manager to assign you to retailers from the Assignments
+            page.
           </p>
-          <button
-            onClick={() => setWizardOpen(true)}
-            disabled={buildableRetailerIds.length === 0}
-            title={
-              buildableRetailerIds.length === 0
-                ? 'All your programs are inactive — ask your manager to reactivate one.'
-                : undefined
-            }
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-[#171717] text-white text-[13px] font-medium hover:bg-[#333] transition-colors mt-5 disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            Start a program
-          </button>
         </div>
       ) : (
-        <div className="space-y-10">
-          {STATUS_ORDER.map((status) => {
-            const items = groupedByStatus[status]
-            if (items.length === 0) return null
-            return (
-              <section key={status}>
-                <div className="flex items-center gap-3 mb-4">
-                  <StatusPill status={status} role="salesman" />
-                  <p className="text-[13px] text-[#666]">
-                    {items.length} program{items.length === 1 ? '' : 's'}
-                  </p>
+        <div className="space-y-8">
+          {retailerBuckets.map((bucket) => (
+            <section key={bucket.retailerId}>
+              <div className="flex items-center justify-between gap-3 mb-3">
+                <div className="flex items-center gap-2 min-w-0">
+                  <Link
+                    to={`/salesman/retailers/${bucket.retailerId}`}
+                    className="text-[16px] font-semibold text-[#171717] hover:underline truncate"
+                  >
+                    {bucket.retailerName}
+                  </Link>
+                  {bucket.isInactive && (
+                    <span className="text-[10px] uppercase tracking-wider text-[#999] px-1.5 py-0.5 rounded bg-[#f5f5f5]">
+                      Inactive
+                    </span>
+                  )}
+                  <span className="text-[11px] text-[#888]">
+                    · {bucket.programs.length} program
+                    {bucket.programs.length === 1 ? '' : 's'}
+                  </span>
                 </div>
+                <Link
+                  to={`/salesman/retailers/${bucket.retailerId}`}
+                  className="text-[11px] text-[#0a72ef] hover:underline shrink-0"
+                >
+                  Open retailer →
+                </Link>
+              </div>
+
+              {bucket.programs.length === 0 ? (
+                <div className="bg-white shadow-card rounded-xl p-8 text-center">
+                  <p className="text-[13px] text-[#888]">
+                    No programs yet for {bucket.retailerName}.
+                  </p>
+                  {!bucket.isInactive && (
+                    <button
+                      onClick={() => setWizardOpen(true)}
+                      className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-[#171717] text-white text-[12px] font-medium hover:bg-[#333] transition-colors"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      Start a program
+                    </button>
+                  )}
+                </div>
+              ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-                  {items.map((program) => {
-                    const retailer = retailerById.get(program.retailerId)
+                  {bucket.programs.map((program) => {
                     const season = program.seasonId
                       ? seasonById.get(program.seasonId)
                       : undefined
@@ -273,13 +310,16 @@ export function SalesmanHome() {
                       <Link
                         key={program.key}
                         to={programLink}
-                        className="group bg-white shadow-card hover:shadow-elevated transition-all rounded-xl p-5"
+                        className="group bg-white shadow-card hover:shadow-elevated transition-all rounded-xl p-4"
                       >
-                        <div className="flex items-start justify-between gap-3 mb-3">
-                          <p className="text-[14px] font-semibold text-[#171717] truncate">
-                            {retailer?.name ?? '—'} — {program.seasonName}
+                        <div className="flex items-start justify-between gap-3 mb-2">
+                          <p className="text-[13px] font-semibold text-[#171717] truncate">
+                            {program.seasonName}
                           </p>
-                          <ArrowRight className="w-3.5 h-3.5 text-[#ccc] group-hover:text-[#171717] group-hover:translate-x-0.5 transition-all shrink-0" />
+                          <StatusPill
+                            status={program.leadStatus}
+                            role="salesman"
+                          />
                         </div>
                         <div className="flex items-center gap-2 text-[11px] text-[#888]">
                           {half && (
@@ -293,13 +333,13 @@ export function SalesmanHome() {
                             </span>
                           )}
                         </div>
-                        <div className="flex items-center gap-3 mt-3 text-[11px] text-[#666] tabular-nums">
+                        <div className="flex items-center gap-3 mt-2 text-[11px] text-[#666] tabular-nums">
                           <span>{skuIds.size} SKUs</span>
                           <span>·</span>
                           <span>{totalCases} cases</span>
                         </div>
                         {confirmBy && program.leadStatus !== 'built' && (
-                          <div className="mt-3">
+                          <div className="mt-2">
                             <DeadlineChip confirmByMs={confirmBy} size="sm" />
                           </div>
                         )}
@@ -307,9 +347,9 @@ export function SalesmanHome() {
                     )
                   })}
                 </div>
-              </section>
-            )
-          })}
+              )}
+            </section>
+          ))}
         </div>
       )}
 
