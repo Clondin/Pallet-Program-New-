@@ -8,11 +8,19 @@ import { useSalespersonStore } from '../../stores/salesperson-store'
 import { useRoleStore } from '../../stores/role-store'
 import { StatusPill } from '../../components/Status/status-pill'
 import { DeadlineChip } from '../../components/Deadline/deadline-chip'
-import { PalletCreationWizard } from '../../components/PalletCreationWizard'
+import { StartProgramWizard } from '../../components/StartProgramWizard'
 import { computeConfirmByDate } from '../../lib/deadline'
-import type { PalletStatus } from '../../types'
+import type { DisplayProject, PalletStatus } from '../../types'
 
 const STATUS_ORDER: PalletStatus[] = ['draft', 'ready', 'in_build', 'built']
+// When a program has multiple pallets in different states, surface the one
+// furthest along by index in STATUS_ORDER. Highest index "wins".
+const STATUS_INDEX: Record<PalletStatus, number> = {
+  draft: 0,
+  ready: 1,
+  in_build: 2,
+  built: 3,
+}
 
 function initialsOf(name: string): string {
   const parts = name.trim().split(/\s+/)
@@ -63,21 +71,59 @@ export function SalesmanHome() {
     return projects.filter((p) => scopedRetailerIds.has(p.retailerId))
   }, [projects, scopedRetailerIds, activeSalesperson])
 
+  // Roll pallets up by program (retailer × season).
+  interface ProgramCard {
+    key: string
+    retailerId: string
+    seasonId: string | null
+    seasonName: string
+    pallets: DisplayProject[]
+    leadStatus: PalletStatus
+    updatedAt: number
+  }
+  const programs: ProgramCard[] = useMemo(() => {
+    const map = new Map<string, ProgramCard>()
+    for (const project of scopedProjects) {
+      const key = `${project.retailerId}::${project.seasonId ?? '__none__'}`
+      const existing = map.get(key)
+      const seasonName = project.seasonId
+        ? seasonById.get(project.seasonId)?.name ?? 'Season'
+        : 'Everyday'
+      if (existing) {
+        existing.pallets.push(project)
+        if (STATUS_INDEX[project.status] > STATUS_INDEX[existing.leadStatus]) {
+          existing.leadStatus = project.status
+        }
+        existing.updatedAt = Math.max(existing.updatedAt, project.updatedAt)
+      } else {
+        map.set(key, {
+          key,
+          retailerId: project.retailerId,
+          seasonId: project.seasonId,
+          seasonName,
+          pallets: [project],
+          leadStatus: project.status,
+          updatedAt: project.updatedAt,
+        })
+      }
+    }
+    return Array.from(map.values()).sort(
+      (a, b) => b.updatedAt - a.updatedAt,
+    )
+  }, [scopedProjects, seasonById])
+
   const groupedByStatus = useMemo(() => {
-    const groups: Record<PalletStatus, typeof projects> = {
+    const groups: Record<PalletStatus, ProgramCard[]> = {
       draft: [],
       ready: [],
       in_build: [],
       built: [],
     }
-    for (const project of scopedProjects) {
-      groups[project.status].push(project)
-    }
-    for (const status of STATUS_ORDER) {
-      groups[status].sort((a, b) => b.updatedAt - a.updatedAt)
+    for (const program of programs) {
+      groups[program.leadStatus].push(program)
     }
     return groups
-  }, [scopedProjects])
+  }, [programs])
 
   // Hero state when no salesperson is picked yet.
   if (!activeSalesperson) {
@@ -138,11 +184,12 @@ export function SalesmanHome() {
             Hello, {activeSalesperson.name.split(' ')[0]}
           </p>
           <h1 className="text-[28px] font-semibold tracking-display text-[#171717] mt-1">
-            Your pallets
+            Your programs
           </h1>
           <p className="text-[13px] text-[#666] mt-2 max-w-2xl">
             {activeSalesperson.retailerIds.length} retailer
-            {activeSalesperson.retailerIds.length === 1 ? '' : 's'} assigned · drafts in progress, pallets ready for the warehouse, and what's already built.
+            {activeSalesperson.retailerIds.length === 1 ? '' : 's'} assigned ·
+            programs you're building, grouped by where they are in the workflow.
           </p>
         </div>
         <button
@@ -156,16 +203,19 @@ export function SalesmanHome() {
           className="inline-flex items-center gap-2 px-4 py-2.5 rounded-md bg-[#171717] text-white text-[13px] font-medium hover:bg-[#333] transition-colors shrink-0 disabled:opacity-40 disabled:cursor-not-allowed"
         >
           <Plus className="w-3.5 h-3.5" />
-          New Pallet
+          Start a program
         </button>
       </div>
 
-      {scopedProjects.length === 0 ? (
+      {programs.length === 0 ? (
         <div className="bg-white shadow-card rounded-2xl p-16 text-center">
           <Briefcase className="w-9 h-9 text-[#ccc] mx-auto mb-4" />
-          <p className="text-[15px] font-semibold text-[#171717]">No pallets yet</p>
+          <p className="text-[15px] font-semibold text-[#171717]">
+            No programs yet
+          </p>
           <p className="text-[13px] text-[#888] mt-2 max-w-md mx-auto">
-            Start your first pallet for the season. It'll show up here grouped by status.
+            Pitch a customer on a season program, then start it here once they
+            say yes.
           </p>
           <button
             onClick={() => setWizardOpen(true)}
@@ -178,7 +228,7 @@ export function SalesmanHome() {
             className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-[#171717] text-white text-[13px] font-medium hover:bg-[#333] transition-colors mt-5 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <Plus className="w-3.5 h-3.5" />
-            New Pallet
+            Start a program
           </button>
         </div>
       ) : (
@@ -191,43 +241,64 @@ export function SalesmanHome() {
                 <div className="flex items-center gap-3 mb-4">
                   <StatusPill status={status} role="salesman" />
                   <p className="text-[13px] text-[#666]">
-                    {items.length} {items.length === 1 ? 'pallet' : 'pallets'}
+                    {items.length} program{items.length === 1 ? '' : 's'}
                   </p>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-                  {items.map((pallet) => {
-                    const retailer = retailerById.get(pallet.retailerId)
-                    const season = pallet.seasonId
-                      ? seasonById.get(pallet.seasonId)
+                  {items.map((program) => {
+                    const retailer = retailerById.get(program.retailerId)
+                    const season = program.seasonId
+                      ? seasonById.get(program.seasonId)
                       : undefined
-                    const cases = pallet.assortment.reduce((s, e) => s + e.cases, 0)
+                    const half = program.pallets.find(
+                      (p) => p.palletType === 'half',
+                    )
+                    const full = program.pallets.find(
+                      (p) => p.palletType === 'full',
+                    )
+                    const skuIds = new Set<string>()
+                    let totalCases = 0
+                    for (const pallet of program.pallets) {
+                      const qty = pallet.quantity ?? 1
+                      for (const entry of pallet.assortment) {
+                        if (entry.cases > 0) skuIds.add(entry.productId)
+                        totalCases += entry.cases * qty
+                      }
+                    }
                     const confirmBy = season?.holidayDate
                       ? computeConfirmByDate(season.holidayDate)
                       : null
+                    const programLink = `/salesman/retailers/${program.retailerId}/program/${program.seasonId ?? program.pallets[0].season}`
                     return (
                       <Link
-                        key={pallet.id}
-                        to={`/salesman/retailers/${pallet.retailerId}/pallets/${pallet.id}`}
+                        key={program.key}
+                        to={programLink}
                         className="group bg-white shadow-card hover:shadow-elevated transition-all rounded-xl p-5"
                       >
                         <div className="flex items-start justify-between gap-3 mb-3">
                           <p className="text-[14px] font-semibold text-[#171717] truncate">
-                            {pallet.name}
+                            {retailer?.name ?? '—'} — {program.seasonName}
                           </p>
                           <ArrowRight className="w-3.5 h-3.5 text-[#ccc] group-hover:text-[#171717] group-hover:translate-x-0.5 transition-all shrink-0" />
                         </div>
-                        <p className="text-[11px] text-[#888]">
-                          {retailer?.name ?? '—'}
-                          {season ? ` · ${season.name}` : ''}
-                        </p>
-                        <div className="flex items-center gap-3 mt-3 text-[11px] text-[#666]">
-                          <span className="capitalize">{pallet.palletType}</span>
-                          <span>·</span>
-                          <span>{pallet.assortment.length} SKUs</span>
-                          <span>·</span>
-                          <span>{cases} cases</span>
+                        <div className="flex items-center gap-2 text-[11px] text-[#888]">
+                          {half && (
+                            <span className="px-1.5 py-0.5 rounded bg-[#f5f5f5] font-medium">
+                              Half × {half.quantity ?? 1}
+                            </span>
+                          )}
+                          {full && (
+                            <span className="px-1.5 py-0.5 rounded bg-[#f5f5f5] font-medium">
+                              Full × {full.quantity ?? 1}
+                            </span>
+                          )}
                         </div>
-                        {confirmBy && pallet.status !== 'built' && (
+                        <div className="flex items-center gap-3 mt-3 text-[11px] text-[#666] tabular-nums">
+                          <span>{skuIds.size} SKUs</span>
+                          <span>·</span>
+                          <span>{totalCases} cases</span>
+                        </div>
+                        {confirmBy && program.leadStatus !== 'built' && (
                           <div className="mt-3">
                             <DeadlineChip confirmByMs={confirmBy} size="sm" />
                           </div>
@@ -242,7 +313,7 @@ export function SalesmanHome() {
         </div>
       )}
 
-      <PalletCreationWizard
+      <StartProgramWizard
         open={wizardOpen}
         onClose={() => setWizardOpen(false)}
         allowedRetailerIds={buildableRetailerIds}

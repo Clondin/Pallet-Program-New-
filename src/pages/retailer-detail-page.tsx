@@ -19,9 +19,11 @@ import { useCatalogStore } from '../stores/catalog-store'
 import { useRetailerStore } from '../stores/retailer-store'
 import { useDisplayStore } from '../stores/display-store'
 import { useSalespersonStore } from '../stores/salesperson-store'
+import { useSeasonStore } from '../stores/season-store'
 import { useRoleHref } from '../lib/role-href'
 import { useRoleStore } from '../stores/role-store'
 import { PalletWizard } from '../components/Wizard/PalletWizard'
+import { StartProgramWizard } from '../components/StartProgramWizard'
 import { useConfirm } from '../components/ConfirmDialog'
 import type { WizardPalletConfig } from '../components/Wizard/wizardTypes'
 import type { AuthorizedItem, DisplayProject, Holiday, Retailer } from '../types'
@@ -697,6 +699,7 @@ export function RetailerDetailPage() {
   const updateRetailer = useRetailerStore((state) => state.updateRetailer)
   const retailer = useRetailerStore((state) => state.getRetailer(id ?? ''))
   const salespeople = useSalespersonStore((state) => state.salespeople)
+  const seasons = useSeasonStore((state) => state.seasons)
   const projects = useDisplayStore((state) => state.projects)
   const { confirm, dialog: confirmDialog } = useConfirm()
   const pallets = useMemo(
@@ -705,11 +708,32 @@ export function RetailerDetailPage() {
   )
   const [activeTab, setActiveTab] = useState<Tab>('pallets')
   const [wizardOpen, setWizardOpen] = useState(false)
+  const [startProgramOpen, setStartProgramOpen] = useState(false)
   const createProject = useDisplayStore((state) => state.createProject)
+  // Programs are identified by seasonId (each Season is one program); legacy
+  // pallets without a seasonId fall back to their Holiday family.
   const seasonOptions = useMemo(() => {
-    const seasons = new Set(pallets.map((pallet) => pallet.season))
-    return Array.from(seasons).filter((season) => season !== 'none')
-  }, [pallets])
+    const byKey = new Map<string, { key: string; label: string }>()
+    for (const pallet of pallets) {
+      if (pallet.seasonId) {
+        const seasonRecord = seasons.find((s) => s.id === pallet.seasonId)
+        if (!byKey.has(pallet.seasonId)) {
+          byKey.set(pallet.seasonId, {
+            key: pallet.seasonId,
+            label: seasonRecord?.name ?? 'Season',
+          })
+        }
+      } else if (pallet.season !== 'none') {
+        if (!byKey.has(pallet.season)) {
+          byKey.set(pallet.season, {
+            key: pallet.season,
+            label: formatHoliday(pallet.season),
+          })
+        }
+      }
+    }
+    return Array.from(byKey.values())
+  }, [pallets, seasons])
 
   const handleDeleteProgram = async () => {
     if (!retailer) return
@@ -827,9 +851,14 @@ export function RetailerDetailPage() {
           {(() => {
             const blockedForSalesman =
               role === 'salesman' && retailer.status === 'inactive'
+            const useStartProgram = role === 'salesman'
             return (
               <button
-                onClick={() => setWizardOpen(true)}
+                onClick={() =>
+                  useStartProgram
+                    ? setStartProgramOpen(true)
+                    : setWizardOpen(true)
+                }
                 disabled={blockedForSalesman}
                 title={
                   blockedForSalesman
@@ -839,7 +868,7 @@ export function RetailerDetailPage() {
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-[#171717] text-white text-[13px] font-medium hover:bg-[#333] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 <Plus className="w-3.5 h-3.5" />
-                New Pallet
+                {useStartProgram ? 'Start a program' : 'New Pallet'}
               </button>
             )
           })()}
@@ -879,14 +908,20 @@ export function RetailerDetailPage() {
               <Boxes className="w-7 h-7 text-[#ccc] mx-auto mb-3" />
               <p className="text-[14px] font-medium text-[#171717]">No pallets yet</p>
               <p className="text-[12px] text-[#888] mt-1 mb-5">
-                Create the first pallet for {retailer.name}
+                {role === 'salesman'
+                  ? `Pitch a season program to ${retailer.name}, then start it here.`
+                  : `Create the first pallet for ${retailer.name}`}
               </p>
               <button
-                onClick={() => setWizardOpen(true)}
+                onClick={() =>
+                  role === 'salesman'
+                    ? setStartProgramOpen(true)
+                    : setWizardOpen(true)
+                }
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-[#171717] text-white text-[12px] font-medium hover:bg-[#333] transition-colors"
               >
                 <Plus className="w-3.5 h-3.5" />
-                New Pallet
+                {role === 'salesman' ? 'Start a program' : 'New Pallet'}
               </button>
             </div>
           ) : (
@@ -894,13 +929,13 @@ export function RetailerDetailPage() {
               {seasonOptions.length > 0 && (
                 <div className="flex flex-wrap items-center gap-2 mb-4">
                   <span className="text-[12px] text-[#888]">Program summary:</span>
-                  {seasonOptions.map((season) => (
+                  {seasonOptions.map((option) => (
                     <Link
-                      key={season}
-                      to={roleHref(`/retailers/${id}/program/${season}`)}
+                      key={option.key}
+                      to={roleHref(`/retailers/${id}/program/${option.key}`)}
                       className="text-[12px] font-medium text-[#0a72ef] hover:underline"
                     >
-                      {formatHoliday(season)}
+                      {option.label}
                     </Link>
                   ))}
                 </div>
@@ -921,6 +956,11 @@ export function RetailerDetailPage() {
         open={wizardOpen}
         onClose={() => setWizardOpen(false)}
         onComplete={handleWizardComplete}
+      />
+      <StartProgramWizard
+        open={startProgramOpen}
+        onClose={() => setStartProgramOpen(false)}
+        pinnedRetailerId={retailer.id}
       />
       {confirmDialog}
     </div>
