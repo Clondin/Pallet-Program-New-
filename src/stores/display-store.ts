@@ -81,6 +81,13 @@ interface DisplayState {
   updateAssortment: (productId: string, cases: number) => void
   updateAssortmentForProject: (projectId: string, productId: string, cases: number) => void
   setAssortment: (assortment: AssortmentEntry[]) => void
+  setSelectedProductIdsForProject: (projectId: string, productIds: string[]) => void
+  mergeProgramAssortment: (
+    plan: {
+      projectId: string
+      entries: { productId: string; cases: number }[]
+    }[],
+  ) => void
   updateShipByDate: (date: number | undefined) => void
   updateQuantity: (quantity: number) => void
   updateQuantityForProject: (projectId: string, quantity: number) => void
@@ -824,6 +831,71 @@ export const useDisplayStore = create<DisplayState>((set, get) => ({
     }
 
     set(commitProjectUpdate(state, nextProject))
+  },
+
+  setSelectedProductIdsForProject: (projectId, productIds) => {
+    const state = get()
+    const target = state.projects.find((p) => p.id === projectId)
+    if (!target) return
+
+    const dedup = Array.from(new Set(productIds))
+    const allowed = new Set(dedup)
+    // Drop any cases for unpicked items so we don't carry phantom quantities.
+    const nextAssortment = target.assortment.filter((entry) =>
+      allowed.has(entry.productId),
+    )
+    const nextProject = {
+      ...target,
+      selectedProductIds: dedup,
+      assortment: nextAssortment,
+      updatedAt: Date.now(),
+    }
+
+    if (state.currentProject?.id === projectId) {
+      set(commitProjectUpdate(state, nextProject))
+    } else {
+      set({ projects: replaceProject(state.projects, nextProject) })
+    }
+  },
+
+  mergeProgramAssortment: (plan) => {
+    const state = get()
+    const now = Date.now()
+    let nextProjects = state.projects
+    let nextCurrent = state.currentProject
+    for (const { projectId, entries } of plan) {
+      const target = nextProjects.find((p) => p.id === projectId)
+      if (!target) continue
+      // Override cases for items in the plan; leave everything else alone.
+      const overrideMap = new Map(entries.map((e) => [e.productId, e.cases]))
+      const existingAssortment = target.assortment
+      const updatedExisting = existingAssortment
+        .map((entry) =>
+          overrideMap.has(entry.productId)
+            ? { ...entry, cases: overrideMap.get(entry.productId)! }
+            : entry,
+        )
+        .filter((entry) => entry.cases > 0)
+      const existingIds = new Set(existingAssortment.map((e) => e.productId))
+      for (const e of entries) {
+        if (!existingIds.has(e.productId) && e.cases > 0) {
+          updatedExisting.push({ productId: e.productId, cases: e.cases })
+        }
+      }
+      const existingPicks = target.selectedProductIds
+        ? new Set(target.selectedProductIds)
+        : new Set(existingAssortment.map((e) => e.productId))
+      for (const e of entries) existingPicks.add(e.productId)
+      const updated = {
+        ...target,
+        assortment: updatedExisting,
+        selectedProductIds: Array.from(existingPicks),
+        updatedAt: now,
+      }
+      nextProjects = replaceProject(nextProjects, updated)
+      if (nextCurrent?.id === projectId) nextCurrent = updated
+    }
+    set({ projects: nextProjects, currentProject: nextCurrent })
   },
 
   updateShipByDate: (date) => {

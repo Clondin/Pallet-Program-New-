@@ -1,7 +1,8 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, MoreHorizontal, Plus } from 'lucide-react'
+import { ArrowLeft, Download, MoreHorizontal, Plus, Upload } from 'lucide-react'
 import { ProgramMatrix } from '../components/Assortment/program-matrix'
+import { ProgramItemPicker } from '../components/Assortment/program-item-picker'
 import { useCatalogStore } from '../stores/catalog-store'
 import { useDisplayStore } from '../stores/display-store'
 import { useRetailerStore } from '../stores/retailer-store'
@@ -9,7 +10,47 @@ import { useSeasonStore } from '../stores/season-store'
 import { useRoleHref } from '../lib/role-href'
 import { useRoleStore } from '../stores/role-store'
 import { useConfirm } from '../components/ConfirmDialog'
-import type { Holiday, PalletType } from '../types'
+import { parseCsv } from '../lib/csv'
+import {
+  buildProgramTemplateWorkbook,
+  downloadXlsx,
+} from '../lib/program-template-xlsx'
+import * as XLSX from 'xlsx'
+import type { DisplayProject, Holiday, PalletType } from '../types'
+
+type ProgramTab = 'items' | 'quantities'
+
+function getSelectedIds(pallet: DisplayProject | null): string[] {
+  if (!pallet) return []
+  if (pallet.selectedProductIds) return pallet.selectedProductIds
+  return pallet.assortment.map((entry) => entry.productId)
+}
+
+// Accept several common date shapes from CSV / xlsx (m/d/yy, m/d/yyyy,
+// yyyy-mm-dd, or an Excel serial number). Returns epoch ms or null.
+function parseDateLoose(raw: string): number | null {
+  const trimmed = raw.trim()
+  if (!trimmed) return null
+  // Excel serial date (days since 1899-12-30)
+  if (/^-?\d+(\.\d+)?$/.test(trimmed)) {
+    const serial = Number(trimmed)
+    if (serial > 59 && serial < 80000) {
+      const excelEpoch = Date.UTC(1899, 11, 30)
+      return excelEpoch + serial * 24 * 60 * 60 * 1000
+    }
+  }
+  const native = Date.parse(trimmed)
+  if (Number.isFinite(native)) return native
+  // m/d/yy or m/d/yyyy
+  const slash = trimmed.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})$/)
+  if (slash) {
+    let [, m, d, y] = slash
+    const year = y.length === 2 ? 2000 + parseInt(y, 10) : parseInt(y, 10)
+    return Date.UTC(year, parseInt(m, 10) - 1, parseInt(d, 10))
+  }
+  return null
+}
+
 
 const HOLIDAY_LABELS: Record<Holiday, string> = {
   'rosh-hashanah': 'Rosh Hashanah',
@@ -44,10 +85,20 @@ export function ProgramRollupPage() {
   const updateQuantityForProject = useDisplayStore(
     (state) => state.updateQuantityForProject,
   )
+  const setSelectedProductIdsForProject = useDisplayStore(
+    (state) => state.setSelectedProductIdsForProject,
+  )
+  const mergeProgramAssortment = useDisplayStore(
+    (state) => state.mergeProgramAssortment,
+  )
+  const updateHolidayDate = useSeasonStore((state) => state.updateHolidayDate)
   const createProject = useDisplayStore((state) => state.createProject)
   const deleteProject = useDisplayStore((state) => state.deleteProject)
   const { confirm, dialog } = useConfirm()
   const [menuOpen, setMenuOpen] = useState(false)
+  const [tab, setTab] = useState<ProgramTab>('items')
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [importError, setImportError] = useState<string | null>(null)
 
   const seasonRecord = useMemo(
     () => seasons.find((s) => s.id === seasonParam) ?? null,
@@ -94,7 +145,7 @@ export function ProgramRollupPage() {
     seasonRecord?.id ?? referencePallet?.seasonId ?? null
 
   const handleAddPallet = (type: PalletType) => {
-    createProject(
+    const newProject = createProject(
       `${seasonLabel} ${type === 'full' ? 'Full' : 'Half'} — ${retailer.name}`,
       {
         palletType: type,
@@ -104,6 +155,13 @@ export function ProgramRollupPage() {
       },
       retailer.defaultTierCount ?? 4,
     )
+    // Mirror the picks from the other pallet so the new pallet's case inputs
+    // are immediately editable on the Quantities tab.
+    const otherPallet = type === 'half' ? fullPallet : halfPallet
+    const otherIds = getSelectedIds(otherPallet)
+    if (otherIds.length > 0) {
+      setSelectedProductIdsForProject(newProject.id, otherIds)
+    }
     setMenuOpen(false)
   }
 
@@ -120,6 +178,265 @@ export function ProgramRollupPage() {
     })
     if (!ok) return
     deleteProject(pallet.id)
+  }
+
+  const halfSelectedCount = useMemo(
+    () => getSelectedIds(halfPallet).length,
+    [halfPallet],
+  )
+  const fullSelectedCount = useMemo(
+    () => getSelectedIds(fullPallet).length,
+    [fullPallet],
+  )
+  const hasAnySelection = halfSelectedCount + fullSelectedCount > 0
+
+  // Land on Quantities if the program already has picks, Items if it's empty.
+  useEffect(() => {
+    if (seasonPallets.length === 0) return
+    setTab(hasAnySelection ? 'quantities' : 'items')
+    // Only react when we first land or pallets toggle existence — not on every
+    // pick (we don't want to yank the user back to Items after they enter cases).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [seasonPallets.length === 0, halfPallet?.id, fullPallet?.id])
+
+  const handleToggleSelected = (
+    palletId: string,
+    productId: string,
+    selected: boolean,
+  ) => {
+    const pallet =
+      halfPallet?.id === palletId
+        ? halfPallet
+        : fullPallet?.id === palletId
+          ? fullPallet
+          : null
+    if (!pallet) return
+
+    const current = getSelectedIds(pallet)
+    if (selected && current.includes(productId)) return
+    if (!selected && !current.includes(productId)) return
+
+    const next = selected
+      ? [...current, productId]
+      : current.filter((id) => id !== productId)
+    setSelectedProductIdsForProject(palletId, next)
+  }
+
+  const handleQuantityChange = async (palletId: string, quantity: number) => {
+    if (quantity >= 1) {
+      updateQuantityForProject(palletId, quantity)
+      return
+    }
+    // quantity === 0: offer to remove the pallet from the program entirely.
+    const pallet =
+      halfPallet?.id === palletId
+        ? halfPallet
+        : fullPallet?.id === palletId
+          ? fullPallet
+          : null
+    if (!pallet) return
+    const typeLabel = pallet.palletType === 'half' ? 'half' : 'full'
+    const hasCases = pallet.assortment.some((entry) => entry.cases > 0)
+    const ok = await confirm({
+      title: `Remove the ${typeLabel} pallet from this program?`,
+      description: hasCases
+        ? `The ${typeLabel} pallet and all of its case entries will be cleared. The other pallet stays as-is.`
+        : `The ${typeLabel} pallet will be removed from this program. The other pallet stays as-is.`,
+      confirmLabel: 'Remove pallet',
+      destructive: true,
+    })
+    if (!ok) return
+    deleteProject(pallet.id)
+  }
+
+  const handleDownloadTemplate = async () => {
+    setMenuOpen(false)
+    const halfIds = getSelectedIds(halfPallet)
+    const fullIds = getSelectedIds(fullPallet)
+    const pickedProductIds = Array.from(new Set([...halfIds, ...fullIds]))
+
+    const blob = await buildProgramTemplateWorkbook({
+      retailer,
+      seasonLabel,
+      seasonRecord,
+      halfPallet,
+      fullPallet,
+      products,
+      pickedProductIds,
+    })
+
+    const safeName = `${retailer.name}-${seasonLabel}`
+      .replace(/[^a-z0-9-]+/gi, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '')
+    downloadXlsx(`${safeName}-template.xlsx`, blob)
+  }
+
+  const handleUploadClick = () => {
+    setMenuOpen(false)
+    setImportError(null)
+    fileInputRef.current?.click()
+  }
+
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file) return
+
+    let rows: string[][]
+    const isXlsx = /\.xlsx$/i.test(file.name)
+    try {
+      if (isXlsx) {
+        const buffer = await file.arrayBuffer()
+        const wb = XLSX.read(buffer, { type: 'array' })
+        const sheet = wb.Sheets[wb.SheetNames[0]]
+        const sheetRows = XLSX.utils.sheet_to_json<unknown[]>(sheet, {
+          header: 1,
+          raw: true,
+          blankrows: false,
+        })
+        rows = sheetRows.map((row) =>
+          (row as unknown[]).map((cell) =>
+            cell === null || cell === undefined ? '' : String(cell),
+          ),
+        )
+      } else {
+        const text = await file.text()
+        rows = parseCsv(text)
+      }
+    } catch {
+      setImportError('Could not read file.')
+      return
+    }
+    if (rows.length < 2) {
+      setImportError('CSV is empty or missing a header row.')
+      return
+    }
+
+    // The column header row may not be row 0 — there's a metadata block above
+    // it. Find the row that has "Kayco" plus a case column.
+    let headerRowIdx = -1
+    for (let i = 0; i < rows.length; i++) {
+      const cells = rows[i].map((c) => c.trim().toLowerCase())
+      const hasKayco = cells.some((c) => c.includes('kayco'))
+      const hasCases = cells.some(
+        (c) => c.includes('half pallet') || c.includes('full pallet'),
+      )
+      if (hasKayco && hasCases) {
+        headerRowIdx = i
+        break
+      }
+    }
+    if (headerRowIdx === -1) {
+      setImportError(
+        'Could not find column headers. CSV should include "Kayco Item#" and "Half Pallet Cases" / "Full Pallet Cases".',
+      )
+      return
+    }
+
+    const header = rows[headerRowIdx].map((h) => h.trim().toLowerCase())
+    const kaycoCol = header.findIndex((h) => h.includes('kayco'))
+    const halfCol = header.findIndex((h) => h.includes('half pallet'))
+    const fullCol = header.findIndex((h) => h.includes('full pallet'))
+    if (kaycoCol === -1) {
+      setImportError('CSV must include a "Kayco Item#" column.')
+      return
+    }
+    if (halfPallet && halfCol === -1) {
+      setImportError('CSV must include a "Half Pallet Cases" column.')
+      return
+    }
+    if (fullPallet && fullCol === -1) {
+      setImportError('CSV must include a "Full Pallet Cases" column.')
+      return
+    }
+
+    // ─── Read metadata block (Total Pallets row + Due date) ───
+    // Look for a row containing "Total Pallets" (case-insensitive). The cells
+    // to the right hold: B half qty, C full qty, D due date.
+    const metaRowIdx = rows.findIndex((row) =>
+      row.some((cell) => cell.trim().toLowerCase() === 'total pallets'),
+    )
+    if (metaRowIdx >= 0 && metaRowIdx < headerRowIdx) {
+      const metaRow = rows[metaRowIdx]
+      const parseNum = (raw: string) => {
+        const n = parseInt(raw.trim(), 10)
+        return Number.isFinite(n) && n >= 1 ? n : null
+      }
+      if (halfPallet) {
+        const next = parseNum(metaRow[1] ?? '')
+        if (next !== null && next !== (halfPallet.quantity ?? 1)) {
+          updateQuantityForProject(halfPallet.id, next)
+        }
+      }
+      if (fullPallet) {
+        const next = parseNum(metaRow[2] ?? '')
+        if (next !== null && next !== (fullPallet.quantity ?? 1)) {
+          updateQuantityForProject(fullPallet.id, next)
+        }
+      }
+      const dueRaw = (metaRow[3] ?? '').trim()
+      if (dueRaw && seasonRecord) {
+        const parsed = parseDateLoose(dueRaw)
+        if (parsed !== null && parsed !== seasonRecord.holidayDate) {
+          updateHolidayDate(seasonRecord.id, parsed)
+        }
+      }
+    }
+
+    const byKayco = new Map<string, typeof products[number]>()
+    for (const p of products) {
+      if (p.kaycoItemNumber) byKayco.set(String(p.kaycoItemNumber).trim(), p)
+    }
+
+    const halfPlan: { productId: string; cases: number }[] = []
+    const fullPlan: { productId: string; cases: number }[] = []
+    const unmatched: string[] = []
+    for (let i = headerRowIdx + 1; i < rows.length; i++) {
+      const row = rows[i]
+      const kayco = (row[kaycoCol] ?? '').trim()
+      if (!kayco) continue
+      const product = byKayco.get(kayco)
+      if (!product) {
+        unmatched.push(kayco)
+        continue
+      }
+      const halfCases =
+        halfPallet && halfCol !== -1
+          ? Math.max(0, parseFloat(row[halfCol] ?? '') || 0)
+          : 0
+      const fullCases =
+        fullPallet && fullCol !== -1
+          ? Math.max(0, parseFloat(row[fullCol] ?? '') || 0)
+          : 0
+      if (halfPallet) halfPlan.push({ productId: product.id, cases: halfCases })
+      if (fullPallet) fullPlan.push({ productId: product.id, cases: fullCases })
+    }
+
+    // Merge semantics: only act on rows that actually have cases. Blank or 0
+    // case fields are skipped so existing entries aren't wiped.
+    const halfMerge = halfPlan.filter((e) => e.cases > 0)
+    const fullMerge = fullPlan.filter((e) => e.cases > 0)
+
+    if (halfMerge.length === 0 && fullMerge.length === 0) {
+      setImportError(
+        unmatched.length > 0
+          ? `No Kayco numbers in the file matched the catalog. Examples: ${unmatched.slice(0, 3).join(', ')}.`
+          : 'CSV had no rows with cases to import.',
+      )
+      return
+    }
+
+    const plan: { projectId: string; entries: { productId: string; cases: number }[] }[] = []
+    if (halfPallet) plan.push({ projectId: halfPallet.id, entries: halfMerge })
+    if (fullPallet) plan.push({ projectId: fullPallet.id, entries: fullMerge })
+    mergeProgramAssortment(plan)
+    setImportError(
+      unmatched.length > 0
+        ? `Imported ${halfMerge.length + fullMerge.length} rows. ${unmatched.length} unmatched Kayco numbers were skipped.`
+        : null,
+    )
+    setTab('quantities')
   }
 
   const isReadOnly = role === 'builder'
@@ -200,6 +517,19 @@ export function ProgramRollupPage() {
                     </MenuItem>
                   )}
                   {(halfPallet || fullPallet) && <Divider />}
+                  {(halfPallet || fullPallet) && (
+                    <>
+                      <MenuItem onClick={handleDownloadTemplate}>
+                        <Download className="w-3.5 h-3.5" />
+                        Download template
+                      </MenuItem>
+                      <MenuItem onClick={handleUploadClick}>
+                        <Upload className="w-3.5 h-3.5" />
+                        Upload file
+                      </MenuItem>
+                      <Divider />
+                    </>
+                  )}
                   {halfPallet && (
                     <MenuItem
                       destructive
@@ -219,9 +549,28 @@ export function ProgramRollupPage() {
                 </div>
               </>
             )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+              onChange={handleFileChange}
+              className="hidden"
+            />
           </div>
         )}
       </div>
+
+      {importError && (
+        <div className="mb-4 px-3 py-2 rounded-md bg-red-50 text-[12px] text-red-700 flex items-start justify-between gap-3">
+          <span>{importError}</span>
+          <button
+            onClick={() => setImportError(null)}
+            className="text-red-600 hover:text-red-800 font-medium text-[11px]"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
 
       {seasonPallets.length === 0 ? (
         <div className="bg-white shadow-card rounded-xl py-16 px-8 text-center">
@@ -249,22 +598,88 @@ export function ProgramRollupPage() {
           </div>
         </div>
       ) : (
-        <ProgramMatrix
-          halfPallet={halfPallet}
-          fullPallet={fullPallet}
-          retailer={retailer}
-          products={products}
-          readOnly={isReadOnly}
-          onCellChange={(palletId, productId, cases) =>
-            updateAssortmentForProject(palletId, productId, cases)
-          }
-          onQuantityChange={(palletId, quantity) =>
-            updateQuantityForProject(palletId, quantity)
-          }
-        />
+        <>
+          <div className="flex items-center gap-1 mb-4 p-1 bg-[#f2f2f2] rounded-lg w-fit">
+            <TabButton
+              active={tab === 'items'}
+              onClick={() => setTab('items')}
+              label="Items"
+              count={
+                halfPallet && fullPallet
+                  ? Math.max(halfSelectedCount, fullSelectedCount)
+                  : halfSelectedCount + fullSelectedCount
+              }
+            />
+            <TabButton
+              active={tab === 'quantities'}
+              onClick={() => setTab('quantities')}
+              label="Quantities"
+              disabled={!hasAnySelection}
+            />
+          </div>
+
+          {tab === 'items' ? (
+            <ProgramItemPicker
+              halfPallet={halfPallet}
+              fullPallet={fullPallet}
+              retailer={retailer}
+              products={products}
+              readOnly={isReadOnly}
+              onToggle={handleToggleSelected}
+            />
+          ) : (
+            <ProgramMatrix
+              halfPallet={halfPallet}
+              fullPallet={fullPallet}
+              retailer={retailer}
+              products={products}
+              readOnly={isReadOnly}
+              onCellChange={(palletId, productId, cases) =>
+                updateAssortmentForProject(palletId, productId, cases)
+              }
+              onQuantityChange={handleQuantityChange}
+              onGoToItems={() => setTab('items')}
+            />
+          )}
+        </>
       )}
       {dialog}
     </div>
+  )
+}
+
+function TabButton({
+  active,
+  onClick,
+  label,
+  count,
+  disabled,
+}: {
+  active: boolean
+  onClick: () => void
+  label: string
+  count?: number
+  disabled?: boolean
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-md text-[13px] font-medium transition-colors ${
+        active
+          ? 'bg-white text-[#171717] shadow-sm'
+          : 'text-[#777] hover:text-[#171717] disabled:hover:text-[#777] disabled:opacity-40 disabled:cursor-not-allowed'
+      }`}
+    >
+      {label}
+      {typeof count === 'number' && count > 0 && (
+        <span
+          className={`text-[11px] tabular-nums ${active ? 'text-[#999]' : 'text-[#aaa]'}`}
+        >
+          {count}
+        </span>
+      )}
+    </button>
   )
 }
 

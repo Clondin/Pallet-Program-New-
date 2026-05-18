@@ -358,6 +358,10 @@ export interface DisplayProject {
   branding: DisplayBranding
   placements: PlacedProduct[]
   assortment: AssortmentEntry[]
+  // Items the salesman has picked for this pallet. Persists across sessions
+  // even when cases = 0. Undefined on legacy projects — fall back to deriving
+  // selection from `assortment` entries.
+  selectedProductIds?: string[]
   shipByDate?: number
   // Number of identical pallets the salesman is requesting (default 1).
   // Cases on each assortment entry are per-pallet; multiply by quantity for

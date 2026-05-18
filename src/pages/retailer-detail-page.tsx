@@ -735,6 +735,40 @@ export function RetailerDetailPage() {
     return Array.from(byKey.values())
   }, [pallets, seasons])
 
+  const programCards = useMemo(() => {
+    return seasonOptions.map((option) => {
+      const palletsInProgram = pallets.filter((p) =>
+        p.seasonId ? p.seasonId === option.key : p.season === option.key,
+      )
+      let totalCases = 0
+      let halfUnits = 0
+      let fullUnits = 0
+      const pickedSet = new Set<string>()
+      let lastUpdated = 0
+      for (const p of palletsInProgram) {
+        const qty = p.quantity ?? 1
+        if (p.palletType === 'half') halfUnits += qty
+        if (p.palletType === 'full') fullUnits += qty
+        for (const entry of p.assortment) {
+          totalCases += entry.cases * qty
+          pickedSet.add(entry.productId)
+        }
+        p.selectedProductIds?.forEach((id) => pickedSet.add(id))
+        if (p.updatedAt > lastUpdated) lastUpdated = p.updatedAt
+      }
+      return {
+        key: option.key,
+        label: option.label,
+        itemCount: pickedSet.size,
+        totalCases,
+        palletUnits: halfUnits + fullUnits,
+        halfUnits,
+        fullUnits,
+        lastUpdated,
+      }
+    })
+  }, [seasonOptions, pallets])
+
   const handleDeleteProgram = async () => {
     if (!retailer) return
     const ok = await confirm({
@@ -884,20 +918,24 @@ export function RetailerDetailPage() {
 
       {/* Tabs */}
       <div className="flex items-center gap-0 mb-6" style={{ boxShadow: '0 1px 0 0 rgba(0,0,0,0.06)' }}>
-        {TABS.map((tab) => (
-          <button
-            key={tab.value}
-            onClick={() => setActiveTab(tab.value)}
-            className={`px-4 py-3 text-[13px] font-medium transition-colors relative ${
-              activeTab === tab.value ? 'text-[#171717]' : 'text-[#999] hover:text-[#555]'
-            }`}
-          >
-            {tab.label}
-            {activeTab === tab.value && (
-              <span className="absolute bottom-0 left-4 right-4 h-[2px] bg-[#171717] rounded-full" />
-            )}
-          </button>
-        ))}
+        {TABS.map((tab) => {
+          const label =
+            tab.value === 'pallets' && role === 'salesman' ? 'Programs' : tab.label
+          return (
+            <button
+              key={tab.value}
+              onClick={() => setActiveTab(tab.value)}
+              className={`px-4 py-3 text-[13px] font-medium transition-colors relative ${
+                activeTab === tab.value ? 'text-[#171717]' : 'text-[#999] hover:text-[#555]'
+              }`}
+            >
+              {label}
+              {activeTab === tab.value && (
+                <span className="absolute bottom-0 left-4 right-4 h-[2px] bg-[#171717] rounded-full" />
+              )}
+            </button>
+          )
+        })}
       </div>
 
       {/* Tab content */}
@@ -923,6 +961,47 @@ export function RetailerDetailPage() {
                 <Plus className="w-3.5 h-3.5" />
                 {role === 'salesman' ? 'Start a program' : 'New Pallet'}
               </button>
+            </div>
+          ) : role === 'salesman' ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {programCards.map((card) => (
+                <Link
+                  key={card.key}
+                  to={roleHref(`/retailers/${id}/program/${card.key}`)}
+                  className="group bg-white shadow-card rounded-xl px-5 py-4 hover:shadow-elevated transition-all flex items-center justify-between gap-4"
+                >
+                  <div className="min-w-0">
+                    <h3 className="text-[15px] font-semibold text-[#171717] truncate">
+                      {card.label}
+                    </h3>
+                    <p className="text-[12px] text-[#888] mt-1 tabular-nums">
+                      <span className="font-medium text-[#171717]">{card.itemCount}</span>
+                      {' items · '}
+                      <span className="font-medium text-[#171717]">{card.totalCases}</span>
+                      {' cases · '}
+                      <span className="font-medium text-[#171717]">{card.palletUnits}</span>
+                      {' pallets'}
+                    </p>
+                    <div className="flex items-center gap-3 mt-2 text-[11px]">
+                      {card.halfUnits > 0 && (
+                        <span className="inline-flex items-center gap-1 text-emerald-700">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                          <span className="font-semibold tabular-nums">{card.halfUnits}</span>
+                          Half
+                        </span>
+                      )}
+                      {card.fullUnits > 0 && (
+                        <span className="inline-flex items-center gap-1 text-blue-700">
+                          <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                          <span className="font-semibold tabular-nums">{card.fullUnits}</span>
+                          Full
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-[#bbb] group-hover:text-[#555] transition-colors shrink-0" />
+                </Link>
+              ))}
             </div>
           ) : (
             <>

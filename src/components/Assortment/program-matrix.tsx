@@ -1,5 +1,5 @@
 import { ChangeEvent, useEffect, useMemo, useState } from 'react'
-import { Search, X } from 'lucide-react'
+import { Minus, Plus, Search, X } from 'lucide-react'
 import type { DisplayProject, Product, Retailer } from '../../types'
 import { getUnitsPerCase } from '../../lib/assortment-utils'
 
@@ -11,6 +11,7 @@ interface ProgramMatrixProps {
   readOnly?: boolean
   onCellChange?: (palletId: string, productId: string, cases: number) => void
   onQuantityChange?: (palletId: string, quantity: number) => void
+  onGoToItems?: () => void
 }
 
 interface MatrixRow {
@@ -20,12 +21,20 @@ interface MatrixRow {
   kaycoItemNumber: string
   brand: string
   unitsPerCase: number | null
+  onHalf: boolean
+  onFull: boolean
   halfCases: number
   fullCases: number
 }
 
 function casesToDraft(cases: number) {
   return cases > 0 ? String(cases) : ''
+}
+
+function getSelectedSet(pallet: DisplayProject | null): Set<string> {
+  if (!pallet) return new Set()
+  if (pallet.selectedProductIds) return new Set(pallet.selectedProductIds)
+  return new Set(pallet.assortment.map((entry) => entry.productId))
 }
 
 function CellInput({
@@ -66,26 +75,57 @@ function CellInput({
   }
 
   const filled = cases > 0
-  const bg =
+  const wrapperRing =
     tone === 'half'
       ? filled
-        ? 'bg-emerald-50 ring-emerald-200'
-        : 'bg-white ring-[#eee]'
+        ? 'ring-emerald-300 bg-emerald-50/60'
+        : 'ring-[#e8e8e8] bg-white'
       : filled
-        ? 'bg-blue-50 ring-blue-200'
-        : 'bg-white ring-[#eee]'
+        ? 'ring-blue-300 bg-blue-50/60'
+        : 'ring-[#e8e8e8] bg-white'
+  const stepperColor =
+    tone === 'half'
+      ? 'text-emerald-700 hover:bg-emerald-100/70'
+      : 'text-blue-700 hover:bg-blue-100/70'
+
+  function step(delta: number) {
+    const next = Math.max(0, cases + delta)
+    onCommit(next)
+  }
 
   return (
-    <input
-      type="text"
-      inputMode="decimal"
-      value={draft}
-      onChange={handleChange}
-      onBlur={handleBlur}
-      disabled={disabled}
-      placeholder="0"
-      className={`w-[72px] h-8 px-2 text-[13px] text-right tabular-nums rounded-md ring-1 focus:outline-none focus:ring-2 focus:ring-[#0a72ef]/40 disabled:bg-[#fafafa] disabled:text-[#999] ${bg}`}
-    />
+    <div
+      className={`inline-flex items-stretch h-9 rounded-lg ring-1 transition focus-within:ring-2 focus-within:ring-[#0a72ef]/40 ${wrapperRing}`}
+    >
+      <button
+        type="button"
+        onClick={() => step(-1)}
+        disabled={disabled || cases <= 0}
+        aria-label="Decrease"
+        className={`w-7 flex items-center justify-center rounded-l-lg ${stepperColor} disabled:text-[#ddd] disabled:hover:bg-transparent`}
+      >
+        <Minus className="w-3 h-3" strokeWidth={2.5} />
+      </button>
+      <input
+        type="text"
+        inputMode="decimal"
+        value={draft}
+        onChange={handleChange}
+        onBlur={handleBlur}
+        disabled={disabled}
+        placeholder="0"
+        className="w-[44px] bg-transparent text-[13px] font-medium text-center tabular-nums focus:outline-none disabled:text-[#bbb] placeholder:text-[#ccc]"
+      />
+      <button
+        type="button"
+        onClick={() => step(1)}
+        disabled={disabled}
+        aria-label="Increase"
+        className={`w-7 flex items-center justify-center rounded-r-lg ${stepperColor} disabled:text-[#ddd] disabled:hover:bg-transparent`}
+      >
+        <Plus className="w-3 h-3" strokeWidth={2.5} />
+      </button>
+    </div>
   )
 }
 
@@ -115,11 +155,11 @@ function QuantityInput({
         const val = e.target.value.replace(/\D/g, '')
         setDraft(val)
         const num = parseInt(val, 10)
-        if (!isNaN(num) && num >= 1) onCommit(num)
+        if (!isNaN(num) && num >= 0) onCommit(num)
       }}
       onBlur={() => setDraft(String(value))}
       disabled={disabled}
-      className="w-[60px] h-7 px-2 text-[13px] font-semibold text-center tabular-nums rounded-md bg-white ring-1 ring-[#eee] focus:outline-none focus:ring-2 focus:ring-[#0a72ef]/40 disabled:bg-[#fafafa] disabled:text-[#999]"
+      className="w-[52px] h-7 px-2 text-[12px] font-semibold text-center tabular-nums rounded-md bg-white ring-1 ring-[#e5e5e5] focus:outline-none focus:ring-2 focus:ring-[#0a72ef]/40 disabled:bg-[#fafafa] disabled:text-[#999]"
     />
   )
 }
@@ -132,28 +172,24 @@ export function ProgramMatrix({
   readOnly,
   onCellChange,
   onQuantityChange,
+  onGoToItems,
 }: ProgramMatrixProps) {
   const [search, setSearch] = useState('')
-  const [filledOnly, setFilledOnly] = useState(false)
 
   const productMap = useMemo(
     () => new Map(products.map((product) => [product.id, product])),
     [products],
   )
 
-  // All authorized items for this retailer become rows by default. Plus any
-  // pallet assortment entries that happen to fall outside the authorized list
-  // (legacy/edge cases) so a salesman never loses sight of what's already
-  // assigned.
+  const halfSelected = useMemo(() => getSelectedSet(halfPallet), [halfPallet])
+  const fullSelected = useMemo(() => getSelectedSet(fullPallet), [fullPallet])
+
   const allRowIds = useMemo(() => {
     const ids = new Set<string>()
-    for (const item of retailer.authorizedItems) {
-      if (item.status === 'authorized') ids.add(item.productId)
-    }
-    halfPallet?.assortment.forEach((entry) => ids.add(entry.productId))
-    fullPallet?.assortment.forEach((entry) => ids.add(entry.productId))
+    halfSelected.forEach((id) => ids.add(id))
+    fullSelected.forEach((id) => ids.add(id))
     return ids
-  }, [retailer.authorizedItems, halfPallet, fullPallet])
+  }, [halfSelected, fullSelected])
 
   const rows: MatrixRow[] = useMemo(() => {
     return Array.from(allRowIds)
@@ -170,6 +206,8 @@ export function ProgramMatrix({
           kaycoItemNumber: product?.kaycoItemNumber ?? '',
           brand: product?.brandCode || product?.brand || '',
           unitsPerCase: product ? getUnitsPerCase(product) : null,
+          onHalf: halfSelected.has(id),
+          onFull: fullSelected.has(id),
           halfCases,
           fullCases,
         }
@@ -179,24 +217,22 @@ export function ProgramMatrix({
           left.brand.localeCompare(right.brand) ||
           left.productName.localeCompare(right.productName),
       )
-  }, [allRowIds, halfPallet, fullPallet, productMap])
+  }, [allRowIds, halfPallet, fullPallet, productMap, halfSelected, fullSelected])
 
   const halfQty = halfPallet?.quantity ?? 1
   const fullQty = fullPallet?.quantity ?? 1
 
   const filteredRows = useMemo(() => {
     const query = search.trim().toLowerCase()
-    return rows.filter((row) => {
-      if (filledOnly && row.halfCases === 0 && row.fullCases === 0) return false
-      if (!query) return true
-      return (
+    if (!query) return rows
+    return rows.filter(
+      (row) =>
         row.productName.toLowerCase().includes(query) ||
         row.kaycoItemNumber.toLowerCase().includes(query) ||
         row.upc.toLowerCase().includes(query) ||
-        row.brand.toLowerCase().includes(query)
-      )
-    })
-  }, [rows, search, filledOnly])
+        row.brand.toLowerCase().includes(query),
+    )
+  }, [rows, search])
 
   const totals = useMemo(() => {
     let halfCases = 0
@@ -214,10 +250,65 @@ export function ProgramMatrix({
     return { halfCases, fullCases, totalCases, totalUnits }
   }, [rows, halfQty, fullQty])
 
-  const filledCount = useMemo(
-    () => rows.filter((r) => r.halfCases > 0 || r.fullCases > 0).length,
+  const canBulkDecrement = useMemo(
+    () => rows.some((row) => row.halfCases > 0 || row.fullCases > 0),
     [rows],
   )
+  const canBulkIncrement = useMemo(
+    () =>
+      rows.some(
+        (row) =>
+          (row.onHalf && row.halfCases === 0) ||
+          (row.onFull && row.fullCases === 0),
+      ),
+    [rows],
+  )
+
+  function bulkAdjust(delta: number) {
+    for (const row of rows) {
+      if (row.onHalf && halfPallet) {
+        // + only fills empty cells; − decrements existing cases.
+        const shouldTouch = delta > 0 ? row.halfCases === 0 : row.halfCases > 0
+        if (shouldTouch) {
+          const next = Math.max(0, row.halfCases + delta)
+          if (next !== row.halfCases) {
+            onCellChange?.(halfPallet.id, row.productId, next)
+          }
+        }
+      }
+      if (row.onFull && fullPallet) {
+        const shouldTouch = delta > 0 ? row.fullCases === 0 : row.fullCases > 0
+        if (shouldTouch) {
+          const next = Math.max(0, row.fullCases + delta)
+          if (next !== row.fullCases) {
+            onCellChange?.(fullPallet.id, row.productId, next)
+          }
+        }
+      }
+    }
+  }
+
+  if (rows.length === 0) {
+    return (
+      <div className="bg-white shadow-card rounded-xl py-16 px-8 text-center">
+        <p className="text-[15px] font-semibold text-[#171717]">
+          No items picked yet
+        </p>
+        <p className="text-[12px] text-[#888] mt-2 max-w-md mx-auto">
+          Choose which items go on this program in the Items tab, then come
+          back here to enter case counts.
+        </p>
+        {onGoToItems && (
+          <button
+            onClick={onGoToItems}
+            className="mt-6 inline-flex items-center gap-2 px-4 py-2 rounded-md bg-[#171717] text-white text-[13px] font-medium hover:bg-[#333] transition-colors"
+          >
+            Pick items
+          </button>
+        )}
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-3">
@@ -229,7 +320,7 @@ export function ProgramMatrix({
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder={`Search ${rows.length} items by name, Kayco #, UPC, brand…`}
+            placeholder={`Search ${rows.length} picked items…`}
             className="w-full pl-9 pr-9 h-9 text-[13px] shadow-border rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-[#0a72ef]/30 focus:shadow-none placeholder:text-[#aaa]"
           />
           {search && (
@@ -242,17 +333,51 @@ export function ProgramMatrix({
             </button>
           )}
         </div>
-        <label className="inline-flex items-center gap-1.5 text-[12px] text-[#555] cursor-pointer select-none">
-          <input
-            type="checkbox"
-            checked={filledOnly}
-            onChange={(e) => setFilledOnly(e.target.checked)}
-            className="accent-[#171717]"
-          />
-          Filled only
-        </label>
-        <div className="ml-auto text-[11px] text-[#888] tabular-nums">
-          {filledCount} of {rows.length} items have cases
+        <div className="ml-auto flex items-center gap-4 text-[11px] text-[#888]">
+          {!readOnly && (
+            <span className="inline-flex items-center gap-1.5">
+              <span className="text-[11px] text-[#888]">Adjust all</span>
+              <button
+                type="button"
+                onClick={() => bulkAdjust(-1)}
+                disabled={!canBulkDecrement}
+                aria-label="Subtract 1 case from every item"
+                className="w-7 h-7 inline-flex items-center justify-center rounded-md ring-1 ring-[#e5e5e5] text-[#555] hover:bg-[#fafafa] hover:text-[#171717] disabled:text-[#ddd] disabled:hover:bg-transparent disabled:cursor-not-allowed transition-colors"
+              >
+                <Minus className="w-3 h-3" strokeWidth={2.5} />
+              </button>
+              <button
+                type="button"
+                onClick={() => bulkAdjust(1)}
+                disabled={!canBulkIncrement}
+                aria-label="Set 1 case on every empty item"
+                title="Set 1 case on every item that has no cases yet"
+                className="w-7 h-7 inline-flex items-center justify-center rounded-md ring-1 ring-[#e5e5e5] text-[#555] hover:bg-[#fafafa] hover:text-[#171717] disabled:text-[#ddd] disabled:hover:bg-transparent disabled:cursor-not-allowed transition-colors"
+              >
+                <Plus className="w-3 h-3" strokeWidth={2.5} />
+              </button>
+            </span>
+          )}
+          {halfPallet && (
+            <span className="inline-flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              Half × <QuantityInput
+                value={halfQty}
+                disabled={readOnly}
+                onCommit={(next) => onQuantityChange?.(halfPallet.id, next)}
+              />
+            </span>
+          )}
+          {fullPallet && (
+            <span className="inline-flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+              Full × <QuantityInput
+                value={fullQty}
+                disabled={readOnly}
+                onCommit={(next) => onQuantityChange?.(fullPallet.id, next)}
+              />
+            </span>
+          )}
         </div>
       </div>
 
@@ -261,90 +386,31 @@ export function ProgramMatrix({
         <div className="overflow-auto max-h-[70vh]">
           <table className="w-full border-separate border-spacing-0">
             <thead className="sticky top-0 z-20 bg-white">
-              {/* Group header row */}
-              <tr>
-                <th
-                  className="text-left text-[10px] font-medium uppercase tracking-wider text-[#bbb] px-6 pt-3 pb-1 sticky left-0 bg-white z-10"
-                  colSpan={4}
-                  style={{ boxShadow: '0 1px 0 0 rgba(0,0,0,0.04)' }}
-                />
-                {halfPallet && (
-                  <th
-                    colSpan={1}
-                    className="text-center text-[10px] font-semibold uppercase tracking-wider text-emerald-700 px-3 pt-3 pb-1 bg-emerald-50/60"
-                    style={{ boxShadow: '0 1px 0 0 rgba(0,0,0,0.04)' }}
-                  >
-                    <div className="flex items-center justify-center gap-2">
-                      <span>Half pallet</span>
-                      <span className="inline-flex items-center gap-1 text-emerald-600/70 text-[9px] normal-case">
-                        qty
-                        <QuantityInput
-                          value={halfPallet.quantity ?? 1}
-                          disabled={readOnly}
-                          onCommit={(next) =>
-                            onQuantityChange?.(halfPallet.id, next)
-                          }
-                        />
-                      </span>
-                    </div>
-                  </th>
-                )}
-                {fullPallet && (
-                  <th
-                    colSpan={1}
-                    className="text-center text-[10px] font-semibold uppercase tracking-wider text-blue-700 px-3 pt-3 pb-1 bg-blue-50/60"
-                    style={{ boxShadow: '0 1px 0 0 rgba(0,0,0,0.04)' }}
-                  >
-                    <div className="flex items-center justify-center gap-2">
-                      <span>Full pallet</span>
-                      <span className="inline-flex items-center gap-1 text-blue-600/70 text-[9px] normal-case">
-                        qty
-                        <QuantityInput
-                          value={fullPallet.quantity ?? 1}
-                          disabled={readOnly}
-                          onCommit={(next) =>
-                            onQuantityChange?.(fullPallet.id, next)
-                          }
-                        />
-                      </span>
-                    </div>
-                  </th>
-                )}
-                <th
-                  colSpan={2}
-                  className="bg-white"
-                  style={{ boxShadow: '0 1px 0 0 rgba(0,0,0,0.04)' }}
-                />
-              </tr>
-              {/* Column header row */}
               <tr className="bg-white">
-                <th className="text-left text-[10px] font-medium uppercase tracking-wider text-[#bbb] px-6 py-2 sticky left-0 bg-white z-10">
+                <th className="text-left text-[10px] font-medium uppercase tracking-wider text-[#bbb] px-6 py-3 sticky left-0 bg-white z-10 border-b border-[#f0f0f0]">
                   Product
                 </th>
-                <th className="text-left text-[10px] font-medium uppercase tracking-wider text-[#bbb] px-3 py-2">
-                  UPC
-                </th>
-                <th className="text-left text-[10px] font-medium uppercase tracking-wider text-[#bbb] px-3 py-2">
+                <th className="text-left text-[10px] font-medium uppercase tracking-wider text-[#bbb] px-3 py-3 border-b border-[#f0f0f0]">
                   Kayco #
                 </th>
-                <th className="text-right text-[10px] font-medium uppercase tracking-wider text-[#bbb] px-3 py-2">
+                <th className="text-right text-[10px] font-medium uppercase tracking-wider text-[#bbb] px-3 py-3 border-b border-[#f0f0f0]">
                   Pack
                 </th>
                 {halfPallet && (
-                  <th className="text-right text-[10px] font-medium uppercase tracking-wider text-emerald-700/70 px-3 py-2 bg-emerald-50/60">
-                    Cases / pallet
+                  <th className="text-right text-[10px] font-medium uppercase tracking-wider text-emerald-700 px-3 py-3 border-b border-[#f0f0f0]">
+                    Half cases
                   </th>
                 )}
                 {fullPallet && (
-                  <th className="text-right text-[10px] font-medium uppercase tracking-wider text-blue-700/70 px-3 py-2 bg-blue-50/60">
-                    Cases / pallet
+                  <th className="text-right text-[10px] font-medium uppercase tracking-wider text-blue-700 px-3 py-3 border-b border-[#f0f0f0]">
+                    Full cases
                   </th>
                 )}
-                <th className="text-right text-[10px] font-medium uppercase tracking-wider text-[#bbb] px-3 py-2">
-                  Total Cases
+                <th className="text-right text-[10px] font-medium uppercase tracking-wider text-[#bbb] px-3 py-3 border-b border-[#f0f0f0]">
+                  Cases
                 </th>
-                <th className="text-right text-[10px] font-medium uppercase tracking-wider text-[#bbb] px-6 py-2">
-                  Total Units
+                <th className="text-right text-[10px] font-medium uppercase tracking-wider text-[#bbb] px-6 py-3 border-b border-[#f0f0f0]">
+                  Units
                 </th>
               </tr>
             </thead>
@@ -352,18 +418,17 @@ export function ProgramMatrix({
               {filteredRows.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={6 + (halfPallet ? 1 : 0) + (fullPallet ? 1 : 0)}
+                    colSpan={5 + (halfPallet ? 1 : 0) + (fullPallet ? 1 : 0)}
                     className="px-6 py-10 text-center text-[12px] text-[#888]"
                   >
-                    {rows.length === 0
-                      ? `No authorized items for ${retailer.name} yet. Ask your manager to authorize items.`
-                      : 'No items match your filters.'}
+                    No items match your search.
                   </td>
                 </tr>
               ) : (
                 filteredRows.map((row) => {
                   const orderCases =
-                    row.halfCases * halfQty + row.fullCases * fullQty
+                    (row.onHalf ? row.halfCases * halfQty : 0) +
+                    (row.onFull ? row.fullCases * fullQty : 0)
                   const orderUnits = row.unitsPerCase
                     ? orderCases * row.unitsPerCase
                     : null
@@ -373,18 +438,10 @@ export function ProgramMatrix({
                       className="hover:bg-[#fafafa] transition-colors"
                       style={{ boxShadow: '0 -1px 0 0 rgba(0,0,0,0.04)' }}
                     >
-                      <td className="px-6 py-2 sticky left-0 bg-white group-hover:bg-[#fafafa] z-10">
+                      <td className="px-6 py-2 sticky left-0 bg-white z-10">
                         <p className="text-[13px] font-medium text-[#171717]">
                           {row.productName}
                         </p>
-                        {row.brand && (
-                          <p className="text-[10px] text-[#999] capitalize">
-                            {row.brand}
-                          </p>
-                        )}
-                      </td>
-                      <td className="px-3 py-2 text-[11px] text-[#888] font-mono">
-                        {row.upc || '—'}
                       </td>
                       <td className="px-3 py-2 text-[11px] text-[#888] font-mono">
                         {row.kaycoItemNumber || '—'}
@@ -393,27 +450,35 @@ export function ProgramMatrix({
                         {row.unitsPerCase ?? '—'}
                       </td>
                       {halfPallet && (
-                        <td className="px-3 py-2 text-right bg-emerald-50/30">
-                          <CellInput
-                            tone="half"
-                            cases={row.halfCases}
-                            disabled={readOnly}
-                            onCommit={(value) =>
-                              onCellChange?.(halfPallet.id, row.productId, value)
-                            }
-                          />
+                        <td className="px-3 py-2 text-right">
+                          {row.onHalf ? (
+                            <CellInput
+                              tone="half"
+                              cases={row.halfCases}
+                              disabled={readOnly}
+                              onCommit={(value) =>
+                                onCellChange?.(halfPallet.id, row.productId, value)
+                              }
+                            />
+                          ) : (
+                            <span className="text-[#ddd]">—</span>
+                          )}
                         </td>
                       )}
                       {fullPallet && (
-                        <td className="px-3 py-2 text-right bg-blue-50/30">
-                          <CellInput
-                            tone="full"
-                            cases={row.fullCases}
-                            disabled={readOnly}
-                            onCommit={(value) =>
-                              onCellChange?.(fullPallet.id, row.productId, value)
-                            }
-                          />
+                        <td className="px-3 py-2 text-right">
+                          {row.onFull ? (
+                            <CellInput
+                              tone="full"
+                              cases={row.fullCases}
+                              disabled={readOnly}
+                              onCommit={(value) =>
+                                onCellChange?.(fullPallet.id, row.productId, value)
+                              }
+                            />
+                          ) : (
+                            <span className="text-[#ddd]">—</span>
+                          )}
                         </td>
                       )}
                       <td className="px-3 py-2 text-[13px] font-semibold text-[#171717] text-right tabular-nums">
@@ -427,34 +492,32 @@ export function ProgramMatrix({
                 })
               )}
             </tbody>
-            {rows.length > 0 && (
-              <tfoot className="sticky bottom-0 z-10">
-                <tr className="bg-[#fafafa]" style={{ boxShadow: '0 -1px 0 0 rgba(0,0,0,0.06)' }}>
-                  <td
-                    className="px-6 py-3 text-[12px] font-semibold text-[#171717] sticky left-0 bg-[#fafafa] z-10"
-                    colSpan={4}
-                  >
-                    Order totals
+            <tfoot className="sticky bottom-0 z-10">
+              <tr className="bg-[#fafafa]" style={{ boxShadow: '0 -1px 0 0 rgba(0,0,0,0.06)' }}>
+                <td
+                  className="px-6 py-3 text-[12px] font-semibold text-[#171717] sticky left-0 bg-[#fafafa] z-10"
+                  colSpan={3}
+                >
+                  Totals
+                </td>
+                {halfPallet && (
+                  <td className="px-3 py-3 text-[13px] font-semibold text-emerald-800 text-right tabular-nums">
+                    {totals.halfCases || '—'}
                   </td>
-                  {halfPallet && (
-                    <td className="px-3 py-3 text-[13px] font-semibold text-emerald-800 text-right tabular-nums bg-emerald-50">
-                      {totals.halfCases || '—'}
-                    </td>
-                  )}
-                  {fullPallet && (
-                    <td className="px-3 py-3 text-[13px] font-semibold text-blue-800 text-right tabular-nums bg-blue-50">
-                      {totals.fullCases || '—'}
-                    </td>
-                  )}
-                  <td className="px-3 py-3 text-[13px] font-semibold text-[#171717] text-right tabular-nums">
-                    {totals.totalCases || '—'}
+                )}
+                {fullPallet && (
+                  <td className="px-3 py-3 text-[13px] font-semibold text-blue-800 text-right tabular-nums">
+                    {totals.fullCases || '—'}
                   </td>
-                  <td className="px-6 py-3 text-[13px] font-semibold text-[#171717] text-right tabular-nums">
-                    {totals.totalUnits || '—'}
-                  </td>
-                </tr>
-              </tfoot>
-            )}
+                )}
+                <td className="px-3 py-3 text-[13px] font-semibold text-[#171717] text-right tabular-nums">
+                  {totals.totalCases || '—'}
+                </td>
+                <td className="px-6 py-3 text-[13px] font-semibold text-[#171717] text-right tabular-nums">
+                  {totals.totalUnits || '—'}
+                </td>
+              </tr>
+            </tfoot>
           </table>
         </div>
       </div>
