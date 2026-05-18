@@ -37,6 +37,14 @@ export function SalesmanHome() {
   const setActiveSalespersonId = useRoleStore((state) => state.setActiveSalespersonId)
 
   const [wizardOpen, setWizardOpen] = useState(false)
+  const [wizardPinnedRetailerId, setWizardPinnedRetailerId] = useState<
+    string | null
+  >(null)
+
+  const openWizard = (retailerId: string | null = null) => {
+    setWizardPinnedRetailerId(retailerId)
+    setWizardOpen(true)
+  }
 
   const activeSalesperson = activeSalespersonId
     ? salespeople.find((sp) => sp.id === activeSalespersonId) ?? null
@@ -211,7 +219,7 @@ export function SalesmanHome() {
           </h1>
         </div>
         <button
-          onClick={() => setWizardOpen(true)}
+          onClick={() => openWizard(null)}
           disabled={buildableRetailerIds.length === 0}
           title={
             buildableRetailerIds.length === 0
@@ -273,7 +281,7 @@ export function SalesmanHome() {
                   </p>
                   {!bucket.isInactive && (
                     <button
-                      onClick={() => setWizardOpen(true)}
+                      onClick={() => openWizard(bucket.retailerId)}
                       className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-[#171717] text-white text-[12px] font-medium hover:bg-[#333] transition-colors"
                     >
                       <Plus className="w-3.5 h-3.5" />
@@ -357,6 +365,7 @@ export function SalesmanHome() {
         open={wizardOpen}
         onClose={() => setWizardOpen(false)}
         allowedRetailerIds={buildableRetailerIds}
+        pinnedRetailerId={wizardPinnedRetailerId ?? undefined}
       />
     </div>
   )
