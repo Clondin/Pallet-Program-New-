@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Navigate, useNavigate } from 'react-router-dom'
 import {
   Plus,
   Search,
@@ -9,7 +9,6 @@ import {
 import { useRetailerStore } from '../stores/retailer-store'
 import { useDisplayStore } from '../stores/display-store'
 import { useRoleStore } from '../stores/role-store'
-import { useSalespersonStore } from '../stores/salesperson-store'
 import { RetailerCard } from '../components/Retailers/retailer-card'
 import { RetailerForm } from '../components/Retailers/retailer-form'
 import { useConfirm } from '../components/ConfirmDialog'
@@ -27,12 +26,12 @@ export function RetailersPage() {
   const { retailers, addRetailer, updateRetailer, deleteRetailer } = useRetailerStore()
   const projects = useDisplayStore((state) => state.projects)
   const role = useRoleStore((state) => state.role)
-  const activeSalespersonId = useRoleStore((state) => state.activeSalespersonId)
-  const salespeople = useSalespersonStore((state) => state.salespeople)
-  const activeSalesperson =
-    role === 'salesman' && activeSalespersonId
-      ? salespeople.find((sp) => sp.id === activeSalespersonId)
-      : null
+  // The salesman home already lists every assigned retailer with their
+  // programs underneath, so this directory view is redundant for that role.
+  if (role === 'salesman') {
+    return <Navigate to="/salesman" replace />
+  }
+  const activeSalesperson = null
   const navigate = useNavigate()
   const { confirm, dialog: confirmDialog } = useConfirm()
   const [isFormOpen, setIsFormOpen] = useState(false)
@@ -132,12 +131,10 @@ export function RetailersPage() {
     navigate(`/${role}/retailers/${id}`)
   }
 
-  const isSalesman = role === 'salesman'
+  const isSalesman = false
   const isManager = role === 'manager'
-  const headerLabel = isSalesman ? 'My retailers' : 'Programs'
-  const headerCount = isSalesman
-    ? `${filteredRetailers.length} retailer${filteredRetailers.length === 1 ? '' : 's'} assigned`
-    : `${retailers.length} ${retailers.length === 1 ? 'program' : 'programs'}`
+  const headerLabel = 'Programs'
+  const headerCount = `${retailers.length} ${retailers.length === 1 ? 'program' : 'programs'}`
 
   return (
     <div className={`${isSalesman ? 'px-8 py-10 max-w-[1280px] mx-auto' : 'px-10 py-10 max-w-[1600px]'}`}>
