@@ -10,6 +10,7 @@ import {
   useSeasonStore,
 } from '../../stores/season-store'
 import { useRoleHref } from '../../lib/role-href'
+import { SpinningPallet } from './SpinningPallet'
 import type { Holiday, PalletType, Retailer, Season } from '../../types'
 
 interface StartProgramWizardProps {
@@ -81,7 +82,7 @@ function SelectionCard({
       } ${className}`}
     >
       {selected && (
-        <div className="absolute top-3 right-3 w-5 h-5 rounded-full bg-white flex items-center justify-center">
+        <div className="absolute top-3 right-3 w-5 h-5 rounded-full bg-white flex items-center justify-center z-10 shadow-md">
           <Check size={12} className="text-[#111]" />
         </div>
       )}
@@ -360,6 +361,9 @@ export function StartProgramWizard({
                     selected={includeHalf}
                     onClick={() => setIncludeHalf((v) => !v)}
                   >
+                    <div className="h-[280px] -mx-2 -mt-2 mb-3 pointer-events-none">
+                      <SpinningPallet palletType="half" />
+                    </div>
                     <p className="text-[15px] font-semibold text-white">
                       Half pallet
                     </p>
@@ -371,6 +375,9 @@ export function StartProgramWizard({
                     selected={includeFull}
                     onClick={() => setIncludeFull((v) => !v)}
                   >
+                    <div className="h-[280px] -mx-2 -mt-2 mb-3 pointer-events-none">
+                      <SpinningPallet palletType="full" />
+                    </div>
                     <p className="text-[15px] font-semibold text-white">
                       Full pallet
                     </p>
